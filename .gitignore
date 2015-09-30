@@ -1,0 +1,14 @@
+#ignore directories
+_prn/
+obj/
+/bin
+/tool
+
+#ignore files
+*.bin
+*.map
+*_.c
+*.abs
+*.HEX
+*.exe
+*.pref
