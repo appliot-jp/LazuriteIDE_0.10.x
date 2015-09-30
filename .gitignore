@@ -5,10 +5,10 @@ obj/
 /tool
 
 #ignore files
-*.bin
-*.map
-*_.c
-*.abs
-*.HEX
+/examples/*.bin
+/examples/*.map
+/examples/*_.c
+/examples/*.abs
+/examples/*.HEX
 *.exe
 *.pref
