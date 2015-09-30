@@ -1,0 +1,1007 @@
+RLU8 Object Linker, Ver.1.51.2 Linkage Information
+[Wed Sep 30 14:22:01 2015]
+
+
+                         ------------------
+                          Control Synopsis
+                         ------------------
+
+I/O controls:    D  SD  S NA
+Other controls: CC STACK( 0200H(512) )
+                COMB( $$content_of_init $$end_of_init )
+                COMB( $$init_info $$init_info_end )
+
+
+
+                        ------------------------
+                         Object Module Synopsis
+                        ------------------------
+                                                                Creator
+Module Name           File Name                                 CCU8     RASU8
+-----------           ---------                                 -----    -----
+KX022_                obj\KX022_.obj                            3.41     1.61
+kx022                 obj\kx022.obj                             3.41     1.61
+Wire                  obj\Wire.obj                              3.41     1.61
+ml620504f             obj\ml620504f.obj                         -.--     1.61
+main                  obj\main.obj                              3.41     1.61
+flash                 obj\flash.obj                             3.41     1.61
+analogio              obj\analogio.obj                          3.41     1.61
+print                 obj\print.obj                             3.41     1.61
+digitalio             obj\digitalio.obj                         3.41     1.61
+lazurite_system       obj\lazurite_system.obj                   3.41     1.61
+serial                obj\serial.obj                            3.41     1.61
+tone                  obj\tone.obj                              3.41     1.61
+WInterrupts           obj\WInterrupts.obj                       3.41     1.61
+wiring_shift          obj\wiring_shift.obj                      3.41     1.61
+WMath                 obj\WMath.obj                             3.41     1.61
+driver_adc            obj\driver_adc.obj                        3.41     1.61
+driver_extirq         obj\driver_extirq.obj                     3.41     1.61
+driver_gpio           obj\driver_gpio.obj                       3.41     1.61
+driver_i2c            obj\driver_i2c.obj                        3.41     1.61
+driver_irq            obj\driver_irq.obj                        3.41     1.61
+driver_timer          obj\driver_timer.obj                      3.41     1.61
+driver_tmout          obj\driver_tmout.obj                      3.41     1.61
+driver_uart           obj\driver_uart.obj                       3.41     1.61
+driver_flash          obj\driver_flash.obj                      3.41     1.61
+lp_manage             obj\lp_manage.obj                         3.41     1.61
+wdt                   obj\wdt.obj                               3.41     1.61
+rand                  C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\LU8100SW.lib -.--     1.04
+ULDIVSW               C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\LONGU8.lib -.--     1.04
+DIV32SW               C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\LONGU8.lib -.--     1.04
+DDIVSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+ETODSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+SHIFTSW               C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+FDIVSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+DTOFSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+DSUBSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+SLDIVSW               C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\LONGU8.lib -.--     1.04
+DTOESW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+ROUNSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+NORMSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+FTOESW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+strlen_n              C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\LU8100SW.lib -.--     1.04
+SLDIMOSW              C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\LONGU8.lib -.--     1.04
+memcpy_nn             C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\LU8100SW.lib -.--     1.04
+strncat_nn            C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\LU8100SW.lib -.--     1.04
+EDIVSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+CMPFSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+ETOFSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+DADDSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+EADDSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+DCMPSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+ECMPSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+DILDSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+LTOESW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+FILDSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+DMULSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+EMULSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+DTOLSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+ETOLSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+FTODSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+FMULSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+FTOLSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+FULDSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\DOUBLEU8.LIB -.--     1.04
+IMULSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\LONGU8.lib -.--     1.04
+SLMODSW               C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\LONGU8.lib -.--     1.04
+LMULSW                C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\LONGU8.lib -.--     1.04
+strcpy_nn             C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\LU8100SW.lib -.--     1.04
+abs                   C:\Users\Naotaka\DOCUME~1\lazurite\LAZURI~1\bin\u8dev\Lib\LU8100SW.lib -.--     1.04
+
+
+Number of Modules: 67
+
+Number of Symbols:
+ +---------------------------------------------------------------------------+
+ |          | CODE | DATA | BIT  |NVDATA|NVBIT |TABLE |NUMBER| TBIT || total |
+ |----------+------+------+------+------+------+------+------+------++-------|
+ | SEGMENT  |   252|     8|     0|     0|     0|    49|      |      ||    309|
+ |----------+------+------+------+------+------+------+------+------++-------|
+ | COMMUNAL |     0|     6|     0|     0|     0|     0|      |      ||      6|
+ |----------+------+------+------+------+------+------+------+------++-------|
+ | PUBLIC   |   150|     5|     0|     0|     0|    19|     0|     0||    174|
+ +---------------------------------------------------------------------------+
+
+Target:  ML620504F 
+Model:   SMALL
+
+
+Memory Map - Program memory space #0:
+      Type     Start      Stop
+     -----------------------------
+      ROM      00:0000    00:FDFF
+
+Memory Map - Data memory space #0:
+      Type     Start      Stop
+     -----------------------------
+      RAM      00:D800    00:FFFF
+
+Memory Map - Memory space above #1:
+      Type     Start      Stop
+     -----------------------------
+      ROM      07:0000    07:07FF
+      ROM      08:0000    08:FDFF
+      ROM      0F:0000    0F:07FF
+
+                         ------------------
+                          Segment Synopsis
+                         ------------------
+
+Link Map - Program memory space #0 ( ROMWINDOW: 0000 - D7FF )
+
+      Type     Start      Stop       Size              Name
+     -------------------------------------------------------
+      S CODE   00:0000    00:0001    0002(2)           (absolute)
+      S CODE   00:0002    00:0003    0002(2)           (absolute)
+      S CODE   00:0004    00:0005    0002(2)           (absolute)
+      S TABLE  00:0006    00:0006    0001(1)           $$TAB$$S8$KX022_
+>GAP<          00:0007    00:0007    0001(1)           (ROM)
+      S CODE   00:0008    00:0009    0002(2)           (absolute)
+      S TABLE  00:000A    00:000E    0005(5)           $$TAB$$S5$KX022_
+>GAP<          00:000F    00:000F    0001(1)           (ROM)
+      S CODE   00:0010    00:002D    001E(30)          (absolute)
+      S TABLE  00:002E    00:0031    0004(4)           $$TABkx022$kx022
+      S TABLE  00:0032    00:0035    0004(4)           $$TAB$$S72$print
+      S TABLE  00:0036    00:0038    0003(3)           $$TAB$$S49$serial
+>GAP<          00:0039    00:0039    0001(1)           (ROM)
+      S CODE   00:003A    00:0043    000A(10)          (absolute)
+      S CODE   00:0044    00:0044    0000(0)           $$content_of_init
+      S CODE   00:0044    00:0045    0002(2)           $$end_of_init
+      S CODE   00:0046    00:0047    0002(2)           $$_intNullHdr$driver_irq
+      S CODE   00:0048    00:004B    0004(4)           (absolute)
+      S CODE   00:004C    00:004F    0004(4)           $$watch_dog_isr$lazurite_system
+      S CODE   00:0050    00:0067    0018(24)          (absolute)
+      S TABLE  00:0068    00:006F    0008(8)           $$TABnum_to_bit$driver_timer
+      S CODE   00:0070    00:0075    0006(6)           (absolute)
+      S TABLE  00:0076    00:0082    000D(13)          $$TAB$$S6$KX022_
+>GAP<          00:0083    00:0083    0001(1)           (ROM)
+      S TABLE  00:0084    00:0090    000D(13)          $$TAB$$S7$KX022_
+>GAP<          00:0091    00:0091    0001(1)           (ROM)
+      S TABLE  00:0092    00:00A1    0010(16)          $$NTABi2c_isr$driver_i2c
+      S TABLE  00:00A2    00:00AE    000D(13)          $$TAB$$S4$KX022_
+>GAP<          00:00AF    00:00AF    0001(1)           (ROM)
+      S TABLE  00:00B0    00:012F    0080(128)         $$TABLE_SEGMENT
+      S TABLE  00:0130    00:014D    001E(30)          $$TABSerial$serial
+      S TABLE  00:014E    00:01CF    0082(130)         $$NINITTAB
+      S TABLE  00:01D0    00:01EB    001C(28)          $$TAB$$S40$kx022
+      S TABLE  00:01EC    00:01F3    0008(8)           $$init_info
+      S TABLE  00:01F4    00:01F5    0002(2)           $$init_info_end
+      S TABLE  00:01F6    00:0205    0010(16)          $$TABWire$Wire
+      S TABLE  00:0206    00:0216    0011(17)          $$TAB$$S21$kx022
+>GAP<          00:0217    00:0217    0001(1)           (ROM)
+      S TABLE  00:0218    00:022A    0013(19)          $$TAB$$S17$kx022
+>GAP<          00:022B    00:022B    0001(1)           (ROM)
+      S TABLE  00:022C    00:024D    0022(34)          $$TAB$$S18$kx022
+      S TABLE  00:024E    00:0277    002A(42)          $$TAB$$S24$kx022
+      S TABLE  00:0278    00:0298    0021(33)          $$TAB$$S30$kx022
+>GAP<          00:0299    00:0299    0001(1)           (ROM)
+      S TABLE  00:029A    00:02BB    0022(34)          $$TAB$$S27$kx022
+      S TABLE  00:02BC    00:02E1    0026(38)          $$TAB$$S33$kx022
+      S TABLE  00:02E2    00:030C    002B(43)          $$TAB$$S36$kx022
+>GAP<          00:030D    00:030D    0001(1)           (ROM)
+      S CODE   00:030E    00:0347    003A(58)          $$XNCODmemcpy_nn
+      S CODE   00:0348    00:036B    0024(36)          $$s_handlerTM5INT$driver_irq
+      S CODE   00:036C    00:038F    0024(36)          $$s_handlerI2C1INT$driver_irq
+      S CODE   00:0390    00:03C7    0038(56)          $$_hardware_serial_print$serial
+      S CODE   00:03C8    00:0485    00BE(190)         $$delay_long$lazurite_system
+      S CODE   00:0486    00:0529    00A4(164)         $$uart_begin$driver_uart
+      S CODE   00:052A    00:054D    0024(36)          $$s_handlerFTM2INT$driver_irq
+      S CODE   00:054E    00:0565    0018(24)          $$flash_read_word$flash
+      S CODE   00:0566    00:0589    0024(36)          $$s_handlerEXI7INT$driver_irq
+      S CODE   00:058A    00:059B    0012(18)          $$_wire_available$Wire
+      S CODE   00:059C    00:05C3    0028(40)          $$uart_tx_isr$driver_uart
+      S CODE   00:05C4    00:05F5    0032(50)          $$timer_16bit_start$driver_timer
+      S CODE   00:05F6    00:0627    0032(50)          $$irq_sethandler$driver_irq
+      S CODE   00:0628    00:064B    0024(36)          $$s_handlerEXI6INT$driver_irq
+      S CODE   00:064C    00:06FD    00B2(178)         $$loop$KX022_
+      S CODE   00:06FE    00:074D    0050(80)          $$flash_erase$driver_flash
+      S CODE   00:074E    00:0771    0024(36)          $$s_handlerLTBC2INT$driver_irq
+      S CODE   00:0772    00:07B3    0042(66)          $$uart_fifo_out$driver_uart
+      S CODE   00:07B4    00:082D    007A(122)         $$i2c_begin$driver_i2c
+      S CODE   00:082E    00:084D    0020(32)          $$normu8sw
+      S CODE   00:084E    00:0871    0024(36)          $$s_handlerUA0INT$driver_irq
+      S CODE   00:0872    00:0885    0014(20)          $$wdt_clear$wdt
+      S CODE   00:0886    00:0945    00C0(192)         $$kx022_get_val$kx022
+      S CODE   00:0946    00:0969    0024(36)          $$s_handlerUA1INT$driver_irq
+      S CODE   00:096A    00:09B5    004C(76)          $$i2c_update_err_code$driver_i2c
+      S CODE   00:09B6    00:0A05    0050(80)          $$_wire_write$Wire
+      S CODE   00:0A06    00:0A27    0022(34)          $$shiftu8sw
+      S CODE   00:0A28    00:0A37    0010(16)          $$_wire_begin$Wire
+      S CODE   00:0A38    00:0A55    001E(30)          $$XNCODstrcpy_nn
+      S CODE   00:0A56    00:0A79    0024(36)          $$s_handlerSADINT$driver_irq
+      S CODE   00:0A7A    00:0A85    000C(12)          $$roundu8sw
+      S CODE   00:0A86    00:0A9F    001A(26)          $$slmodu8sw
+      S CODE   00:0AA0    00:0AE9    004A(74)          $$i2c_set_rx_buf$driver_i2c
+      S CODE   00:0AEA    00:0B15    002C(44)          $$_hardware_serial_tx_write$serial
+      S CODE   00:0B16    00:0B39    0024(36)          $$s_handlerEXI3INT$driver_irq
+      S CODE   00:0B3A    00:0B6F    0036(54)          $$ndmulu8sw
+      S CODE   00:0B70    00:0BA3    0034(52)          $$_hardware_serial_print_double$serial
+      S CODE   00:0BA4    00:0BCF    002C(44)          $$nfildu8sw
+      S CODE   00:0BD0    00:0BF9    002A(42)          $$ndtolu8sw
+      S CODE   00:0BFA    00:0C33    003A(58)          $$nfmulu8sw
+      S CODE   00:0C34    00:0C59    0026(38)          $$nftodu8sw
+      S CODE   00:0C5A    00:0C83    002A(42)          $$nftolu8sw
+      S CODE   00:0C84    00:0CC5    0042(66)          $$irq_init$driver_irq
+      S CODE   00:0CC6    00:0CF1    002C(44)          $$nfuldu8sw
+      S CODE   00:0CF2    00:0D11    0020(32)          $$_wire_read$Wire
+      S CODE   00:0D12    00:0D35    0024(36)          $$s_handlerEXI2INT$driver_irq
+      S CODE   00:0D36    00:0D59    0024(36)          $$s_handlerFTM0INT$driver_irq
+      S CODE   00:0D5A    00:0D6B    0012(18)          $$uart_fifo_init$driver_uart
+      S CODE   00:0D6C    00:0D8F    0024(36)          $$s_handlerCMP1INT$driver_irq
+      S CODE   00:0D90    00:0DF7    0068(104)         $$kx022_read$kx022
+      S CODE   00:0DF8    00:0E2D    0036(54)          $$ndaddu8sw
+      S CODE   00:0E2E    00:0E5D    0030(48)          $$ndcmpu8sw
+      S CODE   00:0E5E    00:0E87    002A(42)          $$lloadu8sw
+      S CODE   00:0E88    00:0EC9    0042(66)          $$lmulu8sw
+      S CODE   00:0ECA    00:0F1F    0056(86)          $$timer_16bit_stop$driver_timer
+      S CODE   00:0F20    00:0F39    001A(26)          $$isr_sys_timer$lazurite_system
+      S CODE   00:0F3A    00:0F65    002C(44)          $$kx022_get_rawval$kx022
+      S CODE   00:0F66    00:0F6D    0008(8)           $$i2c0_isr$driver_i2c
+      S CODE   00:0F6E    00:0F8F    0022(34)          $$uart_fifo_out_peak$driver_uart
+      S CODE   00:0F90    00:0FB3    0024(36)          $$s_handlerTM2INT$driver_irq
+      S CODE   00:0FB4    00:0FD7    0024(36)          $$s_handlerFTM1INT$driver_irq
+      S CODE   00:0FD8    00:102B    0054(84)          $$floadu8sw
+      S CODE   00:102C    00:1049    001E(30)          $$uart_end$driver_uart
+      S CODE   00:104A    00:106D    0024(36)          $$s_handlerTM3INT$driver_irq
+      S CODE   00:106E    00:1091    0024(36)          $$s_handlerSIO0INT$driver_irq
+      S CODE   00:1092    00:124B    01BA(442)         $$printFloat$print
+      S CODE   00:124C    00:128F    0044(68)          $$uart_fifo_in$driver_uart
+      S CODE   00:1290    00:1351    00C2(194)         $$timer_16bit_set$driver_timer
+      S CODE   00:1352    00:168F    033E(830)         $$i2c_isr$driver_i2c
+      S CODE   00:1690    00:16B7    0028(40)          $$flash_write_word$flash
+      S CODE   00:16B8    00:17B1    00FA(250)         $$daddu8sw
+      S CODE   00:17B2    00:17D5    0024(36)          $$s_handlerLTBC0INT$driver_irq
+      S CODE   00:17D6    00:182F    005A(90)          $$dcmpu8sw
+      S CODE   00:1830    00:1857    0028(40)          $$dildu8sw
+      S CODE   00:1858    00:1991    013A(314)         $$dmulu8sw
+      S CODE   00:1992    00:19B5    0024(36)          $$s_handlerLTBC1INT$driver_irq
+      S CODE   00:19B6    00:19E9    0034(52)          $$_hardware_serial_println_double$serial
+      S CODE   00:19EA    00:1A0D    0024(36)          $$s_handlerRADINT$driver_irq
+      S CODE   00:1A0E    00:1A17    000A(10)          $$lp_setHaltMode$lp_manage
+      S CODE   00:1A18    00:1A41    002A(42)          $$imulu8sw
+      S CODE   00:1A42    00:1AB3    0072(114)         $$dloadu8sw
+      S CODE   00:1AB4    00:1B97    00E4(228)         $$i2c_init$driver_i2c
+      S CODE   00:1B98    00:1BE5    004E(78)          $$_wire_requestFrom$Wire
+      S CODE   00:1BE6    00:1C09    0024(36)          $$s_handlerCMP0INT$driver_irq
+      S CODE   00:1C0A    00:1C45    003C(60)          $$uart_tx_write$driver_uart
+      S CODE   00:1C46    00:1C57    0012(18)          $$i2c_get_status$driver_i2c
+      S CODE   00:1C58    00:1C5F    0008(8)           $$uart_peak$driver_uart
+      S CODE   00:1C60    00:1CAD    004E(78)          $$init$lazurite_system
+      S CODE   00:1CAE    00:1CC5    0018(24)          $$i2c_send_stopbit$driver_i2c
+      S CODE   00:1CC6    00:1CE9    0024(36)          $$s_handlerEXI0INT$driver_irq
+      S CODE   00:1CEA    00:1D0D    0024(36)          $$s_handlerLOSCINT$driver_irq
+      S CODE   00:1D0E    00:1D31    0024(36)          $$s_handlerUAF0INT$driver_irq
+      S CODE   00:1D32    00:1D55    0024(36)          $$s_handlerMD0INT$driver_irq
+      S CODE   00:1D56    00:1D7B    0026(38)          $$_wire_write_byte$Wire
+      S CODE   00:1D7C    00:1EBD    0142(322)         $$kx022_init$kx022
+      S CODE   00:1EBE    00:1EFB    003E(62)          $$kx022_write$kx022
+      S CODE   00:1EFC    00:1F1B    0020(32)          $$uldivu8sw
+      S CODE   00:1F1C    00:1F3F    0024(36)          $$s_handlerEXI4INT$driver_irq
+      S CODE   00:1F40    00:1F9F    0060(96)          $$sldimou8sw
+      S CODE   00:1FA0    00:1FC3    0024(36)          $$s_handlerEXI1INT$driver_irq
+      S CODE   00:1FC4    00:1FD1    000E(14)          $$main$main
+      S CODE   00:1FD2    00:2061    0090(144)         $$NCODml620504fsw
+      S CODE   00:2062    00:207F    001E(30)          $$i2c_set_address$driver_i2c
+      S CODE   00:2080    00:208F    0010(16)          $$_hardware_serial_println$serial
+      S CODE   00:2090    00:20B3    0024(36)          $$s_handlerTM0INT$driver_irq
+      S CODE   00:20B4    00:20C9    0016(22)          $$_wire_beginTransmission$Wire
+      S CODE   00:20CA    00:20ED    0024(36)          $$s_handlerTM1INT$driver_irq
+      S CODE   00:20EE    00:2111    0024(36)          $$_hardware_serial_print_long$serial
+      S CODE   00:2112    00:2181    0070(112)         $$lazurite_gpio_init$lazurite_system
+      S CODE   00:2182    00:21C7    0046(70)          $$flash_write$driver_flash
+      S CODE   00:21C8    00:21CF    0008(8)           $$uart_rx_available$driver_uart
+      S CODE   00:21D0    00:2219    004A(74)          $$i2c_set_tx_buf$driver_i2c
+      S CODE   00:221A    00:2243    002A(42)          $$ndtofu8sw
+      S CODE   00:2244    00:2257    0014(20)          $$ndsubu8sw
+      S CODE   00:2258    00:227D    0026(38)          $$init_timer$lazurite_system
+      S CODE   00:227E    00:22BB    003E(62)          $$_wire_endTransmission$Wire
+      S CODE   00:22BC    00:22F9    003E(62)          $$lstoru8sw
+      S CODE   00:22FA    00:2411    0118(280)         $$printNumber$print
+      S CODE   00:2412    00:2463    0052(82)          $$HALT_Until_Event$lazurite_system
+      S CODE   00:2464    00:247D    001A(26)          $$clk_block_ctrl_init$lazurite_system
+      S CODE   00:247E    00:2505    0088(136)         $$fstoru8sw
+      S CODE   00:2506    00:252B    0026(38)          $$i2c_check_read_last_data$driver_i2c
+      S CODE   00:252C    00:253B    0010(16)          $$uart_rx_read$driver_uart
+      S CODE   00:253C    00:2543    0008(8)           $$uart_flush$driver_uart
+      S CODE   00:2544    00:2567    0024(36)          $$s_handlerVLSINT$driver_irq
+      S CODE   00:2568    00:2579    0012(18)          $$uart_tx_available$driver_uart
+      S CODE   00:257A    00:25AF    0036(54)          $$nddivu8sw
+      S CODE   00:25B0    00:25E9    003A(58)          $$nfdivu8sw
+      S CODE   00:25EA    00:269D    00B4(180)         $$dstoru8sw
+      S CODE   00:269E    00:26B9    001C(28)          $$s_handlerWDTINT$driver_irq
+      S CODE   00:26BA    00:26CB    0012(18)          $$i2c_read_amount$driver_i2c
+      S CODE   00:26CC    00:26DD    0012(18)          $$i2c_get_err_status$driver_i2c
+      S CODE   00:26DE    00:26FF    0022(34)          $$setup$KX022_
+      S CODE   00:2700    00:2723    0024(36)          $$flash_read$driver_flash
+      S CODE   00:2724    00:272B    0008(8)           $$i2c1_isr$driver_i2c
+      S CODE   00:272C    00:274F    0024(36)          $$_hardware_serial_println_long$serial
+      S CODE   00:2750    00:2773    0024(36)          $$s_handlerI2C0INT$driver_irq
+      S CODE   00:2774    00:27BF    004C(76)          $$delay_isr$lazurite_system
+      S CODE   00:27C0    00:27E3    0024(36)          $$s_handlerTM6INT$driver_irq
+      S CODE   00:27E4    00:2923    0140(320)         $$ddivu8sw
+      S CODE   00:2924    00:2947    0024(36)          $$s_handlerSIOF0INT$driver_irq
+      S CODE   00:2948    00:296B    0024(36)          $$s_handlerEXI5INT$driver_irq
+      S CODE   00:296C    00:2987    001C(28)          $$cmpfu8sw
+      S CODE   00:2988    00:2A41    00BA(186)         $$i2c_start$driver_i2c
+      S CODE   00:2A42    00:2A65    0024(36)          $$s_handlerTM7INT$driver_irq
+      S CODE   00:2A66    00:2A93    002E(46)          $$div32u8sw
+      S CODE   00:2A94    00:2AB7    0024(36)          $$s_handlerTM4INT$driver_irq
+      S CODE   00:2AB8    00:2AC3    000C(12)          $$uart_rx_isr$driver_uart
+      S CODE   00:2AC4    00:2AE7    0024(36)          $$s_handlerFTM3INT$driver_irq
+>GAP<          00:2AE8    00:FBFF    D118(53528)       (ROM)
+      S CODE   00:FC00    00:FDFF    0200(512)         (absolute)
+
+
+Link Map - Data memory space #0
+
+      Type     Start      Stop       Size              Name
+     -------------------------------------------------------
+      Q ROMWIN 00:0000    00:D7FF    D800(55296)       (ROMWIN)
+>GAP<          00:D800.0  00:EA39.7  123A.0(4666.0)    (RAM)
+      S DATA   00:EA3A    00:EC39    0200(512)         $STACK
+      C DATA   00:EC3A    00:EC3B    0002(2)           __tone_port
+      C DATA   00:EC3C    00:EC6B    0030(48)          _ext_irq_param
+      S DATA   00:EC6C    00:EC7B    0010(16)          $$NVARlazurite_system
+      S DATA   00:EC7C    00:ECC7    004C(76)          $$NVARdriver_irq
+      C DATA   00:ECC8    00:ECCB    0004(4)           __tone_toggle_count
+      S DATA   00:ECCC    00:ED4D    0082(130)         $$NINITVAR
+      S DATA   00:ED4E    00:ED4E    0001(1)           $$NVARkx022
+      C DATA   00:ED4F    00:ED4F    0001(1)           __tone_bit
+      S DATA   00:ED50    00:EDD7    0088(136)         $$NVARWire
+      S DATA   00:EDD8    00:EFD9    0202(514)         $$NVARdriver_uart
+      S DATA   00:EFDA    00:EFFD    0024(36)          $$NVARdriver_i2c
+      C DATA   00:EFFE    00:EFFE    0001(1)           _uartf_tx_sending
+      C DATA   00:EFFF    00:EFFF    0001(1)           _uart_tx_sending
+      Q SFR    00:F000    00:FFFF    1000(4096)        (SFR)
+
+
+Link Map - Memory space above #1
+
+      Type     Start      Stop       Size              Name
+     -------------------------------------------------------
+ ---
+      S TABLE  07:0000    07:07FF    0800(2048)        (absolute)
+ ---
+      S TABLE  08:0000    08:FDFF    FE00(65024)       (absolute)
+ ---
+      S TABLE  0F:0000    0F:07FF    0800(2048)        (absolute)
+
+
+Not Linked segments:
+
+      Module Name         Type       Size              Segment Name 
+     --------------------------------------------------------------
+      Wire
+                          CODE       003C(60)          $$_wire0_endTransmission$Wire
+                          CODE       0012(18)          $$_wire0_available$Wire
+                          CODE       0010(16)          $$_wire0_begin$Wire
+                          CODE       0050(80)          $$_wire0_write$Wire
+                          CODE       004E(78)          $$_wire0_requestFrom$Wire
+                          CODE       0016(22)          $$_wire0_beginTransmission$Wire
+                          TABLE      0010(16)          $$TABWire0$Wire
+                          CODE       0026(38)          $$_wire0_write_byte$Wire
+                          CODE       0020(32)          $$_wire0_read$Wire
+     --------------------------------------------------------------
+      analogio
+                          CODE       0016(22)          $$analogReadResolution$analogio
+                          CODE       002E(46)          $$analogWrite$analogio
+                          TABLE      0010(16)          $$TABpwm_to_ftm$analogio
+                          TABLE      0024(36)          $$TABpin_to_pwm$analogio
+                          TABLE      0006(6)           $$TABanalog_pin_to_port$analogio
+                          CODE       0080(128)         $$analogRead$analogio
+     --------------------------------------------------------------
+      print
+                          CODE       0024(36)          $$printBuf_l$print
+                          CODE       002A(42)          $$printBuf_f$print
+                          CODE       0034(52)          $$printBuf_d$print
+                          TABLE      0002(2)           $$TAB$$S18$print
+                          CODE       0044(68)          $$printBuf_ln$print
+                          CODE       0006(6)           $$printBuf_len$print
+                          CODE       0018(24)          $$printBuf_status$print
+                          CODE       004A(74)          $$printBuf$print
+                          CODE       0028(40)          $$print_init$print
+                          TABLE      0010(16)          $$TABPrint$print
+     --------------------------------------------------------------
+      digitalio
+                          CODE       0012(18)          $$digitalRead$digitalio
+                          CODE       0012(18)          $$digitalWrite$digitalio
+                          TABLE      0024(36)          $$TABdigital_pin_to_port$digitalio
+                          CODE       0012(18)          $$pinMode$digitalio
+     --------------------------------------------------------------
+      lazurite_system
+                          CODE       0066(102)         $$millis$lazurite_system
+                          CODE       00D4(212)         $$sleep_long$lazurite_system
+                          CODE       0028(40)          $$delay_microseconds$lazurite_system
+                          CODE       0074(116)         $$micros$lazurite_system
+     --------------------------------------------------------------
+      serial
+                          CODE       002C(44)          $$_hardware_serial2_tx_write$serial
+                          CODE       0024(36)          $$_hardware_serial2_print_long$serial
+                          CODE       001A(26)          $$_hardware_serial23_begin$serial
+                          CODE       001A(26)          $$_hardware_serial22_begin$serial
+                          CODE       001A(26)          $$_hardware_serial21_begin$serial
+                          CODE       0038(56)          $$_hardware_serial2_print$serial
+                          CODE       000E(14)          $$_hardware_serial21_end$serial
+                          CODE       000E(14)          $$_hardware_serial22_end$serial
+                          CODE       000E(14)          $$_hardware_serial23_end$serial
+                          CODE       0010(16)          $$_hardware_serial2_println$serial
+                          CODE       0034(52)          $$_hardware_serial2_print_double$serial
+                          TABLE      001E(30)          $$TABSerial2$serial
+                          TABLE      001E(30)          $$TABSerial1$serial
+                          TABLE      001E(30)          $$TABSerial3$serial
+                          CODE       0034(52)          $$_hardware_serial2_println_double$serial
+                          CODE       0024(36)          $$_hardware_serial2_println_long$serial
+     --------------------------------------------------------------
+      tone
+                          CODE       0062(98)          $$timer_tone_isr$tone
+                          CODE       0010(16)          $$noTone$tone
+                          CODE       0132(306)         $$tone$tone
+     --------------------------------------------------------------
+      WInterrupts
+                          CODE       000A(10)          $$detachInterrupt$WInterrupts
+                          CODE       0048(72)          $$attachInterrupt$WInterrupts
+     --------------------------------------------------------------
+      wiring_shift
+                          CODE       004A(74)          $$shiftOut$wiring_shift
+                          CODE       004A(74)          $$shiftIn$wiring_shift
+     --------------------------------------------------------------
+      WMath
+                          CODE       000C(12)          $$randomSeed$WMath
+                          CODE       0052(82)          $$random$WMath
+                          CODE       0086(134)         $$map$WMath
+     --------------------------------------------------------------
+      driver_adc
+                          CODE       0078(120)         $$drv_analogRead$driver_adc
+                          TABLE      000C(12)          $$TABml620504f_ain_to_pin$driver_adc
+     --------------------------------------------------------------
+      driver_extirq
+                          CODE       0006(6)           $$isr_ext_irq3$driver_extirq
+                          CODE       0064(100)         $$drv_detachInterrupt$driver_extirq
+                          CODE       0092(146)         $$isr_ext_irq$driver_extirq
+                          TABLE      0024(36)          $$TABml620504f_exisel$driver_extirq
+                          TABLE      0010(16)          $$NTABdrv_attachInterrupt$driver_extirq
+                          CODE       0006(6)           $$isr_ext_irq5$driver_extirq
+                          CODE       0006(6)           $$isr_ext_irq0$driver_extirq
+                          CODE       0006(6)           $$isr_ext_irq7$driver_extirq
+                          TABLE      0000(0)           $$NTABdriver_extirq
+                          CODE       0006(6)           $$isr_ext_irq2$driver_extirq
+                          CODE       0266(614)         $$drv_attachInterrupt$driver_extirq
+                          CODE       0006(6)           $$isr_ext_irq4$driver_extirq
+                          CODE       0006(6)           $$isr_ext_irq6$driver_extirq
+                          CODE       0006(6)           $$isr_ext_irq1$driver_extirq
+     --------------------------------------------------------------
+      driver_gpio
+                          CODE       0158(344)         $$drv_pinMode$driver_gpio
+                          TABLE      0000(0)           $$NTABdriver_gpio
+                          CODE       0028(40)          $$drv_digitalRead$driver_gpio
+                          CODE       0034(52)          $$drv_digitalWrite$driver_gpio
+                          TABLE      000C(12)          $$NTABdrv_pinMode$driver_gpio
+                          TABLE      0024(36)          $$TABml620504f_pin_to_bit$driver_gpio
+     --------------------------------------------------------------
+      driver_i2c
+                          CODE       0012(18)          $$i2c_write_amount$driver_i2c
+                          TABLE      0000(0)           $$NTABdriver_i2c
+                          CODE       0096(150)         $$i2c_close$driver_i2c
+     --------------------------------------------------------------
+      driver_timer
+                          CODE       0040(64)          $$timer_8bit_stop$driver_timer
+                          CODE       002E(46)          $$timer_8bit_start$driver_timer
+                          CODE       0098(152)         $$timer_8bit_set$driver_timer
+     --------------------------------------------------------------
+      driver_tmout
+                          CODE       01EA(490)         $$drv_analogWrite$driver_tmout
+                          TABLE      0010(16)          $$TABml620504f_tmout_to_pin$driver_tmout
+     --------------------------------------------------------------
+      driver_uart
+                          CODE       0008(8)           $$uartf_rx_available$driver_uart
+                          TABLE      0003(3)           $$TABuartf_gpio_tx_bitmask$driver_uart
+                          CODE       009A(154)         $$uartf_gpio_init$driver_uart
+                          CODE       0008(8)           $$uartf_peak$driver_uart
+                          CODE       0042(66)          $$uartf_tx_write$driver_uart
+                          CODE       0010(16)          $$uartf_rx_read$driver_uart
+                          CODE       000E(14)          $$uartf_end$driver_uart
+                          CODE       007A(122)         $$uartf_isr$driver_uart
+                          CODE       00CC(204)         $$uartf_gpio_end$driver_uart
+                          CODE       0084(132)         $$uartf_begin$driver_uart
+                          CODE       0008(8)           $$uartf_flush$driver_uart
+                          TABLE      0003(3)           $$TABuartf_gpio_rx_bitmask$driver_uart
+                          CODE       0012(18)          $$uartf_tx_available$driver_uart
+     --------------------------------------------------------------
+      lp_manage
+                          CODE       000A(10)          $$lp_setHaltHMode$lp_manage
+                          CODE       0016(22)          $$lp_setStopMode$lp_manage
+                          CODE       000A(10)          $$lp_setDeepHaltMode$lp_manage
+     --------------------------------------------------------------
+      rand
+                          CODE       0036(54)          $$XNCODrand
+     --------------------------------------------------------------
+      SLDIVSW
+                          CODE       001A(26)          $$sldivu8sw
+     --------------------------------------------------------------
+      strlen_n
+                          CODE       001E(30)          $$XNCODstrlen_n
+     --------------------------------------------------------------
+      strncat_nn
+                          CODE       0044(68)          $$XNCODstrncat_nn
+     --------------------------------------------------------------
+      abs
+                          CODE       0016(22)          $$XNCODabs
+     --------------------------------------------------------------
+
+
+Total size (CODE  ) = 02A34   (10804)
+Total size (DATA  ) = 005C6   (1478)
+Total size (BIT   ) = 00000.0 (0.0)
+Total size (NVDATA) = 00000   (0)
+Total size (NVBIT ) = 00000.0 (0.0)
+Total size (TABLE ) = 110AA   (69802)
+
+          -----------------------
+           Symbol Table Synopsis
+          -----------------------
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+KX022_
+               00:064C   Pub CODE     _loop
+               00:26DE   Pub CODE     _setup
+               00:002E   Pub TABLE    _kx022
+               00:0130   Pub TABLE    _Serial
+               00:01F6   Pub TABLE    _Wire
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+kx022
+               00:002E   Pub TABLE    _kx022
+               00:0130   Pub TABLE    _Serial
+               00:01F6   Pub TABLE    _Wire
+               00:0886   Loc CODE     _kx022_get_val
+               00:0D90   Loc CODE     _kx022_read
+               00:1EBE   Loc CODE     _kx022_write
+               00:1D7C   Loc CODE     _kx022_init
+               00:0F3A   Loc CODE     _kx022_get_rawval
+               00:ED4E   Loc DATA     _device_address
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+Wire
+               00:01F6   Pub TABLE    _Wire
+               00:0A28   Loc CODE     __wire_begin
+               00:227E   Loc CODE     __wire_endTransmission
+               00:20B4   Loc CODE     __wire_beginTransmission
+               00:09B6   Loc CODE     __wire_write
+               00:1D56   Loc CODE     __wire_write_byte
+               00:058A   Loc CODE     __wire_available
+               00:0CF2   Loc CODE     __wire_read
+               00:1B98   Loc CODE     __wire_requestFrom
+               00:ED50   Loc DATA     _wire0
+               00:ED94   Loc DATA     _wire
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+ml620504f
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+main
+               00:1FC4   Pub CODE     _main
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+flash
+               00:1690   Pub CODE     _flash_write_word
+               00:054E   Pub CODE     _flash_read_word
+               00:ECCC   Pub DATA     _Flash
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+analogio
+               00:ECD2   Pub DATA     _analogRead_resolution
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+print
+               00:1092   Pub CODE     _printFloat
+               00:22FA   Pub CODE     _printNumber
+               00:ECD4   Loc DATA     _print_buf_size
+               00:ECD8   Loc DATA     _print_buf
+               00:ECD6   Loc DATA     _print_buf_len
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+digitalio
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+lazurite_system
+               00:2412   Pub CODE     _HALT_Until_Event
+               00:1C60   Pub CODE     _init
+               00:004C   Pub CODE     _watch_dog_isr
+               00:0F20   Pub CODE     _isr_sys_timer
+               00:03C8   Pub CODE     _delay_long
+               00:2258   Loc CODE     _init_timer
+               00:2112   Loc CODE     _lazurite_gpio_init
+               00:2774   Loc CODE     _delay_isr
+               00:2464   Loc CODE     _clk_block_ctrl_init
+               00:EC6C   Loc DATA     _delay_time
+               00:EC72   Loc DATA     _delay_current_time_h
+               00:EC76   Loc DATA     _delay_flag
+               00:EC78   Loc DATA     _sys_timer_ms
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+serial
+               00:0130   Pub TABLE    _Serial
+               00:2080   Loc CODE     __hardware_serial_println
+               00:0B70   Loc CODE     __hardware_serial_print_double
+               00:19B6   Loc CODE     __hardware_serial_println_double
+               00:20EE   Loc CODE     __hardware_serial_print_long
+               00:272C   Loc CODE     __hardware_serial_println_long
+               00:0AEA   Loc CODE     __hardware_serial_tx_write
+               00:0390   Loc CODE     __hardware_serial_print
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+tone
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+WInterrupts
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+wiring_shift
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+WMath
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+driver_adc
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+driver_extirq
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+driver_gpio
+               00:ECDA   Pub DATA     _ml620504f_pin_to_port
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+driver_i2c
+               00:21D0   Pub CODE     _i2c_set_tx_buf
+               00:0AA0   Pub CODE     _i2c_set_rx_buf
+               00:07B4   Pub CODE     _i2c_begin
+               00:26CC   Pub CODE     _i2c_get_err_status
+               00:1CAE   Pub CODE     _i2c_send_stopbit
+               00:1C46   Pub CODE     _i2c_get_status
+               00:2062   Pub CODE     _i2c_set_address
+               00:2506   Pub CODE     _i2c_check_read_last_data
+               00:1352   Pub CODE     _i2c_isr
+               00:096A   Pub CODE     _i2c_update_err_code
+               00:0F66   Pub CODE     _i2c0_isr
+               00:2988   Pub CODE     _i2c_start
+               00:1AB4   Pub CODE     _i2c_init
+               00:26BA   Pub CODE     _i2c_read_amount
+               00:2724   Pub CODE     _i2c1_isr
+               00:EFDA   Loc DATA     _I2C
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+driver_irq
+               00:074E   Loc CODE     _s_handlerLTBC2INT
+               00:0946   Loc CODE     _s_handlerUA1INT
+               00:20CA   Loc CODE     _s_handlerTM1INT
+               00:1BE6   Loc CODE     _s_handlerCMP0INT
+               00:084E   Loc CODE     _s_handlerUA0INT
+               00:2090   Loc CODE     _s_handlerTM0INT
+               00:0D6C   Loc CODE     _s_handlerCMP1INT
+               00:2544   Loc CODE     _s_handlerVLSINT
+               00:052A   Loc CODE     _s_handlerFTM2INT
+               00:2AC4   Loc CODE     _s_handlerFTM3INT
+               00:2750   Loc CODE     _s_handlerI2C0INT
+               00:106E   Loc CODE     _s_handlerSIO0INT
+               00:0A56   Loc CODE     _s_handlerSADINT
+               00:036C   Loc CODE     _s_handlerI2C1INT
+               00:104A   Loc CODE     _s_handlerTM3INT
+               00:0F90   Loc CODE     _s_handlerTM2INT
+               00:1F1C   Loc CODE     _s_handlerEXI4INT
+               00:1D0E   Loc CODE     _s_handlerUAF0INT
+               00:2948   Loc CODE     _s_handlerEXI5INT
+               00:1CEA   Loc CODE     _s_handlerLOSCINT
+               00:1CC6   Loc CODE     _s_handlerEXI0INT
+               00:1D32   Loc CODE     _s_handlerMD0INT
+               00:1FA0   Loc CODE     _s_handlerEXI1INT
+               00:0628   Loc CODE     _s_handlerEXI6INT
+               00:0566   Loc CODE     _s_handlerEXI7INT
+               00:269E   Loc CODE     _s_handlerWDTINT
+               00:0D12   Loc CODE     _s_handlerEXI2INT
+               00:0B16   Loc CODE     _s_handlerEXI3INT
+               00:0C84   Pub CODE     _irq_init
+               00:05F6   Pub CODE     _irq_sethandler
+               00:0046   Pub CODE     __intNullHdr
+               00:0348   Loc CODE     _s_handlerTM5INT
+               00:19EA   Loc CODE     _s_handlerRADINT
+               00:2924   Loc CODE     _s_handlerSIOF0INT
+               00:2A94   Loc CODE     _s_handlerTM4INT
+               00:17B2   Loc CODE     _s_handlerLTBC0INT
+               00:1992   Loc CODE     _s_handlerLTBC1INT
+               00:2A42   Loc CODE     _s_handlerTM7INT
+               00:27C0   Loc CODE     _s_handlerTM6INT
+               00:0D36   Loc CODE     _s_handlerFTM0INT
+               00:0FB4   Loc CODE     _s_handlerFTM1INT
+               00:EC7C   Loc DATA     __sIrqHdr
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+driver_timer
+               00:1290   Pub CODE     _timer_16bit_set
+               00:05C4   Pub CODE     _timer_16bit_start
+               00:0ECA   Pub CODE     _timer_16bit_stop
+               00:0068   Pub TABLE    _num_to_bit
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+driver_tmout
+               00:ECDA   Pub DATA     _ml620504f_pin_to_port
+               00:ED22   Loc DATA     __pwm_ch_flag
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+driver_uart
+               00:252C   Pub CODE     _uart_rx_read
+               00:2568   Pub CODE     _uart_tx_available
+               00:21C8   Pub CODE     _uart_rx_available
+               00:1C58   Pub CODE     _uart_peak
+               00:253C   Pub CODE     _uart_flush
+               00:0486   Pub CODE     _uart_begin
+               00:102C   Pub CODE     _uart_end
+               00:1C0A   Pub CODE     _uart_tx_write
+               00:ED44   Pub DATA     _uartf_gpio_adr
+               00:0D5A   Loc CODE     _uart_fifo_init
+               00:2AB8   Loc CODE     _uart_rx_isr
+               00:059C   Loc CODE     _uart_tx_isr
+               00:0F6E   Loc CODE     _uart_fifo_out_peak
+               00:0772   Loc CODE     _uart_fifo_out
+               00:124C   Loc CODE     _uart_fifo_in
+               00:EDD8   Loc DATA     _uart_rx_buf
+               00:EE58   Loc DATA     _uart_tx_buf
+               00:ED2C   Loc DATA     _uart_rx_fifo
+               00:ED24   Loc DATA     _uart_tx_fifo
+               00:EED8   Loc DATA     _uart_tx_flag
+               00:EED9   Loc DATA     _uartf_tx_flag
+               00:ED34   Loc DATA     _uartf_tx_fifo
+               00:ED3C   Loc DATA     _uartf_rx_fifo
+               00:EEDA   Loc DATA     _uartf_rx_buf
+               00:EF5A   Loc DATA     _uartf_tx_buf
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+driver_flash
+               00:2700   Pub CODE     _flash_read
+               00:06FE   Pub CODE     _flash_erase
+               00:2182   Pub CODE     _flash_write
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+lp_manage
+               00:1A0E   Pub CODE     _lp_setHaltMode
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+wdt
+               00:0872   Pub CODE     _wdt_clear
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+rand
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+strlen_n
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+memcpy_nn
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+strncat_nn
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+strcpy_nn
+
+Module         Value     Type         Symbol
+------         -----     ----------   ------
+abs
+
+Public Symbols Reference
+
+Symbol                       Value      Type    Module
+------                       -----      ----    ------
+$$start_up                   00:1FD2    CODE    ml620504f
+_$$SP                        00:EC3A    DATA    KX022_
+_Flash                       00:ECCC    DATA    flash
+_HALT_Until_Event            00:2412    CODE    lazurite_system
+_Print                       00:0000    TABLE   print
+_Serial                      00:0130    TABLE   serial
+_Serial1                     00:0000    TABLE   serial
+_Serial2                     00:0000    TABLE   serial
+_Serial3                     00:0000    TABLE   serial
+_Wire                        00:01F6    TABLE   Wire
+_Wire0                       00:0000    TABLE   Wire
+__Randseed                   00:ED4A    DATA    rand
+__daddu8sw                   00:0DF8    CODE    DADDSW
+__dcmpu8sw                   00:0E2E    CODE    DCMPSW
+__ddivu8sw                   00:257A    CODE    DDIVSW
+__dildu8sw                   00:1830    CODE    DILDSW
+__dmulu8sw                   00:0B3A    CODE    DMULSW
+__dsubu8sw                   00:2244    CODE    DSUBSW
+__dtofu8sw                   00:221A    CODE    DTOFSW
+__dtolu8sw                   00:0BD0    CODE    DTOLSW
+__fdivu8sw                   00:25B0    CODE    FDIVSW
+__fildu8sw                   00:0BA4    CODE    FILDSW
+__fmulu8sw                   00:0BFA    CODE    FMULSW
+__ftodu8sw                   00:0C34    CODE    FTODSW
+__ftolu8sw                   00:0C5A    CODE    FTOLSW
+__fuldu8sw                   00:0CC6    CODE    FULDSW
+__imulu8sw                   00:1A18    CODE    IMULSW
+__intNullHdr                 00:0046    CODE    driver_irq
+__ldivu8sw                   00:0000    CODE    SLDIVSW
+__lmodu8sw                   00:0A86    CODE    SLMODSW
+__lmulu8sw                   00:0E88    CODE    LMULSW
+__tone_bit                   00:ED4F    DATA    tone
+__tone_port                  00:EC3A    DATA    tone
+__tone_toggle_count          00:ECC8    DATA    tone
+__uldivu8sw                  00:1EFC    CODE    ULDIVSW
+_abs                         00:0000    CODE    abs
+_analogRead                  00:0000    CODE    analogio
+_analogReadResolution        00:0000    CODE    analogio
+_analogRead_resolution       00:ECD2    DATA    analogio
+_analogWrite                 00:0000    CODE    analogio
+_analog_pin_to_port          00:0000    TABLE   analogio
+_attachInterrupt             00:0000    CODE    WInterrupts
+_delay_long                  00:03C8    CODE    lazurite_system
+_delay_microseconds          00:0000    CODE    lazurite_system
+_detachInterrupt             00:0000    CODE    WInterrupts
+_digitalRead                 00:0000    CODE    digitalio
+_digitalWrite                00:0000    CODE    digitalio
+_digital_pin_to_port         00:0000    TABLE   digitalio
+_drv_analogRead              00:0000    CODE    driver_adc
+_drv_analogWrite             00:0000    CODE    driver_tmout
+_drv_attachInterrupt         00:0000    CODE    driver_extirq
+_drv_detachInterrupt         00:0000    CODE    driver_extirq
+_drv_digitalRead             00:0000    CODE    driver_gpio
+_drv_digitalWrite            00:0000    CODE    driver_gpio
+_drv_pinMode                 00:0000    CODE    driver_gpio
+_ext_irq_param               00:EC3C    DATA    driver_extirq
+_flash_erase                 00:06FE    CODE    driver_flash
+_flash_read                  00:2700    CODE    driver_flash
+_flash_read_word             00:054E    CODE    flash
+_flash_write                 00:2182    CODE    driver_flash
+_flash_write_word            00:1690    CODE    flash
+_i2c0_isr                    00:0F66    CODE    driver_i2c
+_i2c1_isr                    00:2724    CODE    driver_i2c
+_i2c_begin                   00:07B4    CODE    driver_i2c
+_i2c_check_read_last_data    00:2506    CODE    driver_i2c
+_i2c_close                   00:0000    CODE    driver_i2c
+_i2c_get_err_status          00:26CC    CODE    driver_i2c
+_i2c_get_status              00:1C46    CODE    driver_i2c
+_i2c_init                    00:1AB4    CODE    driver_i2c
+_i2c_isr                     00:1352    CODE    driver_i2c
+_i2c_read_amount             00:26BA    CODE    driver_i2c
+_i2c_send_stopbit            00:1CAE    CODE    driver_i2c
+_i2c_set_address             00:2062    CODE    driver_i2c
+_i2c_set_rx_buf              00:0AA0    CODE    driver_i2c
+_i2c_set_tx_buf              00:21D0    CODE    driver_i2c
+_i2c_start                   00:2988    CODE    driver_i2c
+_i2c_update_err_code         00:096A    CODE    driver_i2c
+_i2c_write_amount            00:0000    CODE    driver_i2c
+_init                        00:1C60    CODE    lazurite_system
+_irq_init                    00:0C84    CODE    driver_irq
+_irq_sethandler              00:05F6    CODE    driver_irq
+_isr_ext_irq                 00:0000    CODE    driver_extirq
+_isr_ext_irq0                00:0000    CODE    driver_extirq
+_isr_ext_irq1                00:0000    CODE    driver_extirq
+_isr_ext_irq2                00:0000    CODE    driver_extirq
+_isr_ext_irq3                00:0000    CODE    driver_extirq
+_isr_ext_irq4                00:0000    CODE    driver_extirq
+_isr_ext_irq5                00:0000    CODE    driver_extirq
+_isr_ext_irq6                00:0000    CODE    driver_extirq
+_isr_ext_irq7                00:0000    CODE    driver_extirq
+_isr_sys_timer               00:0F20    CODE    lazurite_system
+_kx022                       00:002E    TABLE   kx022
+_loop                        00:064C    CODE    KX022_
+_lp_setDeepHaltMode          00:0000    CODE    lp_manage
+_lp_setHaltHMode             00:0000    CODE    lp_manage
+_lp_setHaltMode              00:1A0E    CODE    lp_manage
+_lp_setStopMode              00:0000    CODE    lp_manage
+_main                        00:1FC4    CODE    main
+_map                         00:0000    CODE    WMath
+_memcpy_nn                   00:030E    CODE    memcpy_nn
+_micros                      00:0000    CODE    lazurite_system
+_millis                      00:0000    CODE    lazurite_system
+_ml620504f_ain_to_pin        00:0000    TABLE   driver_adc
+_ml620504f_exisel            00:0000    TABLE   driver_extirq
+_ml620504f_pin_to_bit        00:0000    TABLE   driver_gpio
+_ml620504f_pin_to_port       00:ECDA    DATA    driver_gpio
+_ml620504f_tmout_to_pin      00:0000    TABLE   driver_tmout
+_noTone                      00:0000    CODE    tone
+_num_to_bit                  00:0068    TABLE   driver_timer
+_pinMode                     00:0000    CODE    digitalio
+_pin_to_pwm                  00:0000    TABLE   analogio
+_printBuf                    00:0000    CODE    print
+_printBuf_d                  00:0000    CODE    print
+_printBuf_f                  00:0000    CODE    print
+_printBuf_l                  00:0000    CODE    print
+_printBuf_len                00:0000    CODE    print
+_printBuf_ln                 00:0000    CODE    print
+_printBuf_status             00:0000    CODE    print
+_printFloat                  00:1092    CODE    print
+_printNumber                 00:22FA    CODE    print
+_print_init                  00:0000    CODE    print
+_pwm_to_ftm                  00:0000    TABLE   analogio
+_rand                        00:0000    CODE    rand
+_random                      00:0000    CODE    WMath
+_randomSeed                  00:0000    CODE    WMath
+_setup                       00:26DE    CODE    KX022_
+_shiftIn                     00:0000    CODE    wiring_shift
+_shiftOut                    00:0000    CODE    wiring_shift
+_sleep_long                  00:0000    CODE    lazurite_system
+_strcpy_nn                   00:0A38    CODE    strcpy_nn
+_strlen_n                    00:0000    CODE    strlen_n
+_strncat_nn                  00:0000    CODE    strncat_nn
+_timer_16bit_set             00:1290    CODE    driver_timer
+_timer_16bit_start           00:05C4    CODE    driver_timer
+_timer_16bit_stop            00:0ECA    CODE    driver_timer
+_timer_8bit_set              00:0000    CODE    driver_timer
+_timer_8bit_start            00:0000    CODE    driver_timer
+_timer_8bit_stop             00:0000    CODE    driver_timer
+_timer_tone_isr              00:0000    CODE    tone
+_tone                        00:0000    CODE    tone
+_uart_begin                  00:0486    CODE    driver_uart
+_uart_end                    00:102C    CODE    driver_uart
+_uart_flush                  00:253C    CODE    driver_uart
+_uart_peak                   00:1C58    CODE    driver_uart
+_uart_rx_available           00:21C8    CODE    driver_uart
+_uart_rx_read                00:252C    CODE    driver_uart
+_uart_tx_available           00:2568    CODE    driver_uart
+_uart_tx_sending             00:EFFF    DATA    driver_uart
+_uart_tx_write               00:1C0A    CODE    driver_uart
+_uartf_begin                 00:0000    CODE    driver_uart
+_uartf_end                   00:0000    CODE    driver_uart
+_uartf_flush                 00:0000    CODE    driver_uart
+_uartf_gpio_adr              00:ED44    DATA    driver_uart
+_uartf_gpio_end              00:0000    CODE    driver_uart
+_uartf_gpio_init             00:0000    CODE    driver_uart
+_uartf_gpio_rx_bitmask       00:0000    TABLE   driver_uart
+_uartf_gpio_tx_bitmask       00:0000    TABLE   driver_uart
+_uartf_peak                  00:0000    CODE    driver_uart
+_uartf_rx_available          00:0000    CODE    driver_uart
+_uartf_rx_read               00:0000    CODE    driver_uart
+_uartf_tx_available          00:0000    CODE    driver_uart
+_uartf_tx_sending            00:EFFE    DATA    driver_uart
+_uartf_tx_write              00:0000    CODE    driver_uart
+_watch_dog_isr               00:004C    CODE    lazurite_system
+_wdt_clear                   00:0872    CODE    wdt
+cmpfu8sw                     00:296C    CODE    CMPFSW
+div32u8sw                    00:2A66    CODE    DIV32SW
+dtoeu8sw                     00:1A42    CODE    DTOESW
+eaddu8sw                     00:16B8    CODE    EADDSW
+ecmpu8sw                     00:17D6    CODE    ECMPSW
+edivu8sw                     00:27E4    CODE    EDIVSW
+emulu8sw                     00:1858    CODE    EMULSW
+etodu8sw                     00:25EA    CODE    ETODSW
+etofu8sw                     00:247E    CODE    ETOFSW
+etolu8sw                     00:22BC    CODE    ETOLSW
+ftoeu8sw                     00:0FD8    CODE    FTOESW
+ltoeu8sw                     00:0E5E    CODE    LTOESW
+multiple_shiftu8sw           00:0A06    CODE    SHIFTSW
+normu8sw                     00:082E    CODE    NORMSW
+sldimou8sw                   00:1F40    CODE    SLDIMOSW
+storeu8sw                    00:0A7A    CODE    ROUNSW
+
+End of mapfile.

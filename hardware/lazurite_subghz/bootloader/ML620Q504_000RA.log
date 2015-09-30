@@ -1,0 +1,48 @@
+HTU8 HEX Converter, Ver.1.20
+Copyright (C) 2009-2011 LAPIS Semiconductor Co., Ltd.
+
+Thu Nov 20 17:53:34 2014
+
+*** The Result of HTU8 ***
+Status            : OK
+Total Checksum    : 0000E94072
+Target Name       : ML620504
+
+
+*** COMMAND LINE ***
+  BOOT_INIT_PROG.HEX /AL(0H, 0EFFFH, 0H)            ISP_SMALL.HEX /AL(0H, 0BFFH,
+ 0F000H)          BOOTLOADER_SMALL.HEX /AL(0H, 01DFH, 0FC00H)                   
+                               /TML620504                                    /FM
+L620Q504_000                               /OH                                  
+         
+
+
+*** INPUT FILES ***
+File Name         : BOOT_INIT_PROG.HEX
+Format            : Extended Intel Hex
+Address Range     : 00H:0000H  00H:FDFFH
+
+>Allocation Range : 00H:0000H  00H:EFFFH
+ Destination      : 00H:0000H
+
+File Name         : ISP_SMALL.HEX
+Format            : Extended Intel Hex
+Address Range     : 00H:0000H  00H:FDFFH
+
+>Allocation Range : 00H:0000H  00H:0BFFH
+ Destination      : 00H:F000H
+
+File Name         : BOOTLOADER_SMALL.HEX
+Format            : Extended Intel Hex
+Address Range     : 00H:0000H  00H:003BH
+
+>Allocation Range : 00H:0000H  00H:01DFH
+ Destination      : 00H:FC00H
+
+*** OUTPUT FILES ***
+File Names        : ML620Q504_000RA.HEX
+                    ML620Q504_000RB.HEX
+Format            : Extended Intel Hex
+Address Range     : 00H:0000H  00H:FFFFH
+
+<End of Log>
