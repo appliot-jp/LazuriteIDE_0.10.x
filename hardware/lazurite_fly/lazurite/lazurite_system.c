@@ -141,7 +141,7 @@ void HALT_Until_Event(HALT_EVENT halt_event)
 	
 	while(cont)
 	{
-		wdt_clear();
+//		wdt_clear();
 		lp_setHaltMode();
 		// process during waiting
 		i2c_isr(0);
@@ -355,5 +355,5 @@ static void clk_block_ctrl_init(void)
 
 void watch_dog_isr(void)
 {
-	wdt_clear();
+//	wdt_clear();
 }
