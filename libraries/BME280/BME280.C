@@ -20,7 +20,7 @@
 #define BME280_RESET		0xE0
 #define BME280_ID			0xD0
 
-#define BME280_CALIB(v)		((v>=0)&&(v<=25))? 0x88+v : 0xE1-26+v
+//#define BME280_CALIB(v)		((v>=0)&&(v<=25))? 0x88+v : 0xE1-26+v
 
 static unsigned long int hum_raw,temp_raw,pres_raw;
 static unsigned char bme280_csb;
@@ -47,6 +47,8 @@ static char		dig_H6;
 
 #define BME280_CALIB(v)		((v>=0)&&(v<=25))? 0x88+v : 0xE1-26+v
 
+#define DEBUG
+
 static unsigned char bme280_transfer(unsigned char addr, unsigned char data,unsigned char read)
 {
 	volatile unsigned char result;
@@ -59,13 +61,30 @@ static unsigned char bme280_transfer(unsigned char addr, unsigned char data,unsi
 
 static void readTrim()
 {
-	unsigned short data[31];
-	int i;
-	for(i=0;i<32;i++)
+	unsigned char data[31];
+	unsigned char i;
+	for(i=0;i<=23;i++)
 	{
-		data[i] = (unsigned short)bme280_transfer((unsigned char)(BME280_CALIB(i)),0,BME280_READ);
+		data[i] = (unsigned short)bme280_transfer((unsigned char)0x88+i,0,BME280_READ);
 #ifdef	DEBUG
-		Serial.print_long((long)(BME280_CALIB(i)),HEX);
+		Serial.print_long((long)(0x88+i),HEX);
+		Serial.print(" ");		
+		Serial.print_long((long)data[i],HEX);
+		Serial.println("");
+#endif
+	}
+	data[24] = bme280_transfer((unsigned char)0xA1,0,BME280_READ);
+#ifdef	DEBUG
+		Serial.print_long((long)(0xA1),HEX);
+		Serial.print(" ");		
+		Serial.print_long((long)data[i],HEX);
+		Serial.println("");
+#endif
+	for(i=25;i<=31;i++)
+	{
+		data[i] = (unsigned short)bme280_transfer((unsigned char)0xE1-25+i,0,BME280_READ);
+#ifdef	DEBUG
+		Serial.print_long((long)(0xE1-25+i),HEX);
 		Serial.print(" ");		
 		Serial.print_long((long)data[i],HEX);
 		Serial.println("");
