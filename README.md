@@ -12,5 +12,6 @@ Lazurite Sub-GHzでWatch Dog Timerを使用するためには、オプション�
 
 Watch Dog Timerをクリアするためには、wdt.hをインクルードして、wdt_clear(void)関数を実行する必要があります。
 デフォルトのwatch dog timerは約8秒が設定されています。2回分(16秒間) wdt_clearが実行されないと、マイコンは自動的にリセットします。
+従来どおり、Lazurite Basic, Lazurite Sub-GHzを選択すればwatch dog timerは無効になっています。
 
-
+Watch Dog Timerとはシステムを監視するためのタイマーです。一定時間以上クリアが行われないとプログラムが暴走したと判断し、自動的にマイコンの動作がリセットされる機能です。
