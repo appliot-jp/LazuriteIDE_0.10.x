@@ -33,6 +33,8 @@
 extern void flash_write(unsigned char sector, unsigned short address, unsigned short data);
 extern unsigned short flash_read(unsigned char sector, unsigned short address);
 extern void flash_erase(unsigned char sector);
+extern void flash_write_byte(unsigned char sector, unsigned short address, unsigned char data);
+extern unsigned char flash_read_byte(unsigned char sector, unsigned short address);
 
 #endif //_DRIVER_FLASH_H_
 
