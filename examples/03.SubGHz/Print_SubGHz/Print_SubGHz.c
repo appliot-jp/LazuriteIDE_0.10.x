@@ -120,11 +120,7 @@ void loop(void)
 		Serial.print("\t");
 		
 		// print payload
-		for(;index<rx_len;index++)
-		{
-			Serial.print_long(rx_data[index],HEX);
-			Serial.print(" ");
-		}
+		Serial.write(&rx_data[index],(rx_len-index));
 		
 		// print ln
 		Serial.println("");
