@@ -43,7 +43,7 @@ void setup(void)
 void loop(void)
 {
 	// Initializing
-	SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_100KBPS, SUBGHZ_PWR_1MW);		// start Sub-GHz
+	SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_100KBPS, SUBGHZ_PWR_20MW);		// start Sub-GHz
 	
 	// preparing data
 	digitalWrite(LED,LOW);														// LED ON

@@ -11,8 +11,16 @@ OPTION_NAME=LAZURITE Basic
 OPTION_BUILD=hardware\\lazurite_subghz\\build\\lazurite.bld
 OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
 
+OPTION_NAME=LAZURITE Basic(WatchDogTimer)
+OPTION_BUILD=hardware\\lazurite_subghz\\build\\lazurite_wdt.bld
+OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
+
 OPTION_NAME=LAZURITE Sub-GHz
 OPTION_BUILD=hardware\\lazurite_subghz\\build\\lazurite_SubGHz.bld
+OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
+
+OPTION_NAME=LAZURITE Sub-GHz(WatchDogTimer)
+OPTION_BUILD=hardware\\lazurite_subghz\\build\\lazurite_SubGHz_wdt.bld
 OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
 
 OPTION_NAME=LAZURITE Sub-GHz Sniffer

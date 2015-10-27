@@ -35,9 +35,12 @@ short flash_read_word(unsigned char sector, unsigned short address)
 	return flash_read(sector, address);
 }
 
+
 DATAFLASH Flash =
 {
 	flash_write_word,
 	flash_read_word,
-	flash_erase
+	flash_erase,
+	flash_write_byte,
+	flash_read_byte
 };

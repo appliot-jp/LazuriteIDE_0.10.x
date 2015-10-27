@@ -60,12 +60,6 @@ static void lazurite_gpio_init(void);
 static void init_timer(void);
 static void delay_isr(void);
 static volatile bool delay_flag;
-//static void ms_timer6_set(void);
-//static void ms_timer6_start(void);
-//static void ms_timer6_stop(void);
-//static void ms_timer6_isr(void);
-//static void ms_timer6_init(void);
-
 //********************************************************************************
 //   local functions
 //********************************************************************************
@@ -141,7 +135,6 @@ void HALT_Until_Event(HALT_EVENT halt_event)
 	
 	while(cont)
 	{
-		wdt_clear();
 		lp_setHaltMode();
 		// process during waiting
 		i2c_isr(0);
@@ -160,6 +153,7 @@ void HALT_Until_Event(HALT_EVENT halt_event)
 			cont = false;
 			break;
 		}
+		wdt_clear();
 	}
 	return;
 }
@@ -193,7 +187,6 @@ void delay_long(unsigned long ms)
 	// delay_flag = false:		during delay
 	// delay_flag = true:		finish delay
 	delay_flag = false;
-	
 	// calcurate delay timer count
 	// timer count is expanded to 48bit (upper 32bit = software timer, lower 16bit = hardware timer)
 	f_tm_count = (float)ms;
@@ -213,6 +206,7 @@ void delay_long(unsigned long ms)
 	while(delay_flag == false)
 	{
 		lp_setHaltMode();
+		wdt_clear();
 	}
 	timer_16bit_stop(6);
 	return;
@@ -247,10 +241,12 @@ void sleep_long(unsigned long ms)
 		if((uart_tx_sending == true) || (uartf_tx_sending == true))
 		{
 			lp_setHaltMode();
+			wdt_clear();
 		}
 		else
 		{
 			lp_setDeepHaltMode();
+			wdt_clear();
 		}
 	}
 	timer_16bit_stop(6);
@@ -355,5 +351,7 @@ static void clk_block_ctrl_init(void)
 
 void watch_dog_isr(void)
 {
+#ifndef	_WDT
 	wdt_clear();
+#endif
 }

@@ -36,6 +36,9 @@ typedef struct {
 	void (*write)(unsigned char sector, unsigned short address, unsigned short data);
 	unsigned short (*read)(unsigned char sector, unsigned short address);
 	void (*erase)(unsigned char sector);
+	void (*write_byte)(unsigned char sector, unsigned short address, unsigned char data);
+	unsigned char (*read_byte)(unsigned char sector, unsigned short address);
+	
 } DATAFLASH;
 
 extern DATAFLASH Flash;
