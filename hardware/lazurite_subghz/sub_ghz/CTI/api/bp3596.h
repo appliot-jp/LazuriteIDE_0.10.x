@@ -58,8 +58,9 @@
 /* 外部公開API関数
  */
 extern int BP3596_reset(void);
+// 2015.10.26 Eiichi Saito   addition random backoff
 extern int BP3596_setup(uint8_t channel, uint8_t rate, uint8_t txPower, uint8_t senseTime,
-                        uint8_t txRetry, uint16_t txInterval );
+                        uint8_t txRetry, uint16_t txInterval, uint16_t ccaWait );
 extern int BP3596_getMyAddr(uint16_t *addr);
 extern int BP3596_setMyPANID(uint16_t panID);
 extern int BP3596_setFilter(uint16_t panID, uint16_t addr0, uint16_t addr1);
