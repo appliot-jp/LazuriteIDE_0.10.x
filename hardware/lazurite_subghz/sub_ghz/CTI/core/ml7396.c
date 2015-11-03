@@ -675,11 +675,6 @@ static const uint8_t *parse_data(const uint8_t *data, uint16_t size, ML7396_Head
     default:
         goto error;
     }
-    // 2015.09.15 Eiichi Saito Read_SubGHzでアドレスフィルタが機能していないため判定条件変更、ブロードキャスト対応
-    fc.dstaddr = *ml7396_myaddr();
-    if ((fc.dstaddr != header->dstaddr) && 
-        !(header->dstaddr == 0xffff && header->dstpanid == 0xffff))
-       goto error;
     /* ペイロードの先頭アドレスを返す */
     payload = data;
 error:
@@ -694,10 +689,17 @@ error:
  */
 static int is_rx_recvdata(const ML7396_Buffer *rx, ML7396_Header *rxheader) {
     int status = 0;
+    uint16_t dstaddr;
 
     ASSERT(rx->status >= 0);
     if (parse_data(rx->data, rx->status, rxheader) == NULL)
         goto error;                      /* 解析不能なデータは破棄 */
+    // 2015.10.08 Eiichi Saito Read_SubGHzでアドレスフィルタが機能していないため判定条件変更、ブロードキャスト対応 (実装リプレイス)
+    dstaddr = *ml7396_myaddr();
+    if ((dstaddr != rxheader->dstaddr) && 
+        !(rxheader->dstaddr == 0xffff && rxheader->dstpanid == 0xffff))
+       goto error;
+
     switch (rxheader->fc & IEEE802154_FC_TYPE_MASK) {
         case IEEE802154_FC_TYPE_BEACON:  /* IEEE802.15.4eパケットのビーコンは受信 */
         case IEEE802154_FC_TYPE_DATA:    /* IEEE802.15.4eパケットのデータも受信 */
@@ -868,6 +870,7 @@ static int em_setup(EM_Data *em_data, void *data) {
     int status = ML7396_STATUS_UNKNOWN;
     uint8_t reg_data;
     uint32_t intsrc;
+    uint8_t get_my_addr[4];
 
     switch (em_data->state) {
     case ML7396_StateReset:
@@ -878,6 +881,9 @@ static int em_setup(EM_Data *em_data, void *data) {
             idle();
             REG_RDB(REG_ADR_CLK_SET, reg_data);
         } while (!(reg_data & 0x80));
+        // 2015.10.26 Eiichi Saito   addition random backoff
+        HAL_I2C_read(0x50, 0x26, get_my_addr, 2);
+        srand(n2u16(get_my_addr));
         /* break無し */
     default:
         SWITCH_STATE(ML7396_StateReset);  /* Resetステートへ移行 */
@@ -1205,6 +1211,9 @@ error:
 static int em_tx_ccadone(EM_Data *em_data, const uint32_t *hw_event) {
     int status = ML7396_STATUS_UNKNOWN;
     uint8_t reg_data;
+    // 2015.10.26 Eiichi Saito   addition random backoff
+    uint16_t cca_wait;
+
     ASSERT(em_data->tx != NULL);
     REG_TRXOFF();  /* 自動でOFFになるなら不要 */
     REG_RDB(REG_ADR_CCA_CNTRL, reg_data);  /* CCA_RSLT読み出し */
@@ -1213,6 +1222,8 @@ static int em_tx_ccadone(EM_Data *em_data, const uint32_t *hw_event) {
     REG_WRB(REG_ADR_DEMSET14, 0x27);
     switch (reg_data & 0x03) {
     case 0x00:  /* キャリアなし */
+// 2015.10.26 Eiichi Saito   addition random backoff for Debug
+//  if (em_data->count.cca != 0) {
         switch (em_data->tx->status) {
         case ML7396_BUFFER_INIT:
             REG_TXSTART(em_data->tx);
@@ -1230,10 +1241,23 @@ static int em_tx_ccadone(EM_Data *em_data, const uint32_t *hw_event) {
             ASSERT(0);
         }
         break;
+//  }
     case 0x01:  /* キャリアあり */
         if (em_data->count.cca < em_data->tx->opt.tx.cca.retry) {  /* リトライ回数が残っている? */
             ++em_data->count.cca;
-            ON_ERROR_STATUS(ml7396_hwif_timer_start(em_data->tx->opt.tx.cca.wait), ML7396_STATUS_ETIMSTART);  /* タイマ割り込み設定 */
+            // 2015.10.26 Eiichi Saito   addition random backoff
+            if (!em_data->tx->opt.tx.cca.wait) {
+                cca_wait = 100;
+            }else{
+                cca_wait = rand();
+                cca_wait = (cca_wait&0x000F) << em_data->tx->opt.tx.cca.wait;
+            }
+
+            if (!cca_wait) {
+                cca_wait = 100;
+            }
+
+            ON_ERROR_STATUS(ml7396_hwif_timer_start(cca_wait), ML7396_STATUS_ETIMSTART);  /* タイマ割り込み設定 */
         }
         else {
             em_data->tx->status = ML7396_BUFFER_ECCA;

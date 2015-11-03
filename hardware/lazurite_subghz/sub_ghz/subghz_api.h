@@ -72,6 +72,8 @@ typedef struct
 	uint8_t txRetry;
 	uint16_t txInterval;
 	uint16_t myAddress;
+	// 2015.10.26 Eiichi Saito   addition random backoff
+	uint16_t ccaWait;
 } SUBGHZ_PARAM;
 
 typedef struct

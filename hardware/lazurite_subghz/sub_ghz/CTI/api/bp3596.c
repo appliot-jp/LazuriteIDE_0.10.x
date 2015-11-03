@@ -217,8 +217,9 @@ int BP3596_reset(void) {
     return status;
 }
 
+// 2015.10.26 Eiichi Saito   addition random backoff
 int BP3596_setup(uint8_t channel, uint8_t rate, uint8_t txPower, uint8_t senseTime,
-                 uint8_t txRetry, uint16_t txInterval ) {
+                 uint8_t txRetry, uint16_t txInterval, uint16_t ccaWait ) {
     int status = BP3596_STATUS_UNKNOWN;
     struct {
         uint8_t channel;
@@ -237,7 +238,9 @@ int BP3596_setup(uint8_t channel, uint8_t rate, uint8_t txPower, uint8_t senseTi
     api.panID = ml7396_mypanid(), *api.panID = 0;
     /* 送信バッファ設定 */
     api.tx.buffer.opt.tx.ack.wait = txInterval, api.tx.buffer.opt.tx.ack.retry = txRetry;
-    api.tx.buffer.opt.tx.cca.wait = 100, api.tx.buffer.opt.tx.cca.retry = senseTime;
+// 2015.10.26 Eiichi Saito   addition random backoff
+//  api.tx.buffer.opt.tx.cca.wait = 100, api.tx.buffer.opt.tx.cca.retry = senseTime;
+    api.tx.buffer.opt.tx.cca.wait = ccaWait , api.tx.buffer.opt.tx.cca.retry = senseTime;
     status = BP3596_STATUS_OK;
 error:
     return status;

@@ -82,6 +82,8 @@ static struct {
 	uint8_t ch;
 	SUBGHZ_RATE rate;
 	uint16_t txInterval;
+	// 2015.10.26 Eiichi Saito   addition random backoff
+	uint16_t ccaWait;
 } subghz_param;
 
 #define DEBUG
@@ -110,6 +112,8 @@ static SUBGHZ_MSG subghz_init(void)
 	subghz_param.senseTime = 20;
 	subghz_param.txRetry = 0;
 	subghz_param.txInterval = 500;
+	// 2015.10.26 Eiichi Saito   addition random backoff
+	subghz_param.ccaWait = 4;
 	
 	// reset
 	result = BP3596_reset();
@@ -119,7 +123,8 @@ static SUBGHZ_MSG subghz_init(void)
 		goto error;
 	}
 	
-	result = BP3596_setup(33,	 (uint8_t)SUBGHZ_50KBPS, (uint8_t)SUBGHZ_PWR_1MW, subghz_param.senseTime, subghz_param.txRetry,subghz_param.txInterval );
+	// 2015.10.26 Eiichi Saito   addition random backoff
+	result = BP3596_setup(33,	 (uint8_t)SUBGHZ_50KBPS, (uint8_t)SUBGHZ_PWR_1MW, subghz_param.senseTime, subghz_param.txRetry,subghz_param.txInterval, subghz_param.ccaWait );
 	if( result != BP3596_STATUS_OK )
 	{
 		msg = SUBGHZ_SETUP_FAIL;
@@ -177,7 +182,8 @@ static SUBGHZ_MSG subghz_begin(uint8_t ch, uint16_t panid, SUBGHZ_RATE rate, SUB
 	
 	subghz_param.ch = ch;
 	
-	result = BP3596_setup(ch, (uint8_t)rate, (uint8_t)txPower, subghz_param.senseTime, subghz_param.txRetry,subghz_param.txInterval );
+	// 2015.10.26 Eiichi Saito   addition random backoff
+	result = BP3596_setup(ch, (uint8_t)rate, (uint8_t)txPower, subghz_param.senseTime, subghz_param.txRetry,subghz_param.txInterval,subghz_param.ccaWait );
 	if(result != BP3596_STATUS_OK)
 	{
 		msg = SUBGHZ_SETUP_FAIL;
@@ -553,6 +559,8 @@ static SUBGHZ_MSG subghz_getSendMode(SUBGHZ_PARAM *param)
 	param->senseTime = subghz_param.senseTime;
 	param->txRetry = subghz_param.txRetry;
 	param->txInterval = subghz_param.txInterval;
+	// 2015.10.26 Eiichi Saito   addition random backoff
+	param->ccaWait = subghz_param.ccaWait;
 	param->myAddress = subghz_param.myAddress; 
 
 	return SUBGHZ_OK;
@@ -569,6 +577,8 @@ static SUBGHZ_MSG subghz_setSendMode(SUBGHZ_PARAM *param)
 	subghz_param.senseTime = param->senseTime;
 	subghz_param.txRetry = param->txRetry;
 	subghz_param.txInterval = param->txInterval;
+	// 2015.10.26 Eiichi Saito   addition random backoff
+	subghz_param.ccaWait = param->ccaWait;
 	subghz_param.myAddress = param->myAddress;
 	
 	return SUBGHZ_OK;
