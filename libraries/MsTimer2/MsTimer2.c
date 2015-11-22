@@ -41,27 +41,48 @@ MsTimer2 timer2 ={
 void ms_timer2_set(unsigned long ms, void (*f)())
 {
 	// calcurate count number of target time
-	double ms_float;
+//	double ms_float;
+	unsigned long tmp_target_time_l;
+	unsigned short tm_data;
 	
 	if(ms == 0) return;
 
-	ms_float = ms;
-	ms_float = ms_float * F_LSCLK / 32000 + 0.5;
+//	ms_float = ms;
+//	ms_float = ms_float * F_LSCLK / 32000 + 0.5;
 
-	timer2.target_time_h = (unsigned long)(ms_float / 65536);
-	if(ms_float > 4294967295) 
+//	timer2.target_time_h = (unsigned long)(ms_float / 65536);
+//	if(ms_float > 4294967295) 
+//	{
+//		ms_float -= 4294967295;
+//		ms_float -= 1;
+//	}
+//	timer2.target_time_l = (unsigned short)ms_float;	// 
+	timer2.target_time_h = ms / 64000;
+	tmp_target_time_l = ((ms % 64000) <<8) / 250;
+	timer2.target_time_l = (unsigned short)tmp_target_time_l;
+	if(tmp_target_time_l==0)
 	{
-		ms_float -= 4294967295;
-		ms_float -= 1;
+		timer2.target_time_l=0xFFFF;
+		timer2.target_time_h--;
 	}
-	timer2.target_time_l = (unsigned short)ms_float;	// 
-	timer2.target_time_l--;								// decrease 1 to set register
+	else
+	{
+		timer2.target_time_l--;								// decrease 1 to set register
+	}
 	
+	tm_data = timer2.target_time_h ? 0xFFFF:timer2.target_time_l;
+
+#if 0
+	Serial.print_long(timer2.target_time_h,DEC);
+	Serial.print("\t");
+	Serial.print_long(timer2.target_time_l,DEC);
+	Serial.println("");
+#endif
 	ms_timer2_init();
 	timer2.callback = f;
 
 	// setting timer
-	timer_16bit_set(2,0x68, timer2.target_time_l, ms_timer2_isr);
+	timer_16bit_set(2,0x68, tm_data, ms_timer2_isr);
 
 	return;
 }
