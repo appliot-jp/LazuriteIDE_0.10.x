@@ -51,6 +51,8 @@ extern void sleep_long(unsigned long ms);
 extern void delay_microseconds(unsigned long us);
 extern unsigned long millis(void);
 extern unsigned long micros(void);
+extern void interrupts(void);
+extern void noInterrupts(void);
 
 #endif // _ARDUINO_SYSTEM_H_
 

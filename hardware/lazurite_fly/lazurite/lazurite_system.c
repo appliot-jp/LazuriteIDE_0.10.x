@@ -102,6 +102,7 @@ void init(void)
 	init_timer();
 	
 	/* MIE Enable */
+	rst_interrupts();
 	__EI();
 	return;
 }
@@ -284,7 +285,8 @@ unsigned long millis(void)
 	unsigned long timer_data;
 	unsigned long ms;
 	
-	__DI();
+	// __DI();
+	dis_interrupts(DI_MILLIS);
 	timer_data = read_reg16(TM01C);
 	ms = sys_timer_ms;
 	if(QTM1 == 1)
@@ -292,7 +294,8 @@ unsigned long millis(void)
 		ms+=2000;
 		timer_data=0;
 	}
-	__EI();
+	// __EI();
+	enb_interrupts(DI_MILLIS);
 	
 	ms = ms + ((timer_data * 1000) >> 15);		// (timer_data / 32.768) = (timer_data * 1000) /32768
 	
@@ -305,7 +308,8 @@ unsigned long micros(void)
 	unsigned long ms;
 	unsigned long timer_data;
 	
-	__DI();
+	// __DI();
+	dis_interrupts(DI_MILLIS);
 	
 	timer_data = read_reg16(TM01C);
 	ms = sys_timer_ms;
@@ -315,7 +319,8 @@ unsigned long micros(void)
 		timer_data=0;
 	}
 	
-	__EI();
+	// __EI();
+	enb_interrupts(DI_MILLIS);
 	
 	timer_data = (timer_data * 15625) >> 9;		// reduce fractions (1000000 / F_LSCLK)
 	

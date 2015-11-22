@@ -46,7 +46,7 @@ typedef struct {
 	void (*end)(void);
 	int (*available)(void);
 	int (*read)(void);
-	int (*peak)(void);
+	int (*peek)(void);
 	void (*flush)(void);
 	volatile size_t (*print)(char* data);
 	volatile size_t (*println)(char* data);

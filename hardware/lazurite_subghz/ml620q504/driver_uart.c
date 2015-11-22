@@ -124,7 +124,7 @@ static void uart_rx_isr(void);
 static void uartf_isr(void);
 static volatile size_t uart_fifo_in(FIFO_CTRL* fifo_p, UCHAR data);
 static volatile int uart_fifo_out(FIFO_CTRL* fifo_p);
-static volatile int uart_fifo_out_peak(FIFO_CTRL* fifo_p);
+static volatile int uart_fifo_out_peek(FIFO_CTRL* fifo_p);
 static volatile size_t uart_fifo_available(FIFO_CTRL* fifo_p);
 static void uart_fifo_init(FIFO_CTRL* fifo_p);
 
@@ -319,7 +319,8 @@ size_t uart_tx_write(char data)
 {
 	size_t res;
 	
-	__DI();										// disenable interrupt
+//	__DI();										// disenable interrupt
+	dis_interrupts(DI_UART);
 	res = uart_fifo_in(&uart_tx_fifo,data);
 	
 	if(res == 1)
@@ -332,7 +333,8 @@ size_t uart_tx_write(char data)
 			uart_tx_sending = true;
 		}
 	}
-	__EI();										// enable interrupt
+//	__EI();										// enable interrupt
+	enb_interrupts(DI_UART);
 	return res;
 }
 
@@ -340,7 +342,8 @@ size_t uartf_tx_write(char data)
 {
 	size_t res;
 	
-	__DI();										// disenable interrupt
+//	__DI();										// disenable interrupt
+	dis_interrupts(DI_UARTF);
 	res = uart_fifo_in(&uartf_tx_fifo,data);
 	
 	if(res == 1)
@@ -354,7 +357,8 @@ size_t uartf_tx_write(char data)
 			uartf_tx_sending = true;
 		}
 	}
-	__EI();										// enable interrupt
+//	__EI();										// enable interrupt
+	enb_interrupts(DI_UARTF);
 	return res;
 }
 
@@ -364,18 +368,23 @@ size_t uartf_tx_write(char data)
 int uart_rx_read(void)
 {
 	int res;
-	__DI();								// disenable interrupt
+//	__DI();								// disenable interrupt
+	dis_interrupts(DI_UART);
 	res = uart_fifo_out(&uart_rx_fifo);		// get data
-	__EI();								// enable interrupt
+//	__EI();								// enable interrupt
+	enb_interrupts(DI_UART);
+
 	return res;
 }
 
 int uartf_rx_read(void)
 {
 	int res;
-	__DI();								// disenable interrupt
+//	__DI();								// disenable interrupt
+	dis_interrupts(DI_UARTF);
 	res = uart_fifo_out(&uartf_rx_fifo);		// get data
-	__EI();								// enable interrupt
+//	__EI();								// enable interrupt
+	enb_interrupts(DI_UARTF);
 	return res;
 }
 
@@ -391,14 +400,14 @@ void uartf_flush(void)
 	return;
 }
 
-int uart_peak(void)
+int uart_peek(void)
 {
-	return uart_fifo_out_peak(&uart_rx_fifo);
+	return uart_fifo_out_peek(&uart_rx_fifo);
 }
 
-int uartf_peak(void)
+int uartf_peek(void)
 {
-	return uart_fifo_out_peak(&uartf_rx_fifo);
+	return uart_fifo_out_peek(&uartf_rx_fifo);
 }
 
 // interrupt handler for tx
@@ -536,7 +545,7 @@ volatile int uart_fifo_out(FIFO_CTRL* fifo_p)
 	return fifo_p->buf[tmp];
 }
 
-volatile int uart_fifo_out_peak(FIFO_CTRL* fifo_p)
+volatile int uart_fifo_out_peek(FIFO_CTRL* fifo_p)
 {
 	if ( fifo_p->length == 0) return -1;	// if no data, return -1
 	return fifo_p->buf[fifo_p->rd_p];

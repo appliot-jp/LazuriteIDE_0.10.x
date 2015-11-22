@@ -86,8 +86,10 @@ typedef uint8_t		byte;
 #define degrees(rad) ((rad)*RAD_TO_DEG)
 #define sq(x) ((x)*(x))
 
+/*
 #define interrupts() __EI()
 #define noInterrupts() __DI()
+*/
 
 /*
 #define clockCyclesPerMicrosecond() ( F_CPU / 1000000L )
@@ -135,11 +137,5 @@ extern void loop(void);					// Arduino loop function
 #include "subghz_api.h"
 #endif
 
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-
 #endif /* _LAZURITE_H_ */
-
-
 

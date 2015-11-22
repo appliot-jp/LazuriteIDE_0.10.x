@@ -55,8 +55,8 @@ extern int uart_rx_read(void);
 extern int uartf_rx_read(void);
 extern void uart_flush(void);
 extern void uartf_flush(void);
-extern int uart_peak(void);
-extern int uartf_peak(void);
+extern int uart_peek(void);
+extern int uartf_peek(void);
 
 #endif // _DRIVER_UART_H_
 

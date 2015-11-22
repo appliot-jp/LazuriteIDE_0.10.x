@@ -25,6 +25,7 @@
 #include "hal.h"
 #include "string.h"
 #include "lp_manage.h"
+#include "driver_irq.h"
 
 #define INIT_SLEEP
 //#define TEST_SEND_INTERVAL
@@ -393,7 +394,8 @@ static short subghz_readData(uint8_t *data, uint16_t max_size)
 {
 	short result = 0;
 	
-	__DI();
+//	__DI();
+	dis_interrupts(DI_SUBGHZ);
 	if(subghz_param.rx_buf == NULL)
 	{
 		result = 0;
@@ -412,7 +414,8 @@ static short subghz_readData(uint8_t *data, uint16_t max_size)
 	}
 	
 end:
-	__EI();
+//	__EI();
+	enb_interrupts(DI_SUBGHZ);
 	return result;
 }
 static SUBGHZ_MSG subghz_rxEnable(void (*callback)(uint8_t rssi, int status, uint16_t size))

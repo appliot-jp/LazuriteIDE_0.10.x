@@ -21,6 +21,7 @@
 #include "common.h"
 #include "driver_gpio.h"
 #include "driver_pin_assignment.h"
+#include "driver_irq.h"
 #include "mcu.h"
 #include "lazurite.h"
 
@@ -123,9 +124,13 @@ const unsigned char ml620504f_pin_to_bit[] =
 volatile void drv_pinMode(unsigned char pin, unsigned char mode)
 {
 	UCHAR *port;
-	UCHAR bit = ml620504f_pin_to_bit[pin];
-	port = ml620504f_pin_to_port[pin];
+	UCHAR bit;
 	if(pin > ML620504F_MAX_PIN_NO) 	return;
+	
+	dis_interrupts(DI_GPIO);
+	
+	bit = ml620504f_pin_to_bit[pin];
+	port = ml620504f_pin_to_port[pin];
 	switch(mode)
 	{
 	case INPUT_PULLUP:
@@ -173,16 +178,24 @@ volatile void drv_pinMode(unsigned char pin, unsigned char mode)
 	default:
 		break;
 	}
+	enb_interrupts(DI_GPIO);
 }
 
 int drv_digitalRead(unsigned char pin)
 {
 	UCHAR *port;
-	UCHAR bit = ml620504f_pin_to_bit[pin];
+	UCHAR bit;
 	int res;
-	port = ml620504f_pin_to_port[pin];
 	if(pin > ML620504F_MAX_PIN_NO) 	return(LOW);
+	
+	dis_interrupts(DI_GPIO);
+	
+	bit = ml620504f_pin_to_bit[pin];
+	port = ml620504f_pin_to_port[pin];
 	res = ((*port)&bit)!=0 ? HIGH : LOW;
+	
+	enb_interrupts(DI_GPIO);
+	
 	return(res);
 	
 }
@@ -190,9 +203,14 @@ int drv_digitalRead(unsigned char pin)
 void drv_digitalWrite(unsigned char pin, unsigned char val)
 {
 	UCHAR *port;
-	UCHAR bit = ml620504f_pin_to_bit[pin];
-	port = ml620504f_pin_to_port[pin];
+	UCHAR bit;
+	
 	if(pin > ML620504F_MAX_PIN_NO) 	return;
+	
+	dis_interrupts(DI_GPIO);
+	
+	bit = ml620504f_pin_to_bit[pin];
+	port = ml620504f_pin_to_port[pin];
 	if(val == LOW)
 	{
 		*(port) &= ~bit;		
@@ -201,6 +219,9 @@ void drv_digitalWrite(unsigned char pin, unsigned char val)
 	{
 		*(port) |= bit;		
 	}
+	
+	enb_interrupts(DI_GPIO);
+	
 	return;
 }
 

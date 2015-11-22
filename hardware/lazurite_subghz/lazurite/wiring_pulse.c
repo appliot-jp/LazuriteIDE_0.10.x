@@ -137,7 +137,10 @@ unsigned long pulseIn(UCHAR pin, UCHAR value, UINT32 timeout)
 	
 	// Setting of EXINT
 	pulsein_irq_sethandler(extin_pulsein_isr);
-	__DI();
+	
+//	__DI();
+	dis_interrupts(DI_WIRING_PULSE);
+	
 	pulsein_irq_ext_init( EXIn_EDGE_BOTH, EXIn_SAMPLING_DIS, EXIn_FILTER_DIS, n);
 	pulsein_irq_ext_clearIRQ();
 	pulsein_irq_ext_ena();
@@ -146,7 +149,9 @@ unsigned long pulseIn(UCHAR pin, UCHAR value, UINT32 timeout)
 	
 	// Start timer
 	timer16_start(PULSEIN_TIMER);
-	__EI();
+	
+//	__EI();
+	enb_interrupts(DI_WIRING_PULSE);
 	
 	while( _pulsein_flag < PULSEIN_DETECT_2 )
 	{

@@ -569,3 +569,19 @@ int irq_sethandler( unsigned char intNo, void (*func)( void ) )
 }
 
 
+static unsigned short di_flag = 0;
+void rst_interrupts(void)
+{
+	di_flag = 0;
+}
+void enb_interrupts(unsigned short irq_ch)
+{
+	if(di_flag == 0) __EI();
+	di_flag |= irq_ch;
+}
+
+void dis_interrupts(unsigned short irq_ch)
+{
+	di_flag &= ~irq_ch;
+	if(di_flag == 0) __DI();
+}

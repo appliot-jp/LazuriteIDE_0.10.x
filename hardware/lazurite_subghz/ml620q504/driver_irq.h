@@ -94,8 +94,15 @@ extern void irq_init(void);
 extern int irq_sethandler( unsigned char intNo, void (*func)( void ) );
 extern void _intNullHdr(void);
 
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
+#define 	DI_GPIO			0x0001
+#define 	DI_UART			0x0002
+#define 	DI_UARTF		0x0004
+#define 	DI_SUBGHZ		0x0008
+#define 	DI_MILLIS		0x0010
+#define		DI_WIRING_PULSE	0x0020
+#define		DI_USER			0x0040
+extern void enb_interrupts(unsigned short irq_ch);
+extern void dis_interrupts(unsigned short irq_ch);
+extern void rst_interrupts(void);
 
 #endif /* _DRIVER_GPIO_H_ */
