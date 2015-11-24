@@ -32,6 +32,8 @@
 #include "clock.h"
 #include "rdwr_reg.h"
 
+#define TIMER_DEBUG
+
 //********************************************************************************
 //   global parameters
 //********************************************************************************
@@ -43,7 +45,7 @@
 //********************************************************************************
 //   local parameters
 //********************************************************************************
-static unsigned long sys_timer_ms;
+static unsigned long sys_timer_count=0;
 
 static unsigned long delay_current_time_h;
 static struct {
@@ -60,12 +62,6 @@ static void lazurite_gpio_init(void);
 static void init_timer(void);
 static void delay_isr(void);
 static volatile bool delay_flag;
-//static void ms_timer6_set(void);
-//static void ms_timer6_start(void);
-//static void ms_timer6_stop(void);
-//static void ms_timer6_isr(void);
-//static void ms_timer6_init(void);
-
 //********************************************************************************
 //   local functions
 //********************************************************************************
@@ -142,7 +138,6 @@ void HALT_Until_Event(HALT_EVENT halt_event)
 	
 	while(cont)
 	{
-//		wdt_clear();
 		lp_setHaltMode();
 		// process during waiting
 		i2c_isr(0);
@@ -161,6 +156,7 @@ void HALT_Until_Event(HALT_EVENT halt_event)
 			cont = false;
 			break;
 		}
+		wdt_clear();
 	}
 	return;
 }
@@ -188,21 +184,20 @@ void delay_isr(void)
 
 void delay_long(unsigned long ms)
 {
-	float f_tm_count;						// temporary to calcurate timer count
+//	float f_tm_count;						// temporary to calcurate timer count
 	
-	// setting flag for delay
-	// delay_flag = false:		during delay
-	// delay_flag = true:		finish delay
+	unsigned long tmp_target_l;
+	
 	delay_flag = false;
+	tmp_target_l = ((ms % 64000)<<8)/250;
+	delay_time.target_l = tmp_target_l;
+	delay_time.target_h = ms / 64000;
 	
-	// calcurate delay timer count
-	// timer count is expanded to 48bit (upper 32bit = software timer, lower 16bit = hardware timer)
-	f_tm_count = (float)ms;
-	f_tm_count = f_tm_count * 1.024f + 0.5;
-	delay_time.target_l = (unsigned short)f_tm_count%65536;		// lower 16bit  <= ms / 1.024 + 0.5
-	delay_time.target_h = (unsigned long)f_tm_count/65536;		// upper 24bit  <= ms / 1.024 + 0.5
-//	delay_time.target_l = (unsigned short) ms&0x0000FFFF;		// lower 16bit  <= ms / 1.024 + 0.5
-//	delay_time.target_h = (ms >> 16);
+#ifdef TIMER_DEBUG
+	Serial.print_long(delay_time.target_h,HEX);
+	Serial.print("\t");
+	Serial.println_long(delay_time.target_l,HEX);
+#endif
 	// setup timer
 	timer_16bit_set(6,0x68,0xFFFF,delay_isr);
 	
@@ -214,6 +209,7 @@ void delay_long(unsigned long ms)
 	while(delay_flag == false)
 	{
 		lp_setHaltMode();
+		wdt_clear();
 	}
 	timer_16bit_stop(6);
 	return;
@@ -221,22 +217,24 @@ void delay_long(unsigned long ms)
 
 void sleep_long(unsigned long ms)
 {
-	float f_tm_count;						// temporary to calcurate timer count
+//	float f_tm_count;						// temporary to calcurate timer count
+	unsigned long tmp_target_l;
 	
-	// setting flag for delay
-	// delay_flag = false:		during delay
-	// delay_flag = true:		finish delay
 	delay_flag = false;
 	
-	// calcurate delay timer count
-	// timer count is expanded to 48bit (upper 32bit = software timer, lower 16bit = hardware timer)
-	f_tm_count = (float)ms;
-	f_tm_count = f_tm_count * 1.024f + 0.5;
-	delay_time.target_l = (unsigned short)f_tm_count%65536;		// lower 16bit  <= ms / 1.024 + 0.5
-	delay_time.target_h = (unsigned long)f_tm_count/65536;		// upper 24bit  <= ms / 1.024 + 0.5
+	
+	tmp_target_l = ((ms % 64000)<<8)/250;
+	delay_time.target_l = tmp_target_l;
+	delay_time.target_h = ms / 64000;
+	
+#ifdef TIMER_DEBUG
+	Serial.print_long(delay_time.target_h,HEX);
+	Serial.print("\t");
+	Serial.println_long(delay_time.target_l,HEX);
+#endif
 	
 	// setup timer
-	timer_16bit_set(6,0x68,0xFFFF,delay_isr);
+	timer_16bit_set(6,0x68,delay_time.target_l,delay_isr);
 	
 	// correct timer parameter according to delay time
 	delay_isr();
@@ -248,10 +246,12 @@ void sleep_long(unsigned long ms)
 		if((uart_tx_sending == true) || (uartf_tx_sending == true))
 		{
 			lp_setHaltMode();
+			wdt_clear();
 		}
 		else
 		{
 			lp_setDeepHaltMode();
+			wdt_clear();
 		}
 	}
 	timer_16bit_stop(6);
@@ -282,58 +282,64 @@ void delay_microseconds(unsigned long us)
 
 unsigned long millis(void)
 {
-	unsigned long timer_data;
-	unsigned long ms;
+	unsigned long timer_l;
+	unsigned long timer_h;
+	unsigned long result;
 	
-	// __DI();
+//	__DI();
 	dis_interrupts(DI_MILLIS);
-	timer_data = read_reg16(TM01C);
-	ms = sys_timer_ms;
+	timer_l = read_reg16(TM01C);
+	timer_h = sys_timer_count;
+	
 	if(QTM1 == 1)
 	{
-		ms+=2000;
-		timer_data=0;
+		timer_h++;
+		timer_l=0;
 	}
-	// __EI();
+	
+//	__EI();
 	enb_interrupts(DI_MILLIS);
 	
-	ms = ms + ((timer_data * 1000) >> 15);		// (timer_data / 32.768) = (timer_data * 1000) /32768
+	timer_l = (timer_l * 1000) >> 15;
+	timer_h = timer_h * 2000;
 	
-	return ms;
+	result = timer_h + timer_l;
+	
+	return result;
 }
 
 unsigned long micros(void)
 {
-	unsigned long us;
-	unsigned long ms;
-	unsigned long timer_data;
+	unsigned long timer_l;
+	unsigned long timer_h;
+	unsigned long result;
 	
-	// __DI();
+//	__DI();
 	dis_interrupts(DI_MILLIS);
+	timer_l = read_reg16(TM01C);
+	timer_h = sys_timer_count;
 	
-	timer_data = read_reg16(TM01C);
-	ms = sys_timer_ms;
 	if(QTM1 == 1)
 	{
-		ms+=2000;
-		timer_data=0;
+		timer_h++;
+		timer_l=0;
 	}
 	
-	// __EI();
+//	__EI();
 	enb_interrupts(DI_MILLIS);
 	
-	timer_data = (timer_data * 15625) >> 9;		// reduce fractions (1000000 / F_LSCLK)
+	timer_l = (timer_l * 15625) >> 9;
+	timer_h = timer_h * 2000000;
 	
-	us = ms * 1000;
-	us +=  timer_data;
+	result = timer_h + timer_l;
 	
-	return us;
+	return result;
 }
 
 
 void isr_sys_timer(void)
 {
-	sys_timer_ms+=2000;
+	sys_timer_count++;
 	return;
 }
 
@@ -344,7 +350,7 @@ void isr_sys_timer(void)
 
 static void init_timer(void)
 {
-	sys_timer_ms = 0;
+	sys_timer_count = 0;
 	timer_16bit_set(TM_MILLIS,0x40,0xFFFF,isr_sys_timer);
 	timer_16bit_start(TM_MILLIS);
 	return;
@@ -360,5 +366,17 @@ static void clk_block_ctrl_init(void)
 
 void watch_dog_isr(void)
 {
-//	wdt_clear();
+#ifndef	_WDT
+	wdt_clear();
+#endif
+}
+
+void interrupts()
+{
+	enb_interrupts(DI_USER);
+}
+
+void noInterrupts()
+{
+	dis_interrupts(DI_USER);
 }

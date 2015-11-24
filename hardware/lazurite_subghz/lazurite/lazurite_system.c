@@ -98,6 +98,7 @@ void init(void)
 	init_timer();
 	
 	/* MIE Enable */
+	rst_interrupts();
 	__EI();
 	return;
 }
