@@ -573,15 +573,19 @@ static unsigned short di_flag = 0;
 void rst_interrupts(void)
 {
 	di_flag = 0;
+	__EI();
 }
+
 void enb_interrupts(unsigned short irq_ch)
 {
-	if(di_flag == 0) __EI();
-	di_flag |= irq_ch;
+	di_flag &= ~irq_ch;			// 割り込み禁止中フラグをリセット
+	if(di_flag == 0) __EI();	// 何れからも割り込み禁止されていなければ割り込み許可
 }
+
 
 void dis_interrupts(unsigned short irq_ch)
 {
-	di_flag &= ~irq_ch;
-	if(di_flag == 0) __DI();
+	if(di_flag == 0) __DI();	// 何れからも割り込み禁止されていなければ割り込み禁止
+	di_flag |= irq_ch;			// 割り込み禁止中フラグをセット
 }
+
