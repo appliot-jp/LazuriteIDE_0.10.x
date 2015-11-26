@@ -2,6 +2,7 @@
 #include "lazurite.h"
 #include "SerialLED.h"
 #include "driver_pin_assignment.h"
+#include "wdt.h"
 
 
 static unsigned char led_pin;
@@ -29,7 +30,9 @@ static void led_ctrl_write(unsigned char *data)
 	port_data1 = *port|bit;				// prepare port data = 1
 	
 	*port = port_data0;					// initializing port
+	wdt_clear();
 	
+	noInterrupts();
 	i=data_length;
 	tmp = *data;
 	{
@@ -271,6 +274,7 @@ start:
 		__asm("nop");
 		if(i!=0) goto start;
 	}
+	interrupts();
 	delayMicroseconds(100);
 }
 

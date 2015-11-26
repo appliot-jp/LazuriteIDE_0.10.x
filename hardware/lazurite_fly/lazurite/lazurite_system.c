@@ -32,7 +32,7 @@
 #include "clock.h"
 #include "rdwr_reg.h"
 
-#define TIMER_DEBUG
+//#define TIMER_DEBUG
 
 //********************************************************************************
 //   global parameters
