@@ -578,14 +578,29 @@ void rst_interrupts(void)
 
 void enb_interrupts(unsigned short irq_ch)
 {
-	di_flag &= ~irq_ch;			// 割り込み禁止中フラグをリセット
-	if(di_flag == 0) __EI();	// 何れからも割り込み禁止されていなければ割り込み許可
+	if(di_flag & DI_INTERRUPT)		// 前回の割り込み禁止処理が割り込み処理中に行われた場合
+	{
+		di_flag &= ~DI_INTERRUPT;
+	}
+	else
+	{
+		di_flag &= ~irq_ch;			// 割り込み禁止中フラグをリセット
+		if(di_flag == 0) __EI();	// 何れからも割り込み禁止されていなければ割り込み許可
+	}
 }
 
 
 void dis_interrupts(unsigned short irq_ch)
 {
-	if(di_flag == 0) __DI();	// 何れからも割り込み禁止されていなければ割り込み禁止
-	di_flag |= irq_ch;			// 割り込み禁止中フラグをセット
+	if(MIE==0) && (di_flag==0))		// 割り込み処理中のときは、DI_INTERRUPTのフラグを立てる
+	{
+		di_flag |= DI_INTERRUPT;
+	}
+	else
+	{
+		if(di_flag == 0) __DI();	// 何れからも割り込み禁止されていなければ割り込み禁止
+		di_flag |= irq_ch;			// 割り込み禁止中フラグをセット
+		
+	}
 }
 

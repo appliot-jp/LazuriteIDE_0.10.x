@@ -101,6 +101,7 @@ extern void _intNullHdr(void);
 #define 	DI_MILLIS		0x0010
 #define		DI_WIRING_PULSE	0x0020
 #define		DI_USER			0x0040
+#define		DI_INTERRUPT	0x0080
 extern void enb_interrupts(unsigned short irq_ch);
 extern void dis_interrupts(unsigned short irq_ch);
 extern void rst_interrupts(void);

@@ -188,13 +188,13 @@ int drv_digitalRead(unsigned char pin)
 	int res;
 	if(pin > ML620504F_MAX_PIN_NO) 	return(LOW);
 	
-	dis_interrupts(DI_GPIO);
+//	dis_interrupts(DI_GPIO);
 	
 	bit = ml620504f_pin_to_bit[pin];
 	port = ml620504f_pin_to_port[pin];
 	res = ((*port)&bit)!=0 ? HIGH : LOW;
 	
-	enb_interrupts(DI_GPIO);
+//	enb_interrupts(DI_GPIO);
 	
 	return(res);
 	
@@ -207,7 +207,7 @@ void drv_digitalWrite(unsigned char pin, unsigned char val)
 	
 	if(pin > ML620504F_MAX_PIN_NO) 	return;
 	
-	dis_interrupts(DI_GPIO);
+//	dis_interrupts(DI_GPIO);
 	
 	bit = ml620504f_pin_to_bit[pin];
 	port = ml620504f_pin_to_port[pin];
@@ -220,7 +220,7 @@ void drv_digitalWrite(unsigned char pin, unsigned char val)
 		*(port) |= bit;		
 	}
 	
-	enb_interrupts(DI_GPIO);
+//	enb_interrupts(DI_GPIO);
 	
 	return;
 }
