@@ -576,9 +576,20 @@ void rst_interrupts(void)
 	__EI();
 }
 
+unsigned char getMIE(void)
+{
+#asm
+        mov     r0,     psw             ;PSWをリード
+        
+        and     r0,     #8              ;MIEのみにデータに加工する
+        srl     r0,     #3              ;
+#endasm
+}
+
 void enb_interrupts(unsigned short irq_ch)
 {
 	if(di_flag & DI_INTERRUPT)		// 前回の割り込み禁止処理が割り込み処理中に行われた場合
+									// 割り込み処理用の割り込み禁止ビットをクリア
 	{
 		di_flag &= ~DI_INTERRUPT;
 	}
@@ -592,13 +603,15 @@ void enb_interrupts(unsigned short irq_ch)
 
 void dis_interrupts(unsigned short irq_ch)
 {
-	if(MIE==0) && (di_flag==0))		// 割り込み処理中のときは、DI_INTERRUPTのフラグを立てる
+	// 割り込み禁止ではないのにMIEビットが0のとき、
+	// すなわち割り込み処理中のときはDI_INTERRUPTのフラグを立てる
+	if((getMIE()==0) && (di_flag==0))		
 	{
 		di_flag |= DI_INTERRUPT;
 	}
 	else
 	{
-		if(di_flag == 0) __DI();	// 何れからも割り込み禁止されていなければ割り込み禁止
+		__DI();						// 割り込み禁止
 		di_flag |= irq_ch;			// 割り込み禁止中フラグをセット
 		
 	}

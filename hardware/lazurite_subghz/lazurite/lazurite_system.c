@@ -32,6 +32,9 @@
 #include "clock.h"
 #include "rdwr_reg.h"
 
+//#define MIE_TEST
+//#define TIMER_DEBUG
+
 //********************************************************************************
 //   global parameters
 //********************************************************************************
@@ -161,6 +164,10 @@ void HALT_Until_Event(HALT_EVENT halt_event)
 
 void delay_isr(void)
 {
+#ifdef MIE_TEST
+	noInterrupts();
+	interrupts();
+#endif
 	if(delay_time.target_h == 0)
 	{
 		if((delay_time.target_l == 0) || (TM67C >= delay_time.target_l))
