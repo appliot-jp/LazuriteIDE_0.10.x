@@ -1,0 +1,15 @@
+#######################################
+# Syntax Coloring Map (default)
+#######################################
+
+Wire				KEYWORD3
+Wire0				KEYWORD3
+begin				KEYWORD2
+available			KEYWORD2
+detachInterrupt		KEYWORD2
+read				KEYWORD2
+beginTransmission	KEYWORD2
+write_byte			KEYWORD2
+write				KEYWORD2
+endTransmission		KEYWORD2
+

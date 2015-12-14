@@ -1,0 +1,9 @@
+#######################################
+# Syntax Coloring Map (default)
+#######################################
+
+LedDotMatrix	KEYWORD3
+init			KEYWORD2
+setMemory		KEYWORD2
+setFlash		KEYWORD2
+shift			KEYWORD2

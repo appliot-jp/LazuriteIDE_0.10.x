@@ -1,0 +1,7 @@
+#######################################
+# Syntax Coloring Map (default)
+#######################################
+
+led		KEYWORD3
+init	KEYWORD2
+write	KEYWORD2

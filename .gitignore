@@ -5,6 +5,10 @@ obj/
 /tool
 
 #ignore files
+/java
+/tool
+/theme
+/old
 /examples/*/*/*.bin
 /examples/*/*/*.map
 /examples/*/*/*_.c

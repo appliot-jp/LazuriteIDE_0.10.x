@@ -1,0 +1,15 @@
+#######################################
+# Syntax Coloring Map (default)
+#######################################
+
+hsv		KEYWORD3
+init	KEYWORD2
+attach	KEYWORD2
+detach	KEYWORD2
+start	KEYWORD2
+stop	KEYWORD2
+close	KEYWORD2
+write	KEYWORD2
+dt		KEYWORD2
+update	KEYWORD2
+

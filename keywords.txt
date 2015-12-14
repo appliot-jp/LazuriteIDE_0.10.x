@@ -1,0 +1,249 @@
+#######################################
+# Syntax Coloring Map (default)
+#######################################
+
+#######################################
+# preprocessor / precompiler
+#######################################
+\#include	PREPROCESSOR
+\#define	PREPROCESSOR
+\#elif	PREPROCESSOR
+\#else	PREPROCESSOR
+\#error	PREPROCESSOR
+\#if	PREPROCESSOR
+\#ifdef	PREPROCESSOR
+\#ifndef	PREPROCESSOR
+\#pragma	PREPROCESSOR
+\#warning	PREPROCESSOR
+
+#######################################
+# literal
+#######################################
+HIGH	RESERVED_WORD_2
+LOW	RESERVED_WORD_2
+INPUT	RESERVED_WORD_2
+INPUT_PULLUP	RESERVED_WORD_2
+OUTPUT	RESERVED_WORD_2
+DEC	RESERVED_WORD_2
+BIN	RESERVED_WORD_2
+HEX	RESERVED_WORD_2
+OCT	RESERVED_WORD_2
+PI	RESERVED_WORD_2
+HALF_PI	RESERVED_WORD_2
+TWO_PI	RESERVED_WORD_2
+LSBFIRST	RESERVED_WORD_2
+MSBFIRST	RESERVED_WORD_2
+CHANGE	RESERVED_WORD_2
+FALLING	RESERVED_WORD_2
+RISING	RESERVED_WORD_2
+DEFAULT	RESERVED_WORD_2
+EXTERNAL	RESERVED_WORD_2
+INTERNAL	RESERVED_WORD_2
+INTERNAL1V1	RESERVED_WORD_2
+INTERNAL2V56	RESERVED_WORD_2
+LED_BUILTIN	RESERVED_WORD_2
+
+auto	RESERVED_WORD_2
+constexpr	RESERVED_WORD_2
+decltype	RESERVED_WORD_2
+nullptr	RESERVED_WORD_2
+wchar_t	RESERVED_WORD_2
+
+int8_t	RESERVED_WORD_2
+int16_t	RESERVED_WORD_2
+int32_t	RESERVED_WORD_2
+int64_t	RESERVED_WORD_2
+uint8_t	RESERVED_WORD_2
+uint16_t	RESERVED_WORD_2
+uint32_t	RESERVED_WORD_2
+uint64_t	RESERVED_WORD_2
+
+char16_t	RESERVED_WORD_2
+char32_t	RESERVED_WORD_2
+static_assert	RESERVED_WORD_2
+operator	RESERVED_WORD_2
+enum	RESERVED_WORD_2
+delete	RESERVED_WORD_2
+bool	RESERVED_WORD_2
+boolean	RESERVED_WORD_2
+byte	RESERVED_WORD_2
+char	RESERVED_WORD_2
+const	RESERVED_WORD_2
+false	LITERAL_BOOLEAN
+float	RESERVED_WORD_2
+double	RESERVED_WORD_2
+null	RESERVED_WORD_2
+NULL	RESERVED_WORD_2
+int	RESERVED_WORD_2
+long	RESERVED_WORD_2
+new	RESERVED_WORD_2
+private	RESERVED_WORD_2
+protected	RESERVED_WORD_2
+public	RESERVED_WORD_2
+short	RESERVED_WORD_2
+signed	RESERVED_WORD_2
+static	RESERVED_WORD_2
+goto	RESERVED_WORD_2
+String	RESERVED_WORD_2
+void	RESERVED_WORD_2
+true	LITERAL_BOOLEAN
+unsigned	RESERVED_WORD_2
+word	RESERVED_WORD_2
+
+#######################################
+# structures
+#######################################
+break	RESERVED_WORD
+case	RESERVED_WORD
+class	RESERVED_WORD
+override	RESERVED_WORD
+final	RESERVED_WORD
+continue	RESERVED_WORD
+default	RESERVED_WORD
+do	RESERVED_WORD
+else	RESERVED_WORD
+for	RESERVED_WORD
+if	RESERVED_WORD
+register	RESERVED_WORD
+return	RESERVED_WORD
+
+switch	RESERVED_WORD
+this	RESERVED_WORD
+throw	RESERVED_WORD
+try	RESERVED_WORD
+while	RESERVED_WORD
+
+setup	RESERVED_WORD
+loop	RESERVED_WORD
+
+alignas	RESERVED_WORD
+alignof	RESERVED_WORD
+asm	RESERVED_WORD
+export	RESERVED_WORD
+thread_local	RESERVED_WORD
+noexcept	RESERVED_WORD
+export	RESERVED_WORD
+
+
+#######################################
+# methods and functions
+#######################################
+abs	FUNCTION
+acos	FUNCTION
+asin	FUNCTION
+atan	FUNCTION
+atan2	FUNCTION
+ceil	FUNCTION
+constrain	FUNCTION
+cos	FUNCTION
+degrees	FUNCTION
+exp	FUNCTION
+floor	FUNCTION
+log	FUNCTION
+map	FUNCTION
+max	FUNCTION
+min	FUNCTION
+radians	FUNCTION
+random	FUNCTION
+randomSeed	FUNCTION
+round	FUNCTION
+sin	FUNCTION
+sq	FUNCTION
+sqrt	FUNCTION
+tan	FUNCTION
+pow	FUNCTION
+
+bitRead	FUNCTION
+bitWrite	FUNCTION
+bitSet	FUNCTION
+bitClear	FUNCTION
+bit	FUNCTION
+highByte	FUNCTION
+lowByte	FUNCTION
+
+analogReference	FUNCTION
+analogRead	FUNCTION
+analogWrite	FUNCTION
+attachInterrupt	FUNCTION
+detachInterrupt	FUNCTION
+digitalPinToInterrupt	FUNCTION
+delay	FUNCTION
+delayMicroseconds	FUNCTION
+digitalWrite	FUNCTION
+digitalRead	FUNCTION
+interrupts	FUNCTION
+millis	FUNCTION
+micros	FUNCTION
+noInterrupts	FUNCTION
+noTone	KEYWORD2	FUNCTION
+pinMode	FUNCTION
+pulseIn	FUNCTION
+pulseInLong	FUNCTION
+shiftprecompilerIn	FUNCTION
+shiftOut	FUNCTION
+tone	FUNCTION
+yield	FUNCTION
+
+Serial	DATA_TYPE
+Serial1	DATA_TYPE
+Serial2	DATA_TYPE
+Serial3	DATA_TYPE
+SerialUSB	DATA_TYPE
+begin	FUNCTION
+end	FUNCTION
+peek	FUNCTION
+read	FUNCTION
+print	FUNCTION
+println	FUNCTION
+available	FUNCTION
+availableForWrite	FUNCTION
+flush	FUNCTION
+setTimeout	FUNCTION
+find	FUNCTION
+findUntil	FUNCTION
+parseInt	FUNCTION
+parseFloat	FUNCTION
+readBytes	FUNCTION
+readBytesUntil	FUNCTION
+readString	FUNCTION
+readStringUntil	FUNCTION
+trim	FUNCTION
+toUpperCase	FUNCTION
+toLowerCase	FUNCTION
+charAt	FUNCTION
+compareTo	FUNCTION
+concat	FUNCTION
+endsWith	FUNCTION
+startsWith	FUNCTION
+equals	FUNCTION
+equalsIgnoreCase	FUNCTION
+getBytes	FUNCTION
+indexOf	FUNCTION
+lastIndexOf	FUNCTION
+length	FUNCTION
+replace	FUNCTION
+setCharAt	FUNCTION
+substring	FUNCTION
+toCharArray	FUNCTION
+toInt	FUNCTION
+
+Keyboard	DATA_TYPE
+Mouse	DATA_TYPE
+press	FUNCTION
+release	FUNCTION
+releaseAll	FUNCTION
+accept	FUNCTION
+click	FUNCTION
+move	FUNCTION
+isPressed	FUNCTION
+
+
+#######################################
+# operators
+#######################################
+# operators aren't highlighted
+
+#######################################
+# Syntax Coloring Map (default)
+#######################################
+

@@ -1,0 +1,11 @@
+#######################################
+# Syntax Coloring Map (default)
+#######################################
+
+kxg03	KEYWORD3
+init	KEYWORD2
+get_val	KEYWORD2
+
+KXG03_DEVICE_ADDRESS_4E
+KXG03_DEVICE_ADDRESS_4F
+

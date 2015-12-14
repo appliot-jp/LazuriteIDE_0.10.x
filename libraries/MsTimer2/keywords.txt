@@ -1,0 +1,10 @@
+#######################################
+# Syntax Coloring Map (default)
+#######################################
+
+timer2		KEYWORD3
+callback	KEYWORD2
+set			KEYWORD2
+start		KEYWORD2
+stop		KEYWORD2
+

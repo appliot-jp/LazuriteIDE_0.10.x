@@ -1,0 +1,7 @@
+#######################################
+# Syntax Coloring Map (default)
+#######################################
+
+rpr0521rs		KEYWORD3
+init			KEYWORD2
+get_psalsval	KEYWORD2
