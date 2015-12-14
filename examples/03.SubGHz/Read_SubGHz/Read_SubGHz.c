@@ -1,5 +1,3 @@
-#include "Read_SubGHz.h"		// Additional Header
-
 /* FILE NAME: Read_SubGHz.c
  * The MIT License (MIT)
  * 
@@ -50,7 +48,7 @@ void setup(void)
 	myAddress = SubGHz.getMyAddress();
 	Serial.print("myAddress1 = ");
 	Serial.println_long(myAddress,HEX);	
-	msg = SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_100KBPS, SUBGHZ_PWR_1MW);
+	msg = SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_100KBPS, SUBGHZ_PWR_20MW);
 	if(msg != SUBGHZ_OK)
 	{
 		SubGHz.msgOut(msg);

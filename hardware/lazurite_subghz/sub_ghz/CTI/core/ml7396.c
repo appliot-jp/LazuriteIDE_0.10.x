@@ -1427,9 +1427,9 @@ static int em_tx_acktimeout(EM_Data *em_data, const uint32_t *hw_event) {
         REG_RXON();
     }
     else {
-        // 2015.12.01 Eiichi Saito : SugGHz timer chaneged from TM01 to TM67.
         // 2015.12.14 Eiichi Saito: for preference of SubGHz
         HAL_EX_enableInterrupt();
+        // 2015.12.01 Eiichi Saito : SugGHz timer chaneged from TM01 to TM67.
         ON_ERROR_STATUS(ml7396_hwif_timer_stop(), ML7396_STATUS_ETIMSTOP);  /* タイマ割り込み停止 */
         em_data->tx->status = ML7396_BUFFER_ERETRY;
         BUFFER_DONE(em_data->tx);
