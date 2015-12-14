@@ -371,7 +371,7 @@ error:
 
 /* 送信バッファ書き込み(先頭データ)
  */
-// 2015.05.07 Eiichi Saito PHR CRC lengthフィールドを0x0800→0x1800へ改修
+// 2015.05.07 Eiichi Saito : Change PHR CRC length field 0x0800 -> 0x1800
 #define REG_TXSTART(_buffer) \
     do { \
         uint16_t _data_size; \
@@ -392,7 +392,7 @@ error:
 /* 送信バッファ書き込み開始(継続データ)
  *  必要に応じて自動でML7396の状態を RX_ON に変更
  */
-// 2015.06.08 Eiichi Saito delay追加
+// 2015.06.08 Eiichi Saito : addition delay
 #define REG_TXCONTINUE(_buffer) \
     do { \
         uint8_t _size; \
@@ -411,7 +411,7 @@ error:
 
 /* CCA実行
  */
-// 2015.07.29 Eiichi Saito CCA中シンクさせない
+// 2015.07.29 Eiichi Saito : not synchronize in CCA
 #define REG_CCAEN() \
     do { \
         uint8_t _reg_data[1]; \
@@ -603,7 +603,7 @@ static const uint8_t *parse_data(const uint8_t *data, uint16_t size, ML7396_Head
         uint16_t srcaddrmode;
         uint16_t panidcomps;
         uint16_t seqsuppress;
-        // 2015.07.10 Eiichi Saito Read_SubGHzでアドレスフィルタが機能していないため判定条件変更
+        // 2015.07.10 Eiichi Saito : The conditions for an address filter are changed.
         uint16_t dstaddr;
     } fc;
 
@@ -694,7 +694,7 @@ static int is_rx_recvdata(const ML7396_Buffer *rx, ML7396_Header *rxheader) {
     ASSERT(rx->status >= 0);
     if (parse_data(rx->data, rx->status, rxheader) == NULL)
         goto error;                      /* 解析不能なデータは破棄 */
-    // 2015.10.08 Eiichi Saito Read_SubGHzでアドレスフィルタが機能していないため判定条件変更、ブロードキャスト対応 (実装リプレイス)
+    // 2015.07.10 Eiichi Saito : The conditions for an address filter are changed.
     dstaddr = *ml7396_myaddr();
     if ((dstaddr != rxheader->dstaddr) && 
         !(rxheader->dstaddr == 0xffff && rxheader->dstpanid == 0xffff))
@@ -774,7 +774,7 @@ static int is_tx_recvack(const ML7396_Buffer *ack, const ML7396_Header *ackheade
 //          header.srcpanid == ackheader->srcpanid &&
 //          header.srcaddr == ackheader->srcaddr )
 //          status = !0;
-// 2015.05.07 Eiichi Saito ACKフレームの解析内容を修正
+// 2015.05.07 Eiichi Saito : ACK Frame analysis is corrected.
         if (header.seq == ackheader->seq &&            /* 送信データとヘッダ情報が一致するならそのACK返信と判定 */
             header.dstpanid == ackheader->dstpanid &&
             header.dstaddr == ackheader->srcaddr )
@@ -788,7 +788,7 @@ error:
 
 /** イベントマシン共通データ
  */
-// 2015.07.31 Eiichi Saito 重複SequneceNumber上位通知防止
+// 2015.07.31 Eiichi Saito : Duplicate SequneceNumber is not notified to a higher layer.
 typedef struct {
     uint16_t myaddr;          /* 自機アドレス */
     uint16_t mypanid;         /* 自機PANID */
@@ -901,7 +901,9 @@ static int em_setup(EM_Data *em_data, void *data) {
         /* FIFO_MARGIN*2 バイト分FIFOに書き込んだ時点で自動で TX_ON へ移行 */
         REG_WRB(REG_ADR_FAST_TX_SET, FIFO_MARGIN<<1);
         /* 送信完了で自動で TRX_OFF へ移行 */
-        REG_WRB(REG_ADR_ACK_TIMER_EN, 0x10);
+        // 2015.12.14 Eiichi Saito: enable TX_DONERX 
+//      REG_WRB(REG_ADR_ACK_TIMER_EN, 0x10);
+        REG_WRB(REG_ADR_ACK_TIMER_EN, 0x20);
         /* FIFO_MARGIN バイト分余裕を持ってFIFOを読み書きする設定 */
         REG_WRB(REG_ADR_TX_ALARM_LH, FIFO_MARGIN);      /* 未使用だが設定しておく必要あり 255では何故かFIFOアクセスエラーが発生する */
         REG_WRB(REG_ADR_TX_ALARM_HL, FIFO_MARGIN);      /* 送信FIFOの残りデータ数が FIFO_MARGIN になれば割り込み発生 */
@@ -931,7 +933,7 @@ static int em_setup(EM_Data *em_data, void *data) {
          *    n=FIFO_MARGIN
          */
         /* VCOキャリブレーション */
-        // 2015.07.10 Eiichi Saito VCOキャリブレーション後当該割込み要因以外の割込みが残さない。
+        // 2015.07.10 Eiichi Saito : After a VCO calibration clears all the interruption.
         REG_INTCLR(0x00000000);
         REG_WRB(REG_ADR_VCO_CAL_START, 0x01);
         do {
@@ -1115,7 +1117,7 @@ static int em_rx_datarecv(EM_Data *em_data, const uint32_t *hw_event) {
         if (*hw_event & HW_EVENT_FIFO_RX_DONE) {  /* 受信完了 */
             REG_RXDONE(em_data->rx);  /* ED値を取得 */
             #ifndef SNIFFER
-            // 2015.07.10 Eiichi Saito Read_SubGHzでアドレスフィルタが機能していないため判定条件変更
+            // 2015.07.10 Eiichi Saito : The conditions for an address filter are changed.
             // アドレス判定しておかないとACK送信モードになる。
             if (!is_rx_recvdata(em_data->rx, &rxheader) ||  /* 受信/破棄の判定 */
                 em_data->rx->opt.rx.filter != NULL && !em_data->rx->opt.rx.filter(&rxheader) )  /* フィルタリングチェック */
@@ -1136,6 +1138,8 @@ static int em_rx_datarecv(EM_Data *em_data, const uint32_t *hw_event) {
                     }
                     else {
                         SWITCH_STATE(ML7396_StateSendACK);
+                        // 2015.12.14 Eiichi Saito adjusted 2msec from receiveing data to starting ack
+                        HAL_delayMicroseconds(600);
                         REG_TXCONTINUE(&em_data->ack);
                     }
                     break;
@@ -1181,7 +1185,7 @@ error:
  *
  * SendAck, TXON->TRXOFF
  */
-// 2015.07.31 Eiichi Saito 重複SequneceNumber上位通知防止
+// 2015.07.31 Eiichi Saito : Duplicate SequneceNumber is not notified to a higher layer.
 static int em_rx_ackdone(EM_Data *em_data, const uint32_t *hw_event) {
     int status = ML7396_STATUS_UNKNOWN;
 
@@ -1217,7 +1221,7 @@ static int em_tx_ccadone(EM_Data *em_data, const uint32_t *hw_event) {
     ASSERT(em_data->tx != NULL);
     REG_TRXOFF();  /* 自動でOFFになるなら不要 */
     REG_RDB(REG_ADR_CCA_CNTRL, reg_data);  /* CCA_RSLT読み出し */
-    // 2015.07.29 Eiichi Saito CCA中シンクさせない
+    // 2015.07.29 Eiichi Saito : not synchronize in CCA
     REG_WRB(REG_ADR_DEMSET3, 0x64);
     REG_WRB(REG_ADR_DEMSET14, 0x27);
     switch (reg_data & 0x03) {
@@ -1326,6 +1330,8 @@ static int em_tx_datadone(EM_Data *em_data, const uint32_t *hw_event) {
         if (is_tx_waitack(em_data->tx, &em_data->ackheader)) {  /* ACK待ちをすべきかの判定と待条件保持 */
             em_data->ack.status = ML7396_BUFFER_INIT;
             SWITCH_STATE(ML7396_StateWaitACK);
+            // 2015.12.14 Eiichi Saito: for preference of SubGHz
+            HAL_EX_disableInterrupt();
             ON_ERROR_STATUS(ml7396_hwif_timer_start(em_data->tx->opt.tx.ack.wait), ML7396_STATUS_ETIMSTART);  /* タイマ割り込み設定 */
             REG_RXON();
         }
@@ -1376,6 +1382,8 @@ static int em_tx_ackrecv(EM_Data *em_data, const uint32_t *hw_event) {
         if (*hw_event & HW_EVENT_FIFO_RX_DONE) {  /* 受信完了 */
             REG_RXDONE(em_data->tx);  /* ED値を取得 */
             if (is_tx_recvack(&em_data->ack, &em_data->ackheader)) {  /* 待っているACKを受信したかの判定 */
+                // 2015.12.14 Eiichi Saito: for preference of SubGHz
+                HAL_EX_enableInterrupt();
                 ON_ERROR_STATUS(ml7396_hwif_timer_stop(), ML7396_STATUS_ETIMSTOP);  /* タイマ割り込み停止 */
                 REG_TRXOFF();
                 BUFFER_DONE(em_data->tx);
@@ -1419,6 +1427,10 @@ static int em_tx_acktimeout(EM_Data *em_data, const uint32_t *hw_event) {
         REG_RXON();
     }
     else {
+        // 2015.12.01 Eiichi Saito : SugGHz timer chaneged from TM01 to TM67.
+        // 2015.12.14 Eiichi Saito: for preference of SubGHz
+        HAL_EX_enableInterrupt();
+        ON_ERROR_STATUS(ml7396_hwif_timer_stop(), ML7396_STATUS_ETIMSTOP);  /* タイマ割り込み停止 */
         em_data->tx->status = ML7396_BUFFER_ERETRY;
         BUFFER_DONE(em_data->tx);
         em_data->tx = NULL;
@@ -1577,7 +1589,7 @@ static int em_main(EM_Data *em_data, void *data, int sw_event, uint32_t hw_event
 #ifndef DEBUG
 static  /* デバッグ時は外部公開 */
 #endif  /* #ifndef DEBUG */
-// 2015.07.31 Eiichi Saito 重複SequneceNumber上位通知防止
+// 2015.07.31 Eiichi Saito : Duplicate SequneceNumber is not notified to a higher layer.
 EM_Data em_data = {
     0x0000,            /* 自機アドレス */
     0x0000,            /* 自機PANID */

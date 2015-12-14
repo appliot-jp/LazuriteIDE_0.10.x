@@ -23,7 +23,9 @@
 #include "lazurite.h"
 #include "spi.h"
 #include "wire.h"
-#include "MsTimer2.h"
+// 2015.12.14 Eiichi Saito : SugGHz timer chaneged from TM01 to TM67.
+//#include "MsTimer2.h"
+#include "driver_timer.h"
 #include "driver_extirq.h"
 #include "driver_irq.h"
 #include "driver_gpio.h"
@@ -35,6 +37,8 @@
 
 void (*hal_gpio_func)(void);
 static unsigned long hal_previous_time;
+// 2015.12.14 Eiichi Saito: for preference of SubGHz
+static unsigned char hal_setbit_exi;
 
 
 //*****************************************************
@@ -154,14 +158,42 @@ int HAL_TIMER_setup(void)
 
 int HAL_TIMER_start(unsigned short msec, void (*func)(void))
 {
-	timer2.set((unsigned long)msec, func);			//MsTimer2 library
-	timer2.start();									//MsTimer2 library
+// 2015.12.14 Eiichi Saito : SugGHz timer chaneged from TM01 to TM67.
+//	timer2.set((unsigned long)msec, func);			//MsTimer2 library
+//	timer2.start();									//MsTimer2 library
+	timer_16bit_set(6,0xE8,(unsigned long)msec,func);
+	timer_16bit_start(6);
 	return HAL_STATUS_OK;
 }
 
 int HAL_TIMER_stop(void)
 {
-	timer2.stop();					//MsTimer2 library
+// 2015.12.14 Eiichi Saito : SugGHz timer chaneged from TM01 to TM67.
+//	timer2.stop();					//MsTimer2 library
+	timer_16bit_stop(6);
 	return HAL_STATUS_OK;
+}
+
+
+// 2015.12.14 Eiichi Saito: for preference of SubGHz
+void HAL_EX_disableInterrupt(void)
+{
+    irq_ua0_dis();
+    irq_tm0_dis();
+    irq_tm1_dis();
+
+    hal_setbit_exi=IE1;
+    hal_setbit_exi &= ~0x08;    // EEXI3 (SINTN) clear
+    IE1 &= ~hal_setbit_exi;
+}
+
+
+// 2015.12.14 Eiichi Saito: for preference of SubGHz
+void HAL_EX_enableInterrupt(void)
+{
+    irq_ua0_ena();
+    irq_tm0_ena();
+    irq_tm1_ena();
+    IE1 |= hal_setbit_exi;
 }
 

@@ -382,7 +382,7 @@ int ml7396_hwif_regset(void *data) {
 
     // 2015.09.08 Eiichi Saito
     if (setup->device_id == DEIVE_ID_LAPIS)
-        // 2015.07.28 Eiichi Saito Fly ANT 設定
+        // 2015.07.28 Eiichi Saito : Set Fly ANT 
         reg_data[0] = 0x0A, ml7396_regwrite(REG_ADR_2DIV_CNTRL,          reg_data, 1);  /* 0x04 CRCエラー発生し難くなった */
     reg_data[0] = 0x04, ml7396_regwrite(REG_ADR_SYNC_MODE,           reg_data, 1);
     reg_data[0] = 0x10, ml7396_regwrite(REG_ADR_RAMP_CNTRL,          reg_data, 1);
@@ -446,7 +446,7 @@ int ml7396_hwif_regset(void *data) {
     reg_data[0] = 0x1f, ml7396_regwrite(REG_ADR_RSSI_LPF_ADJ,        reg_data, 1);
     reg_data[0] = 0x44, ml7396_regwrite(REG_ADR_PLL_CP_ADJ,          reg_data, 1);
     eeprom_read(0x2d, reg_data, 1), ml7396_regwrite(REG_ADR_OSC_ADJ, reg_data, 1);  /* XA */
-// 2015.07.28 Eiichi Saito パケット抜けが改善
+// 2015.07.28 Eiichi Saito : Packet loss correction
     if (setup->device_id == DEIVE_ID_LAPIS) {
         eeprom_read(0x80, reg_data, 1), ml7396_regwrite(REG_ADR_OSC_ADJ2, reg_data, 1);  /* XA */
     //  reg_data[0] = 0x06, ml7396_regwrite(REG_ADR_OSC_ADJ2, reg_data, 1);  /* XA */

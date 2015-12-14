@@ -77,6 +77,9 @@ extern int HAL_TIMER_disableInterrupt(void);
 extern int HAL_TIMER_getTick(uint32_t *tick);
 extern int HAL_I2C_setup(void);
 extern int HAL_I2C_read(uint8_t daddr, uint8_t addr, uint8_t *data, uint8_t size);
+// 2015.12.14 Eiichi Saito: for preference of SubGHz
+extern void HAL_EX_enableInterrupt(void);
+extern void HAL_EX_disableInterrupt(void);
 
 
 #endif  /* #ifndef _INCLUDE_HAL_H */
