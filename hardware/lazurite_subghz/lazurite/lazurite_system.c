@@ -33,7 +33,7 @@
 #include "rdwr_reg.h"
 
 //#define MIE_TEST
-//#define TIMER_DEBUG
+//#define _DEBUG
 
 //********************************************************************************
 //   global parameters
@@ -168,6 +168,18 @@ void delay_isr(void)
 	noInterrupts();
 	interrupts();
 #endif
+	
+	// check end of timer
+	if(delay_time.target_h == 0)
+	{
+		delay_flag = true;
+		return;
+	}
+	
+	// decriment high part of timer
+	delay_time.target_h--;
+	
+	// update timer data
 	if(delay_time.target_h == 0)
 	{
 		if((delay_time.target_l == 0) || (TM67C >= delay_time.target_l))
@@ -175,15 +187,20 @@ void delay_isr(void)
 			delay_flag = true;
 			return;
 		}
-		T6OST = 1;
-		TM67D = delay_time.target_l;
-		
-		delay_time.target_l = 0;
+		else
+		{
+			T6OST = 1;
+			TM67D = delay_time.target_l;
+			
+			delay_time.target_l = 0;
+		}
 	}
-	else
-	{
-		delay_time.target_h--;
-	}
+	#ifdef _DEBUG
+	Serial.print("TimerH:");
+	Serial.print_long(delay_time.target_h,DEC);
+	Serial.print("\tTimerL:");
+	Serial.println_long(delay_time.target_l,DEC);
+	#endif
 	return;
 }
 
@@ -198,17 +215,23 @@ void delay_long(unsigned long ms)
 	delay_time.target_l = tmp_target_l;
 	delay_time.target_h = ms / 64000;
 	
-#ifdef TIMER_DEBUG
+#ifdef _DEBUG
 	Serial.print_long(delay_time.target_h,HEX);
 	Serial.print("\t");
 	Serial.println_long(delay_time.target_l,HEX);
 #endif
-	// setup timer
-	timer_16bit_set(6,0x68,0xFFFF,delay_isr);
 	
-	// correct timer parameter according to delay time
-	delay_isr();
-
+	if(delay_time.target_h==0)
+	{
+		timer_16bit_set(6,0xE8,tmp_target_l,delay_isr);
+		delay_time.target_l = 0;
+	}
+	else
+	{
+		timer_16bit_set(6,0x68,0xFFFF,delay_isr);
+	}
+	
+	// setup timer
 	timer_16bit_start(6);
 	
 	while(delay_flag == false)
@@ -232,18 +255,23 @@ void sleep_long(unsigned long ms)
 	delay_time.target_l = tmp_target_l;
 	delay_time.target_h = ms / 64000;
 	
-#ifdef TIMER_DEBUG
+#ifdef _DEBUG
 	Serial.print_long(delay_time.target_h,HEX);
 	Serial.print("\t");
 	Serial.println_long(delay_time.target_l,HEX);
 #endif
 	
+	if(delay_time.target_h==0)
+	{
+		timer_16bit_set(6,0xE8,tmp_target_l,delay_isr);
+		delay_time.target_l = 0;
+	}
+	else
+	{
+		timer_16bit_set(6,0x68,0xFFFF,delay_isr);
+	}
+	
 	// setup timer
-	timer_16bit_set(6,0x68,delay_time.target_l,delay_isr);
-	
-	// correct timer parameter according to delay time
-	delay_isr();
-	
 	timer_16bit_start(6);
 	
 	while(delay_flag == false)
