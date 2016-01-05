@@ -1,6 +1,4 @@
-#include "blue_led_ide.h"		// Additional Header
-
-/* FILE NAME: blue_led.c
+/* FILE NAME: MsTimer2.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2015  Lapis Semiconductor Co.,Ltd.
@@ -25,33 +23,33 @@
  * THE SOFTWARE.
 */
 
-#define BLUE_LED		26
+// This program is sample software of MsTimer2
+// In the program, callback() is called once per 500ms.
+// Then, LED is blinking and CPU operating time is send to serial monitor in PC.
+// 本プログラムはMsTimer2用のサンプルソフトウエアです。
+// 500msに1回、callback()が呼び出され、LEDを点滅するとともに、その時間をPC上のシリアルモニターにＣＰＵが動作してからの累積動作時間を送信しています。
 
-//*****************************************************
-// Local parameters
-//*****************************************************
-
-//*****************************************************
-// Local func declaration
-//*****************************************************
-
-
-//*****************************************************
-// Arduino Start up sequence
-//*****************************************************
-////////////// HOST ////////
+void callback(void)
+{
+	digitalWrite(26,(digitalRead(26)?LOW:HIGH));
+	Serial.println_long((long)millis(),DEC);
+}
 
 void setup(void)
 {
-	digitalWrite(BLUE_LED,HIGH);
-	pinMode(BLUE_LED,OUTPUT);
+	// Setup Serial
+	Serial.begin(115200);
+	
+	// Setup Blue GPIO)
+	digitalWrite(26,LOW);
+	pinMode(26,OUTPUT)；
+	
+	// Setup MsTimer2;
+	timer2.set(500,callback);
+	timer2.start();
 }
 
-// Arduino loop sequence
+
 void loop(void)
 {
-	digitalWrite(BLUE_LED,HIGH);
-	delay(1000);
-	digitalWrite(BLUE_LED,LOW);
-	delay(1000);
 }

@@ -243,7 +243,3 @@ isPressed	FUNCTION
 #######################################
 # operators aren't highlighted
 
-#######################################
-# Syntax Coloring Map (default)
-#######################################
-

@@ -5,7 +5,7 @@ MCUBOARD_NAME=LAZURITE Sub-GHz Rev2
 
 MANUFACTURER_NAME=LAPIS
 DESCRIPTION_NAME=LAZURITE Sub-GHz Rev2
-CTRL_DRIVER=bin\\ml620q504_ctrl_FT232R.exe
+CTRL_DRIVER=bin\\lazurite_ft232_ctrl.exe
 
 OPTION_NAME=LAZURITE Basic
 OPTION_BUILD=hardware\\lazurite_subghz\\build\\lazurite.bld

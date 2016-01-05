@@ -1,6 +1,6 @@
-#include "blue_led_ide.h"		// Additional Header
+#include "BM1423_ide.h"		// Additional Header
 
-/* FILE NAME: blue_led.c
+/* FILE NAME: bm1423gmv.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2015  Lapis Semiconductor Co.,Ltd.
@@ -25,33 +25,30 @@
  * THE SOFTWARE.
 */
 
-#define BLUE_LED		26
+void setup() {
+  byte rc;
 
-//*****************************************************
-// Local parameters
-//*****************************************************
-
-//*****************************************************
-// Local func declaration
-//*****************************************************
-
-
-//*****************************************************
-// Arduino Start up sequence
-//*****************************************************
-////////////// HOST ////////
-
-void setup(void)
-{
-	digitalWrite(BLUE_LED,HIGH);
-	pinMode(BLUE_LED,OUTPUT);
+  Serial.begin(115200);
+  
+  Wire.begin();
+  
+  rc = bm1423.init(0);
 }
 
-// Arduino loop sequence
-void loop(void)
-{
-	digitalWrite(BLUE_LED,HIGH);
-	delay(1000);
-	digitalWrite(BLUE_LED,LOW);
-	delay(1000);
+void loop() {
+  byte rc;
+  float mag[3];
+  rc = bm1423.get_val(mag);
+
+  if (rc == 0) {
+    Serial.print("BM1423 XDATA=");
+    Serial.println_double(mag[0], 2);
+    Serial.print("BM1423 YDATA=");
+    Serial.println_double(mag[1], 2);
+    Serial.print("BM1423 ZDATA=");
+    Serial.println_double(mag[2], 2);
+    Serial.print("\n");    
+  }
+  
+  delay(500);
 }

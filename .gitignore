@@ -1,18 +1,18 @@
 #ignore directories
 _prn/
 obj/
+/java
 /bin
-/tool
+/theme
+/bin
+/res
+Lazurite_IDE.pref
+/languages
 
 #ignore files
-/java
-/tool
-/theme
-/old
-/examples/*/*/*.bin
-/examples/*/*/*.map
-/examples/*/*/*_.c
-/examples/*/*/*.abs
-/examples/*/*/*.HEX
+*.bin
+*.map
+*_.c
+*.abs
+*.HEX
 *.exe
-*.pref

@@ -4,7 +4,6 @@
 #include "driver_pin_assignment.h"
 #include "wdt.h"
 
-
 static unsigned char led_pin;
 static short data_length=0;
 static void led_ctrl_init(unsigned char pin, unsigned short len)

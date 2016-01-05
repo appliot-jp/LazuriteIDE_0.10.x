@@ -1,3 +1,5 @@
+#include "Welcome_SubGHz.h"		// Additional Header
+
 /* FILE NAME: Welcome_SubGHz.c
  * The MIT License (MIT)
  * 
@@ -27,7 +29,7 @@
 #define LED 26						// pin number of Blue LED
 #define SUBGHZ_CH		36			// channel number (frequency)
 #define SUBGHZ_PANID	0xABCD		// panid
-#define HOST_ADDRESS	0xB132		// distination address
+#define HOST_ADDRESS	0x5FAC		// distination address
 
 unsigned char send_data[] = {"Welcome to Lazurite Sub-GHz\r\n"};
 

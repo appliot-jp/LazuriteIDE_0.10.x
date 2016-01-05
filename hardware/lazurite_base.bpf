@@ -5,7 +5,7 @@ MCUBOARD_NAME=LAZURITE Base
 
 MANUFACTURER_NAME=LAPIS
 DESCRIPTION_NAME=LAZURITE Base
-CTRL_DRIVER=bin\\ml620q504_ctrl_FT232R.exe
+CTRL_DRIVER=bin\\lazurite_ft232_ctrl.exe
 
 OPTION_NAME=LAZURITE Fly
 OPTION_BUILD=hardware\\lazurite_fly\\build\\lazurite_fly.bld
