@@ -6,7 +6,6 @@ obj/
 /theme
 /bin
 /res
-Lazurite_IDE.pref
 /languages
 
 #ignore files
@@ -16,3 +15,4 @@ Lazurite_IDE.pref
 *.abs
 *.HEX
 *.exe
+Lazurite_IDE.pref
