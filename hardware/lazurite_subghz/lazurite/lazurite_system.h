@@ -53,6 +53,7 @@ extern unsigned long millis(void);
 extern unsigned long micros(void);
 extern void interrupts(void);
 extern void noInterrupts(void);
+extern void wait_event(bool *flag);
 
 #endif // _ARDUINO_SYSTEM_H_
 

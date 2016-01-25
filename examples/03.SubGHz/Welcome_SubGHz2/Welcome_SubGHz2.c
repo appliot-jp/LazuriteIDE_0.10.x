@@ -1,6 +1,7 @@
-#include "KXG03_ide.h"		// Additional Header
+#include "Welcome_SubGHz2_ide.h"		// Additional Header
 
-/* FILE NAME: kxg03.c
+
+/* FILE NAME: Welcome_SubGHz.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2015  Lapis Semiconductor Co.,Ltd.
@@ -24,35 +25,50 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
 */
-void setup() {
-  byte rc;
 
-  Serial.begin(115200);
-  
-  Wire.begin();
-  
-  rc = kxg03.init(KXG03_DEVICE_ADDRESS_4E);
+
+#define LED 26						// pin number of Blue LED
+#define SUBGHZ_CH		36			// channel number (frequency)
+#define SUBGHZ_PANID	0xABCD		// panid
+#define HOST_ADDRESS	0x5FAC		// distination address
+
+unsigned char send_data[] = {"Welcome to Lazurite Sub-GHz\r\n"};
+
+bool event=false;
+
+void callback(void)
+{
+	event = true;
 }
 
-void loop() {
-  byte rc;
-  float val[6];
-
-  rc = kxg03.get_val(val);
-  if (rc == 0) {
-    Serial.print("KXG03 GYRO_X=");
-    Serial.println_double((double)val[0], 2);
-    Serial.print("KXG03 GYRO_Y=");
-    Serial.println_double((double)val[1], 2);
-    Serial.print("KXG03 GYRO_Z=");
-    Serial.println_double((double)val[2], 2);
-    Serial.print("KXG03 ACC_X=");
-    Serial.println_double((double)val[3], 2);   
-    Serial.print("KXG03 ACC_Y=");
-    Serial.println_double((double)val[4], 2);
-    Serial.print("KXG03 ACC_Z=");
-    Serial.println_double((double)val[5], 2);
-    Serial.print("\n");
-  }
-  delay(500);
+void setup(void)
+{
+	SubGHz.init();					// initializing Sub-GHz
+	
+	pinMode(LED,OUTPUT);			// setting of LED
+	digitalWrite(LED,HIGH);			// setting of LED
+	
+	timer2.set(10000L,callback);
+	timer2.start();
+	
 }
+
+void loop(void)
+{
+	
+	wait_event(&event);
+	
+	// Initializing
+	SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_100KBPS, SUBGHZ_PWR_20MW);		// start Sub-GHz
+	
+	// preparing data
+	digitalWrite(LED,LOW);														// LED ON
+	SubGHz.send(SUBGHZ_PANID, HOST_ADDRESS, &send_data, sizeof(send_data),NULL);// send data
+	digitalWrite(LED,HIGH);														// LED off
+	
+	// close
+	SubGHz.close();																// Sub-GHz module sets into power down mode.
+	
+	return;
+}
+

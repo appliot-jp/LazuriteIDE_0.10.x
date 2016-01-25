@@ -47,8 +47,6 @@ static char		dig_H6;
 
 #define BME280_CALIB(v)		((v>=0)&&(v<=25))? 0x88+v : 0xE1-26+v
 
-#define DEBUG
-
 static unsigned char bme280_transfer(unsigned char addr, unsigned char data,unsigned char read)
 {
 	volatile unsigned char result;

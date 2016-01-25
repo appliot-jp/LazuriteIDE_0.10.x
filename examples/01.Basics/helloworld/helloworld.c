@@ -1,3 +1,5 @@
+#include "helloworld_ide.h"		// Additional Header
+
 /* FILE NAME: helloworld.c
  * The MIT License (MIT)
  * 

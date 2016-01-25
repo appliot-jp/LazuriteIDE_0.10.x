@@ -413,3 +413,22 @@ void noInterrupts()
 {
 	dis_interrupts(DI_USER);
 }
+
+void wait_event(bool *flag)
+{
+	while(*flag == false)
+	{
+		if((uart_tx_sending == true) || (uartf_tx_sending == true))
+		{
+			lp_setHaltMode();
+			wdt_clear();
+		}
+		else
+		{
+			lp_setDeepHaltMode();
+			wdt_clear();
+		}
+	}
+	*flag = false;
+}
+
