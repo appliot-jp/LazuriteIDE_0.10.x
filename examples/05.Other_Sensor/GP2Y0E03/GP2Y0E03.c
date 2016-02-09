@@ -1,3 +1,5 @@
+#include "GP2Y0E03_ide.h"		// Additional Header
+
 #include "GP2Y0E03.h"		// Additional Header
 
 

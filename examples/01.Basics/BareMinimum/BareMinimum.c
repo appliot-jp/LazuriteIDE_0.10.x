@@ -1,3 +1,5 @@
+#include "BareMinimum_ide.h"		// Additional Header
+
 /* FILE NAME: BareMinimum.c
  * The MIT License (MIT)
  * 

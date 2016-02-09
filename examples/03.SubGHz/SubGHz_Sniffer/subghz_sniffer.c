@@ -1,3 +1,5 @@
+#include "subghz_sniffer_ide.h"		// Additional Header
+
 /* FILE NAME: subghz_sniffer.c
  * The MIT License (MIT)
  * 

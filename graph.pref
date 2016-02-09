@@ -1,0 +1,15 @@
+Label_File_New=NEW
+Label_File_Open=OPEN
+Label_File_Save=SAVE
+Label_File_Quit=QUIT
+Label_Com_Port=Com port:
+Label_Baud=Baud rate:
+Label_Graph_Enable=Enable
+Label_Graph_Axis=Y Axis Label
+Label_Graph_Line=Number of line
+Label_Com_Updatet=Com Update
+Label_Start=Start graph
+Label_Graph_Title=Graph Title:
+File_Path_Logo=lazurite_logo.png
+URL_Logo= http://www.lapis-semi.com/lazurite-jp/
+App_Icon=res\\LazuriteGraph32.png

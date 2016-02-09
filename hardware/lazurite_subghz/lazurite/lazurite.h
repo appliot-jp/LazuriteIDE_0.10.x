@@ -73,7 +73,12 @@ typedef UCHAR BOOL;
 #define		F_LSCLK				32768
 #define		F_HSCLK				16000000L
 
-typedef unsigned char	uint8_t;
+typedef unsigned char uint8_t;
+typedef signed char int8_t;
+typedef unsigned short uint16_t;
+typedef signed short int16_t;
+typedef unsigned long uint32_t;
+typedef signed long int32_t;
 typedef uint8_t		boolean;
 typedef uint8_t		byte;
 
@@ -112,8 +117,6 @@ typedef unsigned int word;
 //****************************************************
 //        APIs
 //****************************************************
-extern void arduino_setup(void);
-extern void arduino_main(void);
 extern void setup(void);				// Arduino startup function
 extern void loop(void);					// Arduino loop function
 

@@ -138,9 +138,15 @@ static byte bm1383_get_temppressval(float *temp, float *press)
   return (rc);  
 }
 
+static void bm1383_get_val(float *data) {
+	float *result = data;
+	bm1383_get_temppressval(&result[0],&result[1]);
+	return;
+}
+
 const t_BM1383 bm1383 =
 {
 	bm1383_init,
-	bm1383_get_temppressval,
+	bm1383_get_val,
 };
 

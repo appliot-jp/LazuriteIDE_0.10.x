@@ -1,3 +1,5 @@
+#include "Serial_Echo_ide.h"		// Additional Header
+
 /* FILE NAME: Serial_Echo.c
  * The MIT License (MIT)
  * 

@@ -35,7 +35,7 @@
 // ƒNƒ‰ƒX‚Ì’è‹`
 typedef struct {
 	byte (*init)(int slave_address) ;
-	byte (*get_temppressval)(float *temp, float *press);
+	byte (*get_val)(float *data);
 } t_BM1383;
 
 extern const t_BM1383 bm1383;

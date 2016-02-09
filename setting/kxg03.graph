@@ -1,0 +1,18 @@
+#store test
+#Thu Feb 04 12:38:55 JST 2016
+comLineNum2=1
+comLineNum1=3
+comBaud=115200
+comGraphAxisText3=
+comLineNum0=3
+comGraphEnb3=false
+comGraphAxisText2=
+comGraphEnb2=false
+comGraphAxisText1=Acc
+comGraphEnb1=true
+comGraphAxisText0=Gyro
+comGraphEnb0=true
+comGraphTitle=Kionix KXG03
+selectedTab=0
+comPort=COM4
+comLineNum3=1

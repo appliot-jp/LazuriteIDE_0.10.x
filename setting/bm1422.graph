@@ -1,0 +1,18 @@
+#store test
+#Thu Feb 04 13:43:25 JST 2016
+comLineNum2=1
+comLineNum1=1
+comBaud=115200
+comGraphAxisText3=
+comLineNum0=3
+comGraphEnb3=false
+comGraphAxisText2=
+comGraphEnb2=false
+comGraphAxisText1=
+comGraphEnb1=false
+comGraphAxisText0=Mag
+comGraphEnb0=true
+comGraphTitle=BM1422GMV (Magnetic field sensor)
+selectedTab=0
+comPort=COM4
+comLineNum3=1

@@ -22,7 +22,6 @@
 
 #ifndef _KX022_H_
 #define _KX022_H_
-#include "lazurite.h"
 
 #define KX022_DEVICE_ADDRESS_1E   (0x1E)    // 7bit Addrss
 #define KX022_DEVICE_ADDRESS_1F   (0x1F)    // 7bit Address
@@ -31,9 +30,25 @@
 #define KX022_XOUT_L              (0x06)
 #define KX022_WHO_AM_I            (0x0F)
 #define KX022_CNTL1               (0x18)
-#define KX022_CNTL3               (0x1A)
 #define KX022_ODCNTL              (0x1B)
-#define KX022_TILT_TIMER          (0x22)
+
+#define KX022_CNTL1_TPE           (1 << 0)
+#define KX022_CNTL1_WUFE          (1 << 1)
+#define KX022_CNTL1_TDTE          (1 << 2)
+#define KX022_CNTL1_GSELMASK      (0x18)
+#define KX022_CNTL1_GSEL_2G       (0x00)
+#define KX022_CNTL1_GSEL_4G       (0x08)
+#define KX022_CNTL1_GSEL_8G       (0x10)
+#define KX022_CNTL1_DRDYE         (1 << 5)
+#define KX022_CNTL1_RES           (1 << 6)
+#define KX022_CNTL1_PC1           (1 << 7)
+
+#define KX022_ODCNTL_OSA_50HZ     (2)
+#define KX022_ODCNTL_LPRO         (1 << 6)
+#define KX022_IIR_BYPASS          (1 << 7)
+
+#define KX022_CNTL1_VAL           (KX022_CNTL1_RES | KX022_CNTL1_GSEL_2G)
+#define KX022_ODCNTL_VAL          (KX022_ODCNTL_OSA_50HZ)
 
 typedef struct {
 	byte (*init)(int slave_address) ;

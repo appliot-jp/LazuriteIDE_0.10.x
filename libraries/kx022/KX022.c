@@ -19,144 +19,140 @@
  */
 
 
-#include "kx022.h"
-#include "wire.h"
-static unsigned char device_address;
+#include <Wire.h>
+#include "lazurite.h"
+#include "KX022.h"
 
-static byte kx022_write(unsigned char memory_address, unsigned char *data, unsigned char size)
+static uint8_t _device_address;
+static unsigned short _g_sens;
+
+byte kx022_write(unsigned char memory_address, unsigned char *data, uint8_t size)
 {
   byte rc;
-  
-  Wire.beginTransmission(device_address);
+
+  Wire.beginTransmission(_device_address);
   Wire.write_byte(memory_address);
   Wire.write(data, size);
   rc = Wire.endTransmission(true);
   return (rc);
 }
 
-static byte kx022_read(unsigned char memory_address, unsigned char *data, int size)
+byte kx022_read(unsigned char memory_address, unsigned char *data, uint8_t size)
 {
   byte rc;
   unsigned char cnt;
- 
-  Wire.beginTransmission(device_address);
+
+  Wire.beginTransmission(_device_address);
   Wire.write_byte(memory_address);
   rc = Wire.endTransmission(false);
   if (rc != 0) {
     return (rc);
   }
-
-  Wire.requestFrom(device_address, size, true);
+  Wire.requestFrom(_device_address, size, true);
   cnt = 0;
   while(Wire.available()) {
-    data[cnt] = Wire.read();
-    if (data[cnt] < 0) {
-      return (-1);
-    }
+  	data[cnt] = (uint8_t)Wire.read();
     cnt++;
   }
-  // rc = Wire.endTransmission(true);
+
   return (0);
 }
 
-static byte kx022_init(int slave_address)
+
+byte kx022_init(uint8_t slave_address)
 {
   byte rc;
   unsigned char reg;
+  unsigned char gsel;
   int i;
 	
-	device_address = (slave_address == KX022_DEVICE_ADDRESS_1F) ? (unsigned char)KX022_DEVICE_ADDRESS_1F: (unsigned char)KX022_DEVICE_ADDRESS_1E;
-	
+	_device_address = slave_address;
+
   rc = kx022_read(KX022_WHO_AM_I, &reg, sizeof(reg));
   if (rc != 0) {
     Serial.println("Can't access KX022");
     return (rc);
   } 
   Serial.print("KX022_WHO_AMI Register Value = 0x");
- Serial.println_long(reg, HEX);
+  Serial.println_long((long)reg, HEX);
   
   if (reg != KX022_WAI_VAL) {
     Serial.println("Can't find KX022");
     return (rc);
   }
 
-  reg = 0x41;
+  reg = KX022_CNTL1_VAL;
   rc = kx022_write(KX022_CNTL1, &reg, sizeof(reg));
   if (rc != 0) {
     Serial.println("Can't write KX022 CNTL1 register at first");
     return (rc);
   }
 
-  reg = 0x02;
+  reg = KX022_ODCNTL_VAL;
   rc = kx022_write(KX022_ODCNTL, &reg, sizeof(reg));
   if (rc != 0) {
     Serial.println("Can't write KX022 ODCNTL register");
     return (rc);
   }
 
-  reg = 0xD8;
-  rc = kx022_write(KX022_CNTL3, &reg, sizeof(reg));
+  rc = kx022_read(KX022_CNTL1, &reg, sizeof(reg));
   if (rc != 0) {
-    Serial.println("Can't write KX022 CNTL3 register");
-    return (rc);
-  }  
-
-  reg = 0x01;
-  rc = kx022_write(KX022_TILT_TIMER, &reg, sizeof(reg));
-  if (rc != 0) {
-    Serial.println("Can't write KX022 TILT_TIMER register");
+    Serial.println("Can't read KX022 CNTL1 register");
     return (rc);
   }
+  gsel = reg & KX022_CNTL1_GSELMASK;
 
-  reg = 0xC1;
+  reg |= KX022_CNTL1_PC1;
   rc = kx022_write(KX022_CNTL1, &reg, sizeof(reg));
   if (rc != 0) {
     Serial.println("Can't write KX022 CNTL1 register at second");
     return (rc);
   }
   
+  switch(gsel) {
+    case KX022_CNTL1_GSEL_2G : _g_sens = 16384; break;
+    case KX022_CNTL1_GSEL_4G : _g_sens = 8192;  break;
+    case KX022_CNTL1_GSEL_8G : _g_sens = 4096;  break;
+    default: break;
+  }
 }
 
-static byte kx022_get_rawval(unsigned char *data)
+byte kx022_get_rawval(unsigned char *data)
 {
   byte rc;
 
   rc = kx022_read(KX022_XOUT_L, data, 6);
   if (rc != 0) {
     Serial.println("Can't get KX022 accel value");
-  }   
+  }
 
-  return (rc);  
+  return (rc);
 }
 
-static byte kx022_get_val(float *data)
+byte kx022_get_val(float *data)
 {
   byte rc;
   unsigned char val[6];
   signed short acc[3];
-	
-	rc = kx022_get_rawval(val);
+
+  rc = kx022_get_rawval(val);
   if (rc != 0) {
     return (rc);
-  } 
+  }
 
   acc[0] = ((signed short)val[1] << 8) | (val[0]);
   acc[1] = ((signed short)val[3] << 8) | (val[2]);
   acc[2] = ((signed short)val[5] << 8) | (val[4]);
-/*
-  Serial.print("KX022 (X) = ");
-  Serial.println(acc[0]);
-  Serial.print("KX022 (Y) = ");
-  Serial.println(acc[1]);
-  Serial.print("KX022 (Z) = ");
-  Serial.println(acc[2]);
-*/
-  data[0] = (float)acc[0] / 16384;
-  data[1] = (float)acc[1] / 16384;
-  data[2] = (float)acc[2] / 16384;
+
+  // Convert LSB to g
+  data[0] = (float)acc[0] / _g_sens;
+  data[1] = (float)acc[1] / _g_sens;
+  data[2] = (float)acc[2] / _g_sens;
 
   return (rc);  
 }
+
+
 
 const t_KX022 kx022 = {
 	kx022_init,

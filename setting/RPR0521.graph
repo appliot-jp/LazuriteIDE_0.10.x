@@ -1,0 +1,18 @@
+#store test
+#Fri Feb 05 11:03:31 JST 2016
+comLineNum2=1
+comLineNum1=1
+comBaud=115200
+comGraphAxisText3=
+comLineNum0=1
+comGraphEnb3=false
+comGraphAxisText2=
+comGraphEnb2=false
+comGraphAxisText1=Brightness
+comGraphEnb1=true
+comGraphAxisText0=PS
+comGraphEnb0=true
+comGraphTitle=RPR0521(ALS,PS)
+selectedTab=0
+comPort=COM4
+comLineNum3=1
