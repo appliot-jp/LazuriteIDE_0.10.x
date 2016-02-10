@@ -16,3 +16,5 @@ obj/
 *.HEX
 *.exe
 Lazurite_IDE.pref
+graph.ini
+graph.pref
