@@ -29,8 +29,7 @@
 #define SUBGHZ_PANID	0xABCD
 uint8_t rx_data[256];
 uint32_t last_recv_time = 0;
-SUBGHZ_STATUS rx;
-
+SUBGHZ_STATUS rx;							// structure for getting rx status
 #define BLUE_LED	26
 
 void setup(void)
@@ -83,7 +82,7 @@ void loop(void)
 	if(rx_len>0)
 	{
 		digitalWrite(BLUE_LED, LOW);
-		SubGHz.getStatus(NULL,&rx);
+		SubGHz.getStatus(NULL,&rx);										// get status of rx
 		// print time
 		Serial.print_long((long)millis(),DEC);
 		Serial.print("\t");
@@ -92,37 +91,37 @@ void loop(void)
 		// print header
 		data16 = rx_data[index], index++;
 		data16 = data16 + ((uint16_t)rx_data[index] << 8), index++;
-		Serial.print_long((long)data16,HEX);
+		Serial.print_long((long)data16,HEX);							// output 802.15.4e header
 		Serial.print("\t");
 		
 		// print sequence number
-		Serial.print_long((long)rx_data[index],HEX), index++;
+		Serial.print_long((long)rx_data[index],HEX), index++;			// output 802.15.4e sequence number
 		Serial.print("\t");
 		
 		// print PANID
 		data16 = rx_data[index], index++;
 		data16 = data16 + ((uint16_t)rx_data[index] << 8), index++;
-		Serial.print_long((long)data16,HEX);
+		Serial.print_long((long)data16,HEX);							// output 802.15.4e rx PANID
 		Serial.print("\t");
 		
 		// print RX_ADDR
 		data16 = rx_data[index], index++;
 		data16 = data16 + ((uint16_t)rx_data[index] << 8), index++;
-		Serial.print_long((long)data16,HEX);
+		Serial.print_long((long)data16,HEX);							// output 802.15.4e rx address
 		Serial.print("\t");
 		
 		// print TX_ADDR
 		data16 = rx_data[index], index++;
 		data16 = data16 + ((uint16_t)rx_data[index] << 8), index++;
-		Serial.print_long((long)data16,HEX);
+		Serial.print_long((long)data16,HEX);							// output 802.15.4e tx address
 		Serial.print("\t");
 		
 		// print RSSI
-		Serial.print_long((long)rx.rssi,DEC);
+		Serial.print_long((long)rx.rssi,DEC);							// output RSSI of receiving packet
 		Serial.print("\t");
 		
 		// print payload
-		Serial.write(&rx_data[index],(rx_len-index));
+		Serial.write(&rx_data[index],(rx_len-index));					// output payload
 		
 		// print ln
 		Serial.println("");
