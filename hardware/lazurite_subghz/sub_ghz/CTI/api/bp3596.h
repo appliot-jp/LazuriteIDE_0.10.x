@@ -64,6 +64,8 @@ extern int BP3596_setup(uint8_t channel, uint8_t rate, uint8_t txPower, uint8_t 
 extern int BP3596_getMyAddr(uint16_t *addr);
 extern int BP3596_setMyPANID(uint16_t panID);
 extern int BP3596_setFilter(uint16_t panID, uint16_t addr0, uint16_t addr1);
+// 2016.03.14 tx send event
+extern int BP3596_sendIdle(void);
 extern int BP3596_send(const void *data, uint16_t size,
                        uint8_t addrType, uint16_t dstAddr, uint16_t dstPANID );
 extern int BP3596_sendRaw(const void *data, uint16_t size);

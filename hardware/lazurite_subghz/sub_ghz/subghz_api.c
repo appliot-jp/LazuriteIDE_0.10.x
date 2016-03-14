@@ -330,7 +330,10 @@ SUBGHZ_MSG subghz_halt_until_complete(void)
 	
 	while(subghz_param.sending == true)
 	{
-		lp_setHaltMode();
+  		lp_setHaltMode();
+        // 2016.03.14 tx send event
+		BP3596_sendIdle();
+
 	}
 	if(subghz_param.tx_stat.status > 0)
 	{

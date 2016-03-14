@@ -802,6 +802,8 @@ typedef struct {
         uint8_t ack;            /* 再送 */
         uint8_t cca;            /* CCAチェック */
     } count;
+    // 2016.03.14 tx send event
+    uint32_t store_hw_event;    /* ステートマシン高速化　*/
 } EM_Data;
 
 
@@ -1600,7 +1602,6 @@ EM_Data em_data = {
 
 /** イベント発生部
  */
-
 /* ML7396によるイベント */
 static void sint_handler(void) {
     uint32_t hw_event, hw_done;
@@ -1608,11 +1609,27 @@ static void sint_handler(void) {
     ml7396_hwif_timer_di();  /* em_main() と em_data の排他制御 */
     /* 割り込み要因取得 */
     REG_INTSRC(hw_event);
-    /* イベントマシン呼び出し */
+    // 2016.03.14 tx send event
     hw_done = 0;
-    em_main(&em_data, NULL, 0, hw_event, &hw_done);
-    /* 処理済の割り込み要因をクリア */
-    REG_INTCLR(hw_done);
+    em_data.store_hw_event = 0;
+
+    /* イベントマシン呼び出し */
+    // 2016.03.14 tx send event
+    #if 1   // 本制御が0のとき従来の割込み処理となる。
+    if((em_data.state == ML7396_StateSending) &&
+                hw_event&(HW_EVENT_CCA_DONE|
+                    HW_EVENT_FIFO_EMPTY|HW_EVENT_FIFO_TX_DONE)) {
+
+        em_data.store_hw_event = hw_event;
+        /* 処理済の割り込み要因をクリア */
+        REG_INTCLR(hw_event);
+    }else
+    #endif
+    {
+    	em_main(&em_data, NULL, 0, hw_event, &hw_done);
+        /* 処理済の割り込み要因をクリア */
+        REG_INTCLR(hw_done);
+    }
     ml7396_hwif_timer_ei();  /* em_main() と em_data の排他制御 */
 }
 
@@ -1715,6 +1732,26 @@ int ml7396_txstart(ML7396_Buffer *buffer) {
     ml7396_hwif_sint_ei(), ml7396_hwif_timer_ei();  /* em_main() と em_data の排他制御 */
     return status;
 }
+
+
+/* 送信アイドル
+ *
+ * *data: 各種設定値
+ */
+// 2016.03.14 tx send event
+int ml7396_txidle(void ) {
+    /* ハードウェア要因のイベントフラグ生成 */
+    uint32_t hw_done = 0;
+
+    if (em_data.store_hw_event) {
+        /* イベントマシン呼び出し */
+        ml7396_hwif_sint_di(), ml7396_hwif_timer_di();  /* em_main() と em_data の排他制御 */
+        em_main(&em_data, NULL, 0, em_data.store_hw_event, &hw_done);
+        ml7396_hwif_sint_ei(), ml7396_hwif_timer_ei();  /* em_main() と em_data の排他制御 */
+        em_data.store_hw_event = 0;
+    }
+}
+
 
 /* 省電力状態へ移行
  */
