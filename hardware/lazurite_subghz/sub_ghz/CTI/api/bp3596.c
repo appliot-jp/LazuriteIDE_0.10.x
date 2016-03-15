@@ -287,6 +287,12 @@ int BP3596_setFilter(uint16_t panID, uint16_t addr0, uint16_t addr1) {
     return status;
 }
 
+// 2016.03.14 tx send event
+int BP3596_sendIdle(void)
+{
+    ml7396_txidle();
+}
+
 int BP3596_send(const void *data, uint16_t size,
                 uint8_t addrType, uint16_t dstAddr, uint16_t dstPANID ) {
     int status = BP3596_STATUS_UNKNOWN;

@@ -206,6 +206,8 @@ extern int ml7396_rxstop(void);
  *       異常終了の場合 buffer->opt.tx.next に未処理の送信バッファが残った状態で終了するので、必要に応じて続きの再開かバッファの開放が必要
  */
 extern int ml7396_txstart(ML7396_Buffer *buffer);
+// 2016.03.14 tx send event
+extern int ml7396_txidle(void);
 
 /* 省電力状態へ移行
  */
