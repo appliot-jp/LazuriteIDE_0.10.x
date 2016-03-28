@@ -10,6 +10,7 @@
 ###### Include Path
 INCPATH=hardware\\lazurite_subghz
 INCPATH=hardware\\lazurite_subghz\\lazurite
+INCPATH=hardware\\lazurite_subghz\\lazurite
 INCPATH=hardware\\lazurite_subghz\\ml620q504
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\clock
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\common
@@ -22,6 +23,8 @@ INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\api
 INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\core
 INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif
 INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\others
+INCPATH=libraries\\spi
+INCPATH=libraries\\wire
 
 ###### Compiling source files
 PRJSRC=bin\\U8Dev\\Startup\\Src\\\ml620504f.asm
