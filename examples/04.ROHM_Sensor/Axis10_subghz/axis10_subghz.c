@@ -30,7 +30,7 @@
 #define LED 26						// pin number of Blue LED
 #define SUBGHZ_CH		36			// channel number (frequency)
 #define SUBGHZ_PANID	0xABCD		// panid
-#define HOST_ADDRESS	0xAC4E		// distination address
+#define HOST_ADDRESS	0x8e46	// distination address
 
 void setup() {
   byte rc;
@@ -82,7 +82,7 @@ void loop() {
   Print.f(val[8], 2);
   Print.p(",");
   Print.f(val[10], 2);
-  Print.p(",ETX,");
+  Print.p(",ETX");
   Print.ln();
   
 //  Serial.print(tx_buf);
