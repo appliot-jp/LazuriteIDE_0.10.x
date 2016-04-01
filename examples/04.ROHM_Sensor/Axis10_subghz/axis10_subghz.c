@@ -30,7 +30,7 @@
 #define LED 26						// pin number of Blue LED
 #define SUBGHZ_CH		36			// channel number (frequency)
 #define SUBGHZ_PANID	0xABCD		// panid
-#define HOST_ADDRESS	0x8e46	// distination address
+#define HOST_ADDRESS	0xAC4E	// distination address
 
 void setup() {
   byte rc;

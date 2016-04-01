@@ -7,7 +7,7 @@ obj/
 /bin
 /res
 /languages
-/setting
+
 
 #ignore files
 *.bin

@@ -70,5 +70,5 @@ void loop() {
     Serial.print_double((double)val[10], 4);		// Pressure
     Serial.println(",ETX");
     
-    delay(50);
+    delay(100);
 }
