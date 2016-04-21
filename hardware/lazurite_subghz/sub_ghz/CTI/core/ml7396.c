@@ -390,9 +390,14 @@ error:
     } while (0)
 
 /* 送信バッファ書き込み開始(継続データ)
+ * delay 300usecやTX_ONへの遷移中のFIFOアクセス（PLLアンロック）を防止するため。
  *  必要に応じて自動でML7396の状態を RX_ON に変更
+ *  FIFO_MARGINが32なので_size変数は224、_data_sizeはパケットレングスになる。
+ *  パケットレングスが224以下であれば224以下の値に、244以上であれば224の値を
+ *  FIFOライトする値にする。
  */
 // 2015.06.08 Eiichi Saito : addition delay
+/*
 #define REG_TXCONTINUE(_buffer) \
     do { \
         uint8_t _size; \
@@ -402,6 +407,19 @@ error:
         _data_size = (_buffer)->size - (_buffer)->status; \
         if (_data_size <= _size) \
             _size = _data_size; \
+        if (_size > 0) { \
+            ON_ERROR(ml7396_regwrite(REG_ADR_WR_TX_FIFO, (_buffer)->data + (_buffer)->status, _size)); \
+            (_buffer)->status += _size; \
+            HAL_delayMicroseconds(300); \
+        } \
+    } while (0)
+*/
+// 2016.4.21 Eiichi Saito: FAST_TX disable
+#define REG_TXCONTINUE(_buffer) \
+    do { \
+        uint8_t _size; \
+        ASSERT((_buffer)->status >= 0); \
+        _size = (_buffer)->size - (_buffer)->status; \
         if (_size > 0) { \
             ON_ERROR(ml7396_regwrite(REG_ADR_WR_TX_FIFO, (_buffer)->data + (_buffer)->status, _size)); \
             (_buffer)->status += _size; \
@@ -901,7 +919,8 @@ static int em_setup(EM_Data *em_data, void *data) {
         reg_data |=  0x0b, reg_data &= ~0x04;
         REG_WRB(REG_ADR_FEC_CRC_SET, reg_data);
         /* FIFO_MARGIN*2 バイト分FIFOに書き込んだ時点で自動で TX_ON へ移行 */
-        REG_WRB(REG_ADR_FAST_TX_SET, FIFO_MARGIN<<1);
+// 2016.4.21 Eiichi Saito: FAST_TX disable
+//      REG_WRB(REG_ADR_FAST_TX_SET, FIFO_MARGIN<<1);
         /* 送信完了で自動で TRX_OFF へ移行 */
         // 2015.12.14 Eiichi Saito: enable TX_DONERX 
 //      REG_WRB(REG_ADR_ACK_TIMER_EN, 0x10);
