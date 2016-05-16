@@ -71,7 +71,7 @@ const SPI0Class SPI0 =
 #define SPI0_GPIO_MASK16	0x0707
 #define SPI0_GPIO_MASK8		0x07
 #define SPI0_GPIO_DIR		0x02
-#define SPI0_GPIO_CON		0x0707
+#define SPI0_GPIO_CON		0x0707   //0000_0111_0000_0101
 #define SPI0_GPIO_MOD		0x0700
 //********************************************************************************
 //   local parameters
@@ -121,7 +121,7 @@ static void _spi0_begin(void)
 	
 	// GPIO setting		DIR  CON1  CON0 MD1 MD0
 	//	P00 SOUT0  OUT   0   1     1    1    0
-	//	P01 SIN0   IN    1   1     1    1    0
+	//	P01 SIN0   IN    1   1     0    1    0
 	//	P02 SCK0   OUT   0   1     1    1    0
 	//  P11 CSB    OUT   O   1     1    0    0
 	P0DIR &= ~SPI0_GPIO_MASK8;

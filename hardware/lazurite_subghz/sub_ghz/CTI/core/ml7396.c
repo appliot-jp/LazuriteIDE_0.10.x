@@ -1069,11 +1069,18 @@ static int em_sleep(EM_Data *em_data, void *data) {
     if (em_data->rx != NULL)
         REG_TRXOFF();
     SWITCH_STATE(ML7396_StateSleep);
-    /* 省電力状態へ移行 */
+	
+	/* 省電力状態へ移行 */
     REG_RDB(REG_ADR_CLK_SET, reg_data);
-    reg_data |=  0x20;
+//	HAL_GPIO_disableInterrupt();
+	reg_data |=  0x20;
     REG_WRB(REG_ADR_CLK_SET, reg_data);
     status = ML7396_STATUS_OK;
+	
+	// 待機電流の削減のための設定追加  16.05.16
+    REG_WRB(REG_ADR_2DIV_CNTRL, 0x00);
+	
+
 error:
     return status;
 }
@@ -1805,7 +1812,7 @@ int ml7396_sleep(void) {
     /* イベントマシン呼び出し */
     ml7396_hwif_sint_di(), ml7396_hwif_timer_di();  /* em_main() と em_data の排他制御 */
     status = em_main(&em_data, NULL, SW_EVENT_SLEEP, hw_event, &hw_done);
-    ml7396_hwif_sint_ei(), ml7396_hwif_timer_ei();  /* em_main() と em_data の排他制御 */
+//    ml7396_hwif_sint_ei(), ml7396_hwif_timer_ei();  /* em_main() と em_data の排他制御 */
     return status;
 }
 
