@@ -7,4 +7,4 @@ callback	KEYWORD2
 set			KEYWORD2
 start		KEYWORD2
 stop		KEYWORD2
-
+wait_event_timeout	KEYWORD2

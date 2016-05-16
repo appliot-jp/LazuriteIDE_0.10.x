@@ -76,13 +76,45 @@ typedef struct
 	uint16_t ccaWait;
 } SUBGHZ_PARAM;
 
+typedef struct {
+	uint8_t frame_type:3;
+	uint8_t sec_enb:1;
+	uint8_t pending:1;
+	uint8_t ack_req:1;
+	uint8_t panid_comp:1;
+	uint8_t nop:1;
+	uint8_t seq_comp:1;
+	uint8_t ielist:1;
+	uint8_t tx_addr_type:2;
+	uint8_t frame_ver:2;
+	uint8_t rx_addr_type:2;
+} s_MAC_HEADER_BIT_ALIGNMENT;
+typedef union {
+	uint8_t data[2];
+	s_MAC_HEADER_BIT_ALIGNMENT alignment;
+} u_MAC_HEADER;
+typedef struct
+{
+	u_MAC_HEADER mac_header;
+	uint8_t seq_num;
+	uint8_t addr_type;
+	uint16_t rx_panid;
+	uint8_t  rx_addr[8];
+	uint16_t tx_panid;
+	uint8_t  tx_addr[8];
+	uint8_t *raw;
+	int16_t raw_len;
+	uint8_t *payload;
+	int16_t payload_len;
+} SUBGHZ_MAC_PARAM;
+
 typedef struct
 {
 	SUBGHZ_MSG (*init)(void);
 	SUBGHZ_MSG (*begin)(uint8_t ch, uint16_t panid, SUBGHZ_RATE rate, SUBGHZ_POWER txPower);
 	SUBGHZ_MSG (*close)(void);
 	SUBGHZ_MSG (*send)(uint16_t panid, uint16_t dstAddr, uint8_t *data, uint16_t len, void (*callback)(uint8_t rssi, uint8_t status));
-	SUBGHZ_MSG (*rxEnable)(void (*callback)(uint8_t rssi, int status, uint16_t size));
+	SUBGHZ_MSG (*rxEnable)(void (*callback)(uint8_t *data, uint8_t rssi, int status));
 	SUBGHZ_MSG (*rxDisable)(void);
 	short (*readData)(uint8_t *data, uint16_t max_size);
 	uint16_t (*getMyAddress)(void);
@@ -90,8 +122,8 @@ typedef struct
 	void (*msgOut)(SUBGHZ_MSG msg);
 	SUBGHZ_MSG (*setSendMode)(SUBGHZ_PARAM *param);
 	SUBGHZ_MSG (*getSendMode)(SUBGHZ_PARAM *param);
+	void (*decMac)(SUBGHZ_MAC_PARAM *mac,uint8_t *raw,uint16_t raw_len);
 } SubGHz_CTRL;
-
 
 extern const SubGHz_CTRL SubGHz;
 

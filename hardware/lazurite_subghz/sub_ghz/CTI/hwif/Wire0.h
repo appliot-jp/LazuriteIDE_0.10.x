@@ -1,4 +1,4 @@
-/* FILE NAME: WMath.h
+/* FILE NAME: Wire0.h
  *
  * Copyright (c) 2015  Lapis Semiconductor Co.,Ltd.
  * All rights reserved.
@@ -18,27 +18,37 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-
-#ifndef _WMATH_H_
-#define _WMATH_H_
+#ifndef _WIRE0_H_
+#define _WIRE0_H_
 
 #include "common.h"
 #include "lazurite.h"
-#include "mcu.h"
 
+#define I2C_BUFFER_LENGTH 32
 
 //********************************************************************************
 //   global definitions
 //********************************************************************************
+
 //********************************************************************************
 //   global parameters
 //********************************************************************************
 //********************************************************************************
 //   extern function definitions
 //********************************************************************************
-extern void randomSeed(unsigned int seed);
-extern long random(long howsmall, long howbig);
-extern long map(long x, long in_min, long in_max, long out_min, long out_max);
+// to match API with arduino 
+typedef struct {
+	void (*begin)(void);
+	size_t (*requestFrom)(UCHAR address,UCHAR quantity, UCHAR sendStop);
+	int (*available)(void);
+	int (*read)(void);
+	void (*beginTransmission)(uint8_t address);
+	size_t (*write_byte)(uint8_t data);
+	size_t (*write)(const uint8_t *data, size_t quantity);
+	uint8_t (*endTransmission)(uint8_t sendStop);
+}TwoWire0;
 
-#endif _WMATH_H_
+extern const TwoWire0 Wire0;
+
+#endif // _WIRE_H_
 

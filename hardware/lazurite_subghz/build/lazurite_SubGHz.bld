@@ -23,8 +23,6 @@ INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\api
 INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\core
 INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif
 INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\others
-INCPATH=libraries\\spi
-INCPATH=libraries\\wire
 
 ###### Compiling source files
 PRJSRC=bin\\U8Dev\\Startup\\Src\\\ml620504f.asm
@@ -55,6 +53,8 @@ PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\api\\bp3596.c
 PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\core\\ml7396.c
 PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\hal_lazurite.c
 PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\ml7396_hwif_hal.c
+PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\spi0.c
+PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\wire0.c
 
 ###### Compiling option
 CMPOPT=/TML620504F

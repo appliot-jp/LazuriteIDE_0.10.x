@@ -52,6 +52,8 @@ PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\core\\ml7396.c
 PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\hal_lazurite.c
 PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\ml7396_hwif_hal.c
 PRJSRC=hardware\\lazurite_subghz\\main.c
+PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\spi0.c
+PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\wire0.c
 
 ###### Compiling option
 CMPOPT=/TML620504F

@@ -21,8 +21,8 @@
 
 
 #include "lazurite.h"
-#include "spi.h"
-#include "wire.h"
+#include "spi0.h"
+#include "wire0.h"
 // 2015.12.14 Eiichi Saito : SugGHz timer chaneged from TM01 to TM67.
 //#include "MsTimer2.h"
 #include "driver_timer.h"
@@ -75,7 +75,6 @@ int HAL_GPIO_setup(void)
 	drv_digitalWrite(HAL_GPIO_RESETN,HIGH);
 	drv_digitalWrite(HAL_GPIO_CSB,HIGH);
 	drv_pinMode(HAL_GPIO_SINTN,INPUT);
-	drv_pinMode(HAL_GPIO_DMON,INPUT);
 	drv_pinMode(HAL_GPIO_RESETN,OUTPUT);
 	drv_pinMode(HAL_GPIO_CSB,OUTPUT);
 	

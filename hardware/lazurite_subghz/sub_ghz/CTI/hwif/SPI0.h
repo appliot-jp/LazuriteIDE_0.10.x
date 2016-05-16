@@ -1,4 +1,4 @@
-/* FILE NAME: lazurite_system.h
+/* FILE NAME: SPI.h
  *
  * Copyright (c) 2015  Lapis Semiconductor Co.,Ltd.
  * All rights reserved.
@@ -18,43 +18,53 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-
-#ifndef _ARDUINO_SYSTEM_H_
-#define _ARDUINO_SYSTEM_H_
+#ifndef _SPI0_H_
+#define _SPI0_H_
 
 #include "common.h"
 #include "lazurite.h"
+#include "mcu.h"
 
 //********************************************************************************
 //   global definitions
 //********************************************************************************
-typedef enum {
-	HALT_I2C1_END = 1,
-	HALT_I2C0_END,
-	HALT_DELAY
-} HALT_EVENT;
+#define SPI_CLOCK_DIV2 0x01
+#define SPI_CLOCK_DIV4 0x02
+#define SPI_CLOCK_DIV8 0x04
+#define SPI_CLOCK_DIV16 0x08
+#define SPI_CLOCK_DIV32 0x10
+#define SPI_CLOCK_DIV64 0x20
+#define SPI_CLOCK_DIV128 0x40
+
+#define SPI_MODE0 0x00
+#define SPI_MODE1 0x20
+#define SPI_MODE2 0x40
+#define SPI_MODE3 0x60
+
+#define SPI_MODE_MASK 		0x60	// SPR1 = bit 1, SPR0 = bit 0 on SPCR
+#define SPI_MSBFIRST		0x10	// 1: MSBFIRST,  0: LSBFIRST(default)
+
+#define SPI0_CSB(v)			P10D = v
 
 //********************************************************************************
 //   global parameters
 //********************************************************************************
-extern BOOL	delay_irq_mode;
+// For equivalent to Arduino API
+typedef struct {
+	volatile unsigned char (*transfer)(UCHAR _data);
+	void (*attachInterrupt)(void);
+	void (*detachInterrupt)(void); // Default
+	void (*begin)(void); // Default
+	void (*end)(void);
+	void (*setBitOrder)(uint8_t);
+	void (*setDataMode)(uint8_t);
+	void (*setClockDivider)(UINT16 ckdiv);
+} SPI0Class;
+
 //********************************************************************************
 //   extern function definitions
 //********************************************************************************
-extern void HALT_Until_Event(HALT_EVENT halt_event);
-#define delay(v) delay_long((unsigned long)v)
-#define sleep(v) sleep_long((unsigned long)v)
-#define delayMicroseconds(v) delay_microseconds((unsigned long)v)
-extern void init(void);
-extern void delay_long(unsigned long ms);
-extern void sleep_long(unsigned long ms);
-extern void delay_microseconds(unsigned long us);
-extern volatile unsigned long millis(void);
-extern unsigned long micros(void);
-extern void interrupts(void);
-extern void noInterrupts(void);
-extern void wait_event(bool *flag);
-extern void set_timer0_function(void (*func)(uint32_t sys_timer_count));
+extern const SPI0Class SPI0;
 
-#endif // _ARDUINO_SYSTEM_H_
+#endif // _ARDUINO_SPI_H_
 

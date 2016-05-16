@@ -886,6 +886,14 @@ static void idle(void) {
  *
  * Idle, TRXOFF of RXON
  */
+static void ml7396_setAckTimerEnable(uint8_t ack) {
+    int status = ML7396_STATUS_UNKNOWN;
+	if(ack) REG_WRB(REG_ADR_ACK_TIMER_EN, 0x20);
+     else REG_WRB(REG_ADR_ACK_TIMER_EN, 0x10);
+error:
+	return;
+}
+
 static int em_setup(EM_Data *em_data, void *data) {
     int status = ML7396_STATUS_UNKNOWN;
     uint8_t reg_data;
@@ -924,7 +932,7 @@ static int em_setup(EM_Data *em_data, void *data) {
         /* 送信完了で自動で TRX_OFF へ移行 */
         // 2015.12.14 Eiichi Saito: enable TX_DONERX 
 //      REG_WRB(REG_ADR_ACK_TIMER_EN, 0x10);
-        REG_WRB(REG_ADR_ACK_TIMER_EN, 0x20);
+//      REG_WRB(REG_ADR_ACK_TIMER_EN, 0x20);
         /* FIFO_MARGIN バイト分余裕を持ってFIFOを読み書きする設定 */
         REG_WRB(REG_ADR_TX_ALARM_LH, FIFO_MARGIN);      /* 未使用だが設定しておく必要あり 255では何故かFIFOアクセスエラーが発生する */
         REG_WRB(REG_ADR_TX_ALARM_HL, FIFO_MARGIN);      /* 送信FIFOの残りデータ数が FIFO_MARGIN になれば割り込み発生 */
@@ -1036,6 +1044,10 @@ static int em_txstart(EM_Data *em_data, ML7396_Buffer *buffer) {
     buffer->status = ML7396_BUFFER_INIT;  /* 送信バッファ未送信状態 */
     em_data->tx = buffer;  /* 送信バッファ登録 */
     SWITCH_STATE(ML7396_StateSending);
+    if (is_tx_waitack(em_data->tx, &em_data->ackheader))
+		ml7396_setAckTimerEnable(1);			//ACKを返す時、送信完了後にRXONする
+	else
+		ml7396_setAckTimerEnable(0);		//ACKを返さない時、送信完了後はTXOFFする。
     REG_CCAEN();
     REG_RXON();
     status = ML7396_STATUS_OK;
@@ -1260,7 +1272,17 @@ static int em_tx_ccadone(EM_Data *em_data, const uint32_t *hw_event) {
                     REG_RXON();
             }
             else
-                REG_TXCONTINUE(em_data->tx);
+//                REG_TXCONTINUE(em_data->tx);
+                  {
+                    uint8_t _size;
+                    ASSERT((em_data->tx)->status >= 0);
+                    _size = (em_data->tx)->size - (em_data->tx)->status;
+                    if (_size > 0) {
+                        ON_ERROR(ml7396_regwrite(REG_ADR_WR_TX_FIFO, (em_data->tx)->data + (em_data->tx)->status, _size));
+                        (em_data->tx)->status += _size;
+                        HAL_delayMicroseconds(300);
+                    }
+                 }
             break;
         default:
             ASSERT(0);

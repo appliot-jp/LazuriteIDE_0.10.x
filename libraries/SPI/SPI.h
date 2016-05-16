@@ -65,7 +65,6 @@ typedef struct {
 //   extern function definitions
 //********************************************************************************
 extern const SPIClass SPI;
-extern const SPIClass SPI0;
 
 #endif // _ARDUINO_SPI_H_
 

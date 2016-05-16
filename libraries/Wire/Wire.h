@@ -49,7 +49,6 @@ typedef struct {
 }TwoWire;
 
 extern const TwoWire Wire;
-extern const TwoWire Wire0;
 
 #endif // _WIRE_H_
 

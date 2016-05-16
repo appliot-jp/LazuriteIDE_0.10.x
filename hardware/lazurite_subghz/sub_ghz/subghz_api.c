@@ -30,40 +30,7 @@
 #define INIT_SLEEP
 //#define TEST_SEND_INTERVAL
 
-// local function
-static SUBGHZ_MSG subghz_init(void);
-static SUBGHZ_MSG subghz_begin(uint8_t ch, uint16_t panid, SUBGHZ_RATE rate, SUBGHZ_POWER txPower);
-static SUBGHZ_MSG subghz_close(void);
-static SUBGHZ_MSG subghz_tx(uint16_t panid, uint16_t dstAddr, uint8_t *data, uint16_t len, void (*callback)(uint8_t rssi, uint8_t status));
-static bool subghz_rxStatus(void);
-static SUBGHZ_MSG subghz_rxEnable(void (*callback)(uint8_t rssi, int status, uint16_t size));
-static SUBGHZ_MSG subghz_rxDisable(void);
-//static SUBGHZ_MSG subghz_setPANID(uint16_t panid);
-static uint16_t subghz_getMyAddress(void);
-static void subghz_msgOut(SUBGHZ_MSG msg);
-static SUBGHZ_MSG subghz_halt_until_complete(void);
-static void subghz_getStatus(SUBGHZ_STATUS *tx, SUBGHZ_STATUS *rx);
-static void subghz_txdone(uint8_t rssi, int status);
-static void subghz_rxdone(uint8_t *data, uint8_t rssi, int status);
-static short subghz_readData(uint8_t *data, uint16_t max_size);
-static SUBGHZ_MSG subghz_setSendMode(SUBGHZ_PARAM *param);
-static SUBGHZ_MSG subghz_getSendMode(SUBGHZ_PARAM *param);
 
-// setting of function
-const SubGHz_CTRL SubGHz = {
-	subghz_init,
-	subghz_begin,
-	subghz_close,
-	subghz_tx,
-	subghz_rxEnable,
-	subghz_rxDisable,
-	subghz_readData,
-	subghz_getMyAddress,
-	subghz_getStatus,
-	subghz_msgOut,
-	subghz_setSendMode,
-	subghz_getSendMode
-};
 
 
 // local parameters
@@ -72,7 +39,7 @@ static struct {
 	SUBGHZ_STATUS rx_stat;
 	volatile bool sending;
 	volatile bool open;
-	void (*rx_callback)(uint8_t *data, uint8_t rssi, uint16_t size);
+	void (*rx_callback)(uint8_t *data, uint8_t rssi, int status);		// change api
 	void (*tx_callback)(uint8_t rssi, int status);
 	uint8_t *rx_buf;
 	bool read;
@@ -235,6 +202,48 @@ error:
 	return msg;
 }
 
+static void subghz_txdone(uint8_t rssi, int status)
+{
+	subghz_param.sending = false;
+	subghz_param.tx_stat.rssi = rssi;
+	subghz_param.tx_stat.status = status;
+//#ifdef DEBUG
+//	Serial.print("status=");
+//	Serial.println_long(status,DEC);
+//#endif
+	if(subghz_param.tx_callback != NULL)
+	{
+		subghz_param.tx_callback(rssi, status);
+	}
+}
+	
+SUBGHZ_MSG subghz_halt_until_complete(void)
+{
+	SUBGHZ_MSG msg;
+	
+	while(subghz_param.sending == true)
+	{
+  		lp_setHaltMode();
+        // 2016.03.14 tx send event
+		BP3596_sendIdle();
+
+	}
+	if(subghz_param.tx_stat.status > 0)
+	{
+		msg = SUBGHZ_OK;
+	}
+	else if(subghz_param.tx_stat.status == BP3596_STATUS_ERROR_CCA)
+	{
+		msg = SUBGHZ_TX_CCA_FAIL;
+	}
+	else
+	{
+		msg = SUBGHZ_TX_ACK_FAIL;
+	}
+
+	return msg;
+}
+
 static SUBGHZ_MSG subghz_tx(uint16_t panid, uint16_t dstAddr, uint8_t *data, uint16_t len, void (*callback)(uint8_t rssi, uint8_t status))
 {
 	SUBGHZ_MSG msg;
@@ -324,47 +333,6 @@ error_not_send:
 	return msg;
 }
 
-SUBGHZ_MSG subghz_halt_until_complete(void)
-{
-	SUBGHZ_MSG msg;
-	
-	while(subghz_param.sending == true)
-	{
-  		lp_setHaltMode();
-        // 2016.03.14 tx send event
-		BP3596_sendIdle();
-
-	}
-	if(subghz_param.tx_stat.status > 0)
-	{
-		msg = SUBGHZ_OK;
-	}
-	else if(subghz_param.tx_stat.status == BP3596_STATUS_ERROR_CCA)
-	{
-		msg = SUBGHZ_TX_CCA_FAIL;
-	}
-	else
-	{
-		msg = SUBGHZ_TX_ACK_FAIL;
-	}
-
-	return msg;
-}
-
-static void subghz_txdone(uint8_t rssi, int status)
-{
-	subghz_param.sending = false;
-	subghz_param.tx_stat.rssi = rssi;
-	subghz_param.tx_stat.status = status;
-//#ifdef DEBUG
-//	Serial.print("status=");
-//	Serial.println_long(status,DEC);
-//#endif
-	if(subghz_param.tx_callback != NULL)
-	{
-		subghz_param.tx_callback(rssi, status);
-	}
-}
 
 static void subghz_rxdone(uint8_t *data, uint8_t rssi, int status)
 {
@@ -408,7 +376,7 @@ static short subghz_readData(uint8_t *data, uint16_t max_size)
 	
 	if(result > 0) 
 	{
-		if(max_size > result)
+		if((short)max_size > result)
 		{
 			max_size = result;
 		}
@@ -421,7 +389,8 @@ end:
 	enb_interrupts(DI_SUBGHZ);
 	return result;
 }
-static SUBGHZ_MSG subghz_rxEnable(void (*callback)(uint8_t rssi, int status, uint16_t size))
+// 
+static SUBGHZ_MSG subghz_rxEnable(void (*callback)(uint8_t *data, uint8_t rssi, int status))
 {
 	int result;
 	SUBGHZ_MSG msg = SUBGHZ_OK;
@@ -460,6 +429,7 @@ static SUBGHZ_MSG subghz_rxDisable(void)
 	if(result != BP3596_STATUS_OK)
 	{
 		msg = SUBGHZ_RX_DIS_FAIL;
+		goto error;						//2016.5.1 add 
 	}
 	subghz_param.read = false;
 	msg = SUBGHZ_OK;
@@ -503,53 +473,48 @@ static uint16_t subghz_getMyAddress(void)
 	return subghz_param.myAddress;
 }
 
+static const char subghz_msg0[] = "SUBGHZ_OK";
+static const char subghz_msg1[] = "SUBGHZ_RESET_FAIL";
+static const char subghz_msg2[] = "SUBGHZ_SETUP_FAIL";
+static const char subghz_msg3[] = "SUBGHZ_SLEEP_FAIL";
+static const char subghz_msg4[] = "SUBGHZ_WAKEUP_FAIL";
+static const char subghz_msg5[] = "SUBGHZ_MYADDR_FAIL";
+static const char subghz_msg6[] = "SUBGHZ_SETFIL_FAIL";
+static const char subghz_msg7[] = "SUBGHZ_TX_COMP_FAIL";
+static const char subghz_msg8[] = "SUBGHZ_TX_FAIL";
+static const char subghz_msg9[] = "SUBGHZ_TX_CCA_FAIL";
+static const char subghz_msg10[] = "SUBGHZ_TX_ACK_FAIL";
+static const char subghz_msg11[] = "SUBGHZ_RX_ENB_FAIL";
+static const char subghz_msg12[] = "SUBGHZ_RX_DIS_FAIL";
+static const char subghz_msg13[] = "SUBGHZ_RX_COMP_FAIL";
+static const char subghz_msg14[] = "SUBGHZ_PANID";
+static const char subghz_msg15[] = "SUBGHZ_ERR_ADDRTYPE";
+static const char subghz_msg16[] = "SUBGHZ_TTL_SEND_OVR";
+static const char* subghz_msg[] = {
+	subghz_msg0,
+	subghz_msg1,
+	subghz_msg2,
+	subghz_msg3,
+	subghz_msg4,
+	subghz_msg5,
+	subghz_msg6,
+	subghz_msg7,
+	subghz_msg8,
+	subghz_msg9,
+	subghz_msg10,
+	subghz_msg11,
+	subghz_msg12,
+	subghz_msg13,
+	subghz_msg14,
+	subghz_msg15,
+	subghz_msg16,
+};
 static void subghz_msgOut(SUBGHZ_MSG msg)
 {
-	char message[32];
-	
-	switch (msg)
-	{
-	case SUBGHZ_RESET_FAIL:
-		strncpy(message,"RESET FAIL\t",31);
-		break;
-	case SUBGHZ_SETUP_FAIL:
-		strncpy(message,"SETUP FAIL\t",31);
-		break;
-	case SUBGHZ_SLEEP_FAIL:
-		strncpy(message,"SLEEP FAIL\t",31);
-		break;
-	case SUBGHZ_WAKEUP_FAIL:
-		strncpy(message,"WAKEUP FAIL\t",31);
-		break;
-	case SUBGHZ_MYADDR_FAIL:
-		strncpy(message,"get My Address FAIL\t",31);
-		break;
-	case SUBGHZ_SETFIL_FAIL:
-		strncpy(message,"set filter FAIL\t",31);
-		break;
-	case SUBGHZ_TX_COMP_FAIL:
-		strncpy(message,"Send Complete FAIL\t",31);
-		break;
-	case SUBGHZ_TX_FAIL:
-		strncpy(message,"Send FAIL\t",31);
-		break;
-	case SUBGHZ_TX_ACK_FAIL:
-		strncpy(message,"ACK of send FAIL\t",31);
-		break;
-	case SUBGHZ_RX_ENB_FAIL:
-		strncpy(message,"Recv Enable FAIL\t",31);
-		break;
-	case SUBGHZ_RX_DIS_FAIL:
-		strncpy(message,"Recv Disable FAIL\t",31);
-		break;
-	case SUBGHZ_PANID:
-		strncpy(message,"set PANID FAIL\t",31);
-		break;
-	default:
-		goto no_error;
-		break;
+	if((msg>=SUBGHZ_OK)&&(msg<=SUBGHZ_TTL_SEND_OVR)){
+		Serial.print(subghz_msg[msg]);
+		Serial.print("\t");
 	}
-	Serial.print(message);
 
 no_error:
 	Serial.print("RSSI=");
@@ -590,3 +555,113 @@ static SUBGHZ_MSG subghz_setSendMode(SUBGHZ_PARAM *param)
 	return SUBGHZ_OK;
 }
 
+
+static void subghz_decMac(SUBGHZ_MAC_PARAM *mac,uint8_t *raw,uint16_t raw_len)
+{
+	int i;
+	int16_t offset=0;
+	uint8_t addr_type;
+	mac->mac_header.data[0] = raw[offset],offset++;
+	mac->mac_header.data[1] = raw[offset],offset++;
+	if(!mac->mac_header.alignment.seq_comp) {
+		mac->seq_num = raw[offset],offset++;
+	}
+	if(mac->mac_header.alignment.rx_addr_type) addr_type = 4;
+	else addr_type = 0;
+	if(mac->mac_header.alignment.tx_addr_type) addr_type += 2;
+	if(mac->mac_header.alignment.panid_comp) addr_type += 1;
+	mac->addr_type = addr_type;
+	//rx_panid
+	switch(mac->addr_type){
+	case 1:
+	case 4:
+	case 6:
+		mac->rx_panid = raw[offset+1];
+		mac->rx_panid = (mac->rx_panid<<8) + raw[offset];
+		offset+=2;
+		break;
+	default:
+		mac->rx_panid = 0xffff;
+		break;
+	}
+	//rx_addr
+	switch(mac->mac_header.alignment.rx_addr_type)
+	{
+	case 1:
+		mac->rx_addr[0] = raw[offset],offset++;
+		for(i=1;i<8;i++) {
+			mac->rx_addr[i] = 0;
+		}
+		break;
+	case 2:
+		mac->rx_addr[0] = raw[offset],offset++;
+		mac->rx_addr[1] = raw[offset],offset++;
+		for(i=2;i<8;i++) {
+			mac->rx_addr[i] = 0;
+		}
+		break;
+	case 3:
+		for(i=0;i<8;i++){
+			mac->rx_addr[i] = raw[offset],offset++;
+		}
+	default:
+		break;
+	}
+	// tx_panid
+	switch(mac->addr_type){
+	case 2:
+		mac->tx_panid = raw[offset+1];
+		mac->tx_panid = (mac->tx_panid<<8) + raw[offset];
+		offset+=2;
+		break;
+	default:
+		mac->tx_panid = 0xffff;
+		break;
+	}
+	//tx_addr
+	switch(mac->mac_header.alignment.tx_addr_type)
+	{
+	case 1:
+		mac->tx_addr[0] = raw[offset],offset++;
+		for(i=1;i<8;i++) {
+			mac->tx_addr[i] = 0;
+		}
+		break;
+	case 2:
+		mac->tx_addr[0] = raw[offset],offset++;
+		mac->tx_addr[1] = raw[offset],offset++;
+		for(i=2;i<8;i++) {
+			mac->tx_addr[i] = 0;
+		}
+		break;
+	case 3:
+		for(i=0;i<8;i++){
+			mac->tx_addr[i] = raw[offset],offset++;
+		}
+	default:
+		break;
+	}
+	mac->raw = raw;
+	mac->raw_len = raw_len;
+	mac->payload=raw+offset;
+	mac->payload_len = raw_len-offset;
+	return;
+}
+
+	
+// setting of function
+const SubGHz_CTRL SubGHz = {
+	subghz_init,
+	subghz_begin,
+	subghz_close,
+	subghz_tx,
+	subghz_rxEnable,
+	subghz_rxDisable,
+	subghz_readData,
+	subghz_getMyAddress,
+	subghz_getStatus,
+	subghz_msgOut,
+	subghz_setSendMode,
+	subghz_getSendMode,
+	subghz_decMac,
+};

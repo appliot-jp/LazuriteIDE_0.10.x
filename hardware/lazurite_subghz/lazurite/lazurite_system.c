@@ -212,7 +212,7 @@ void delay_long(unsigned long ms)
 	
 	delay_flag = false;
 	tmp_target_l = ((ms % 64000)<<8)/250;
-	delay_time.target_l = tmp_target_l;
+	delay_time.target_l = (unsigned short)tmp_target_l;
 	delay_time.target_h = ms / 64000;
 	
 #ifdef _DEBUG
@@ -223,7 +223,7 @@ void delay_long(unsigned long ms)
 	
 	if(delay_time.target_h==0)
 	{
-		timer_16bit_set(6,0xE8,tmp_target_l,delay_isr);
+		timer_16bit_set(6,0xE8,(unsigned short)tmp_target_l,delay_isr);
 		delay_time.target_l = 0;
 	}
 	else
@@ -252,7 +252,7 @@ void sleep_long(unsigned long ms)
 	
 	
 	tmp_target_l = ((ms % 64000)<<8)/250;
-	delay_time.target_l = tmp_target_l;
+	delay_time.target_l = (unsigned short)tmp_target_l;
 	delay_time.target_h = ms / 64000;
 	
 #ifdef _DEBUG
@@ -263,7 +263,7 @@ void sleep_long(unsigned long ms)
 	
 	if(delay_time.target_h==0)
 	{
-		timer_16bit_set(6,0xE8,tmp_target_l,delay_isr);
+		timer_16bit_set(6,0xE8,(unsigned short)tmp_target_l,delay_isr);
 		delay_time.target_l = 0;
 	}
 	else
@@ -313,7 +313,7 @@ void delay_microseconds(unsigned long us)
 	return;
 }
 
-unsigned long millis(void)
+volatile unsigned long millis(void)
 {
 	unsigned long timer_l;
 	unsigned long timer_h;
@@ -369,10 +369,11 @@ unsigned long micros(void)
 	return result;
 }
 
-
+static void (*millis_timer_func)(uint32_t sys_timer_count);
 void isr_sys_timer(void)
 {
 	sys_timer_count++;
+	if(millis_timer_func) millis_timer_func(sys_timer_count);
 	return;
 }
 
@@ -384,10 +385,18 @@ void isr_sys_timer(void)
 static void init_timer(void)
 {
 	sys_timer_count = 0;
+	millis_timer_func=NULL;
 	timer_16bit_set(TM_MILLIS,0x40,0xFFFF,isr_sys_timer);
 	timer_16bit_start(TM_MILLIS);
 	return;
 }
+
+void set_timer0_function(void (*func)(uint32_t sys_timer_count))
+{
+	millis_timer_func = func;
+	return;
+}
+
 
 static void clk_block_ctrl_init(void)
 {

@@ -66,8 +66,8 @@ static UCHAR uartf_tx_buf[UART_BUFFER_LENGTH];
 
 static char uart_tx_flag;							// true = send, false = not send
 static char uartf_tx_flag;							// true = send, false = not send
-char uart_tx_sending;
-char uartf_tx_sending;
+char uart_tx_sending=false;
+char uartf_tx_sending=false;
 
 static FIFO_CTRL uart_tx_fifo = {
 	UART_BUFFER_LENGTH,
