@@ -148,7 +148,7 @@ void uartf_gpio_init(unsigned char n)
 	port = uartf_gpio_adr[n];
 	bit = uartf_gpio_rx_bitmask[n];
 	*(port+GPIO_DIR_OFFSET) |= bit;		//DIR = 1
-	*(port+GPIO_C0_OFFSET)  |= bit;		//C0  = 1
+	*(port+GPIO_C0_OFFSET)  &= ~bit;	//C0  = 0
 	*(port+GPIO_C1_OFFSET)  |= bit;		//C1  = 1
 	*(port+GPIO_MD0_OFFSET) |= bit;		//MD0 = 1
 	*(port+GPIO_MD1_OFFSET) |= bit;		//MD1 = 1
@@ -191,15 +191,16 @@ void uartf_gpio_end(unsigned char n)
 void uart_begin(UINT32 baud)
 {
 	set_bit(P30DIR);					// setting GPIO of RXD
-	clear_bit(P30C1);
 	clear_bit(P30C0);
-	set_bit(P30MD1);
+	set_bit(P30C1);
 	set_bit(P30MD0);
+	set_bit(P30MD1);
+	
 	clear_bit(P31DIR);					// setting GPIO of TXD
-	set_bit(P31C1);
 	set_bit(P31C0);
-	set_bit(P31MD1);
+	set_bit(P31C1);
 	set_bit(P31MD0);
+	set_bit(P31MD1);
 	//set BLKCON
 	clear_bit(DUA0);					// enable UART0
 	clear_bit(DUA1);					// enable UART0
