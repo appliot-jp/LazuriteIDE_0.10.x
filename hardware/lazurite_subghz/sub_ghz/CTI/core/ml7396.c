@@ -822,6 +822,8 @@ typedef struct {
     } count;
     // 2016.03.14 tx send event
     uint32_t store_hw_event;    /* ステートマシン高速化　*/
+    // 2016.05.17 Eiichi Saito  preserveing result 
+    uint8_t cca_rslt;
 } EM_Data;
 
 
@@ -1253,11 +1255,14 @@ static int em_tx_ccadone(EM_Data *em_data, const uint32_t *hw_event) {
 
     ASSERT(em_data->tx != NULL);
     REG_TRXOFF();  /* 自動でOFFになるなら不要 */
-    REG_RDB(REG_ADR_CCA_CNTRL, reg_data);  /* CCA_RSLT読み出し */
+// 2016.05.17 Eiichi Saito  preserveing result 
+//  REG_RDB(REG_ADR_CCA_CNTRL, reg_data);  /* CCA_RSLT読み出し */
     // 2015.07.29 Eiichi Saito : not synchronize in CCA
     REG_WRB(REG_ADR_DEMSET3, 0x64);
     REG_WRB(REG_ADR_DEMSET14, 0x27);
-    switch (reg_data & 0x03) {
+// 2016.05.17 Eiichi Saito  preserveing result 
+//  switch (reg_data & 0x03) {
+    switch (em_data->cca_rslt) {
     case 0x00:  /* キャリアなし */
 // 2015.10.26 Eiichi Saito   addition random backoff for Debug
 //  if (em_data->count.cca != 0) {
@@ -1662,6 +1667,11 @@ static void sint_handler(void) {
                     HW_EVENT_FIFO_EMPTY|HW_EVENT_FIFO_TX_DONE)) {
 
         em_data.store_hw_event = hw_event;
+        // 2016.05.17 Eiichi Saito  preserveing result 
+        if(hw_event & HW_EVENT_CCA_DONE){
+            ml7396_regread(REG_ADR_CCA_CNTRL, &em_data.cca_rslt, 1);
+            em_data.cca_rslt &= 0x03;
+        }
         /* 処理済の割り込み要因をクリア */
         REG_INTCLR(hw_event);
     }else
