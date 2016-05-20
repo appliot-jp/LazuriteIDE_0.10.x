@@ -318,6 +318,7 @@ error:
 
 /* 受信バッファ読み出し(先頭データ)
  */
+#if 1
 #define REG_RXSTART(_buffer) \
     do { \
         uint16_t _data_size; \
@@ -338,6 +339,28 @@ error:
                 (_buffer)->status = 0; \
         } \
     } while (0)
+#else
+void REG_RXSTART(ML7396_Buffer *_buffer)
+{
+        uint16_t _data_size;
+        uint8_t _reg_data[2];
+        ASSERT((_buffer)->status == ML7396_BUFFER_INIT);
+        ml7396_regread(REG_ADR_RD_RX_FIFO, _reg_data, 2);
+        _data_size = n2u16(_reg_data) & 0x07ff; 
+        if (_data_size < RXCRC_SIZE) {
+            (_buffer)->size = 0;
+            (_buffer)->status = ML7396_BUFFER_ESIZE;
+        }
+        else {
+            _data_size -= RXCRC_SIZE;
+            (_buffer)->size = _data_size;
+            if (_data_size > (_buffer)->capacity) 
+                (_buffer)->status = ML7396_BUFFER_ESIZE;
+            else
+                (_buffer)->status = 0;
+        }
+}
+#endif
 
 /* 受信バッファ読み出し(継続データ)
  *  CRCとED値は読み出さずに残す
@@ -822,7 +845,7 @@ typedef struct {
     } count;
     // 2016.03.14 tx send event
     uint32_t store_hw_event;    /* ステートマシン高速化　*/
-    // 2016.05.17 Eiichi Saito  preserveing result 
+    // 2016.05.20 Eiichi Saito :Position measurement: Cca result 
     uint8_t cca_rslt;
 } EM_Data;
 
@@ -831,6 +854,8 @@ typedef struct {
  */
 
 /* ハードウエア要因 (複数同時発生時は論理和される) */
+// 2016.05.20 Eiichi Saito :Position measurement: Interruption all clear
+#define HW_EVENT_FIFO_CLEAR   0x000000C0  /* FIFO_EMPTY */
 #define HW_EVENT_FIFO_EMPTY   0x00000010  /* FIFO_EMPTY */
 #define HW_EVENT_FIFO_FULL    0x00000020  /* FIFO_FULL */
 #define HW_EVENT_CCA_DONE     0x00000100  /* CCA検出完了 */
@@ -1039,6 +1064,8 @@ error:
  */
 static int em_txstart(EM_Data *em_data, ML7396_Buffer *buffer) {
     int status = ML7396_STATUS_UNKNOWN;
+    // 2016.05.20 Eiichi Saito :Position measurement: First time back-off
+    uint16_t cca_wait;
 
     if (em_data->rx != NULL)
         REG_TRXOFF();
@@ -1050,8 +1077,19 @@ static int em_txstart(EM_Data *em_data, ML7396_Buffer *buffer) {
 		ml7396_setAckTimerEnable(1);			//ACKを返す時、送信完了後にRXONする
 	else
 		ml7396_setAckTimerEnable(0);		//ACKを返さない時、送信完了後はTXOFFする。
-    REG_CCAEN();
-    REG_RXON();
+    // 2016.05.20 Eiichi Saito :Position measurement: First time back-off
+    if (!em_data->tx->opt.tx.cca.wait) {
+        cca_wait = 100;
+    }else{
+    //  cca_wait = rand();
+        cca_wait = (cca_wait&0x000F) << em_data->tx->opt.tx.cca.wait;
+    }
+    if (!cca_wait) cca_wait = 100;
+    // REG_CCAEN();
+    // REG_RXON();
+
+
+    ON_ERROR_STATUS(ml7396_hwif_timer_start(cca_wait), ML7396_STATUS_ETIMSTART);  /* タイマ割り込み設定 */
     status = ML7396_STATUS_OK;
 error:
     return status;
@@ -1148,10 +1186,16 @@ static int em_rx_datarecv(EM_Data *em_data, const uint32_t *hw_event) {
             em_data->rx->status = ML7396_BUFFER_ECRC;
             BUFFER_DONE(em_data->rx);
             em_data->rx = em_data->rx->opt.rx.next;
+            /*
             if (em_data->rx != NULL)
-                em_data->rx->status = ML7396_BUFFER_INIT;  /* 受信バッファをクリア */
+                em_data->rx->status = ML7396_BUFFER_INIT;  // 受信バッファをクリア
             else
                 REG_TRXOFF();
+            */
+            // 2016.05.20 Eiichi Saito :Position measurement: Interruption all clear
+            em_data->rx->status = ML7396_BUFFER_INIT;   // 受信バッファをクリア
+            REG_PHYRST();
+            REG_RXON();
             break;
         }
         #endif
@@ -1262,17 +1306,16 @@ static int em_tx_ccadone(EM_Data *em_data, const uint32_t *hw_event) {
 
     ASSERT(em_data->tx != NULL);
     REG_TRXOFF();  /* 自動でOFFになるなら不要 */
-// 2016.05.17 Eiichi Saito  preserveing result 
+// 2016.05.20 Eiichi Saito :Position measurement: Cca result 
 //  REG_RDB(REG_ADR_CCA_CNTRL, reg_data);  /* CCA_RSLT読み出し */
     // 2015.07.29 Eiichi Saito : not synchronize in CCA
     REG_WRB(REG_ADR_DEMSET3, 0x64);
     REG_WRB(REG_ADR_DEMSET14, 0x27);
-// 2016.05.17 Eiichi Saito  preserveing result 
+// 2016.05.20 Eiichi Saito :Position measurement: Cca result 
 //  switch (reg_data & 0x03) {
     switch (em_data->cca_rslt) {
     case 0x00:  /* キャリアなし */
 // 2015.10.26 Eiichi Saito   addition random backoff for Debug
-//  if (em_data->count.cca != 0) {
         switch (em_data->tx->status) {
         case ML7396_BUFFER_INIT:
             REG_TXSTART(em_data->tx);
@@ -1300,7 +1343,6 @@ static int em_tx_ccadone(EM_Data *em_data, const uint32_t *hw_event) {
             ASSERT(0);
         }
         break;
-//  }
     case 0x01:  /* キャリアあり */
         if (em_data->count.cca < em_data->tx->opt.tx.cca.retry) {  /* リトライ回数が残っている? */
             ++em_data->count.cca;
@@ -1431,6 +1473,9 @@ static int em_tx_ackrecv(EM_Data *em_data, const uint32_t *hw_event) {
     default:
         if (*hw_event & HW_EVENT_CRC_ERROR) {  /* CRCエラー */
             em_data->ack.status = ML7396_BUFFER_INIT;  /* 受信データを破棄して引き続き次を受信 */
+            // 2016.05.20 Eiichi Saito :Position measurement: Interruption all clear
+            REG_PHYRST();
+            REG_RXON();
             break;
         }
         REG_RXCONTINUE(&em_data->ack);
@@ -1546,7 +1591,9 @@ static int em_main(EM_Data *em_data, void *data, int sw_event, uint32_t hw_event
             event = hw_event & (HW_EVENT_FIFO_RX_DONE|HW_EVENT_FIFO_FULL|HW_EVENT_CRC_ERROR);  /* パケット受信 */
             if (event) {
                 em_rx_datarecv(em_data, &event);
-                *hw_done |= event | HW_EVENT_FIFO_EMPTY | (event & HW_EVENT_CRC_ERROR) >> 14;  /* クリアする処理済割り込みフラグとFIFOバッファを指定 */
+             // 2016.05.20 Eiichi Saito :Position measurement: All interruption clear
+             // *hw_done |= event | HW_EVENT_FIFO_EMPTY | (event & HW_EVENT_CRC_ERROR) >> 14;  /* クリアする処理済割り込みフラグとFIFOバッファを指定 */
+                *hw_done = ~HW_EVENT_FIFO_CLEAR;
             }
             status = ML7396_STATUS_OK;
             break;
@@ -1608,7 +1655,9 @@ static int em_main(EM_Data *em_data, void *data, int sw_event, uint32_t hw_event
             event = hw_event & (HW_EVENT_FIFO_RX_DONE|HW_EVENT_FIFO_FULL|HW_EVENT_CRC_ERROR);  /* ACK受信 */
             if (event) {
                 em_tx_ackrecv(em_data, &event);
-                *hw_done |= event | HW_EVENT_FIFO_EMPTY | (event & HW_EVENT_CRC_ERROR) >> 14;  /* クリアする処理済割り込みフラグとFIFOバッファを指定 */
+             // 2016.05.20 Eiichi Saito :Position measurement: All interruption clear
+             // *hw_done |= event | HW_EVENT_FIFO_EMPTY | (event & HW_EVENT_CRC_ERROR) >> 14;  /* クリアする処理済割り込みフラグとFIFOバッファを指定 */
+                *hw_done = ~HW_EVENT_FIFO_CLEAR;
             }
             event = hw_event & HW_EVENT_TIMEOUT;  /* ACK待ちタイムアウト */
             if (event) {
@@ -1674,7 +1723,7 @@ static void sint_handler(void) {
                     HW_EVENT_FIFO_EMPTY|HW_EVENT_FIFO_TX_DONE)) {
 
         em_data.store_hw_event = hw_event;
-        // 2016.05.17 Eiichi Saito  preserveing result 
+        // 2016.05.20 Eiichi Saito :Position measurement: Cca result 
         if(hw_event & HW_EVENT_CCA_DONE){
             ml7396_regread(REG_ADR_CCA_CNTRL, &em_data.cca_rslt, 1);
             em_data.cca_rslt &= 0x03;
