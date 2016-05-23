@@ -862,7 +862,7 @@ typedef struct {
 #define HW_EVENT_TX_DONE      0x00030000  /* 送信完了 */
 // 2016.05.20 Eiichi Saito :Position measurement: Interruption all clear
 #define HW_EVENT_TX_FIFO_DONE 0x00C00000  /* 送信FIFO書込み完了 */
-#define HW_EVENT_RX_DONE      0x000c0000  /* 受信完了 */
+#define HW_EVENT_RX_DONE      0x000C0000  /* 受信完了 */
 #define HW_EVENT_CRC_ERROR    0x00300000  /* CRCエラー */
 #define HW_EVENT_TIMEOUT      0x80000000  /* タイマータイムアウト */
 
