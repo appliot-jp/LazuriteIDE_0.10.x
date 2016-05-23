@@ -30,7 +30,7 @@
 #define LED 26						// pin number of Blue LED
 #define SUBGHZ_CH		36			// channel number (frequency)
 #define SUBGHZ_PANID	0xABCD		// panid
-#define HOST_ADDRESS	0x5FAC		// distination address
+#define HOST_ADDRESS	0xAC4E		// distination address
 
 unsigned char send_data[] = {"Welcome to Lazurite Sub-GHz\r\n"};
 
@@ -44,6 +44,7 @@ void callback(void)
 void setup(void)
 {
 	SubGHz.init();					// initializing Sub-GHz
+	Serial.begin(115200);			// Initializing serial
 	
 	pinMode(LED,OUTPUT);			// setting of LED
 	digitalWrite(LED,HIGH);			// setting of LED
@@ -55,7 +56,7 @@ void setup(void)
 
 void loop(void)
 {
-	
+	SUBGHZ_MSG msg;
 	wait_event(&event);
 	
 	// Initializing
@@ -63,9 +64,9 @@ void loop(void)
 	
 	// preparing data
 	digitalWrite(LED,LOW);														// LED ON
-	SubGHz.send(SUBGHZ_PANID, HOST_ADDRESS, &send_data, sizeof(send_data),NULL);// send data
+	msg = SubGHz.send(SUBGHZ_PANID, HOST_ADDRESS, &send_data, sizeof(send_data),NULL);// send data
 	digitalWrite(LED,HIGH);														// LED off
-	
+	SubGHz.msgOut(msg);
 	// close
 	SubGHz.close();																// Sub-GHz module sets into power down mode.
 	

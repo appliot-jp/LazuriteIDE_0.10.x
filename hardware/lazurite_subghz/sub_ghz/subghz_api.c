@@ -572,7 +572,7 @@ static void subghz_decMac(SUBGHZ_MAC_PARAM *mac,uint8_t *raw,uint16_t raw_len)
 	if(mac->mac_header.alignment.panid_comp) addr_type += 1;
 	mac->addr_type = addr_type;
 	//rx_panid
-	switch(mac->addr_type){
+	switch(addr_type){
 	case 1:
 	case 4:
 	case 6:

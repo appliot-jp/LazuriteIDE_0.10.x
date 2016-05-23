@@ -91,6 +91,7 @@ typedef struct {
 } s_MAC_HEADER_BIT_ALIGNMENT;
 typedef union {
 	uint8_t data[2];
+	uint16_t header;
 	s_MAC_HEADER_BIT_ALIGNMENT alignment;
 } u_MAC_HEADER;
 typedef struct
