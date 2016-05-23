@@ -485,7 +485,8 @@ int ml7396_hwif_regset(void *data) {
         } else
         if (setup->channel <= 61 ) {
             reg_data[0] = 0x00, ml7396_regwrite(REG_ADR_IDLE_WAIT_H, reg_data, 1);
-            reg_data[0] = 0x00, ml7396_regwrite(REG_ADR_IDLE_WAIT_L, reg_data, 1);
+        // 2015.05.23 Eiichi Saito ARIB 5ms:idle_wait=on, 1.7us:idle_wait=off
+            reg_data[0] = 0x64, ml7396_regwrite(REG_ADR_IDLE_WAIT_L, reg_data, 1);
         }
 
         // 2015.05.19 Eiichi Saito added to channel
