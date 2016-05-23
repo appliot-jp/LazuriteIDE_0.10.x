@@ -73,6 +73,7 @@ void setup(void)
 
 void loop(void)
 {
+	SUBGHZ_MAC_PARAM mac;
 	short rx_len;
 	short index=0;
 	uint16_t data16;
@@ -81,48 +82,32 @@ void loop(void)
 	
 	if(rx_len>0)
 	{
-		digitalWrite(BLUE_LED, LOW);
 		SubGHz.getStatus(NULL,&rx);										// get status of rx
-		// print time
-		Serial.print_long((long)millis(),DEC);
+		SubGHz.decMac(&mac,rx_data,rx_len);
+		Serial.print_long(millis(),DEC);
+		Serial.print("\t");
+
+		Serial.print_long(mac.mac_header.header,HEX);
+		Serial.print("\t");
+
+		Serial.print_long(mac.seq_num,HEX);
+		Serial.print("\t");
+
+		Serial.print_long(mac.rx_panid,HEX);
+		Serial.print("\t");
+
+		data16 = *((uint16_t *)mac.rx_addr);
+		Serial.print_long(data16,HEX);
+		Serial.print("\t");
+
+		data16 = *((uint16_t *)mac.tx_addr);
+		Serial.print_long(data16,HEX);
+		Serial.print("\t");
+
+		Serial.print_long(rx.rssi,DEC);
 		Serial.print("\t");
 		
-		
-		// print header
-		data16 = rx_data[index], index++;
-		data16 = data16 + ((uint16_t)rx_data[index] << 8), index++;
-		Serial.print_long((long)data16,HEX);							// output 802.15.4e header
-		Serial.print("\t");
-		
-		// print sequence number
-		Serial.print_long((long)rx_data[index],HEX), index++;			// output 802.15.4e sequence number
-		Serial.print("\t");
-		
-		// print PANID
-		data16 = rx_data[index], index++;
-		data16 = data16 + ((uint16_t)rx_data[index] << 8), index++;
-		Serial.print_long((long)data16,HEX);							// output 802.15.4e rx PANID
-		Serial.print("\t");
-		
-		// print RX_ADDR
-		data16 = rx_data[index], index++;
-		data16 = data16 + ((uint16_t)rx_data[index] << 8), index++;
-		Serial.print_long((long)data16,HEX);							// output 802.15.4e rx address
-		Serial.print("\t");
-		
-		// print TX_ADDR
-		data16 = rx_data[index], index++;
-		data16 = data16 + ((uint16_t)rx_data[index] << 8), index++;
-		Serial.print_long((long)data16,HEX);							// output 802.15.4e tx address
-		Serial.print("\t");
-		
-		// print RSSI
-		Serial.print_long((long)rx.rssi,DEC);							// output RSSI of receiving packet
-		Serial.print("\t");
-		
-		// print payload
-		Serial.write(&rx_data[index],(rx_len-index));					// output payload
-		
+		Serial.print(mac.payload);
 		// print ln
 		Serial.println("");
 		digitalWrite(BLUE_LED, HIGH);
