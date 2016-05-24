@@ -81,7 +81,7 @@ static SUBGHZ_MSG subghz_init(void)
 	subghz_param.txRetry = 0;
 	subghz_param.txInterval = 500;
 	// 2015.10.26 Eiichi Saito   addition random backoff
-	subghz_param.ccaWait = 4;
+	subghz_param.ccaWait = 2;
 	
 	// reset
 	result = BP3596_reset();

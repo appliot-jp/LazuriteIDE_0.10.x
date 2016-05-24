@@ -1080,15 +1080,18 @@ static int em_txstart(EM_Data *em_data, ML7396_Buffer *buffer) {
 	else
 		ml7396_setAckTimerEnable(0);		//ACKを返さない時、送信完了後はTXOFFする。
     // 2016.05.20 Eiichi Saito :Position measurement: First time back-off
+#if 0
     if (!em_data->tx->opt.tx.cca.wait) {
         cca_wait = 100;
     }else{
-    //  cca_wait = rand();
+        cca_wait = rand();
         cca_wait = (cca_wait&0x000F) << em_data->tx->opt.tx.cca.wait;
     }
     if (!cca_wait) cca_wait = 100;
-    // REG_CCAEN();
-    // REG_RXON();
+#else
+    REG_CCAEN();
+    REG_RXON();
+#endif
 
 
     ON_ERROR_STATUS(ml7396_hwif_timer_start(cca_wait), ML7396_STATUS_ETIMSTART);  /* タイマ割り込み設定 */
