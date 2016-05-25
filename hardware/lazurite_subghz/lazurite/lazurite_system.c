@@ -28,6 +28,7 @@
 #include "driver_irq.h"
 #include "driver_i2c.h"
 #include "driver_uart.h"
+#include "driver_gpio.h"
 #include "lp_manage.h"
 #include "clock.h"
 #include "rdwr_reg.h"
@@ -107,29 +108,35 @@ void init(void)
 void lazurite_gpio_init(void)
 {
 	// please see design note for details.
-	write_reg8(P0D,0x00);
-	write_reg8(P1D,0x00);
+	write_reg8(P0D,0x10);
+	write_reg8(P1D,0x01);
 	write_reg8(P2D,0x00);
 	write_reg8(P3D,0x00);
 	write_reg8(P4D,0x00);
-	write_reg8(P5D,0x00);
+	write_reg8(P5D,0x42);
 	write_reg8(P0DIR,0x00);
-	write_reg16(P0CON,0x0000);
-	write_reg16(P0MOD,0x0000);
-	write_reg8(P1DIR,0x00);
-	write_reg16(P1CON,0x0000);
+	write_reg16(P0CON,0x3535);
+	write_reg16(P0MOD,0x0500);
+	write_reg8(P1DIR,0x10);
+	write_reg16(P1CON,0x0303);
 	write_reg8(P2DIR,0x00);
 	write_reg16(P2CON,0x0000);
 	write_reg16(P2MOD,0x0000);
-	write_reg8(P3DIR,0x01);
-	write_reg16(P3CON,0x0202);
-	write_reg16(P3MOD,0x0303);
-	write_reg8(P4DIR,0x00);
-	write_reg16(P4CON,0x0000);
-	write_reg16(P4MOD,0x0000);
+	write_reg8(P3DIR,0x00);
+	write_reg16(P3CON,0x0000);
+	write_reg16(P3MOD,0x0000);
+	write_reg8(P4DIR,0x80);
+	write_reg16(P4CON,0x0303);
+	write_reg16(P4MOD,0x0003);
 	write_reg8(P5DIR,0x00);
 	write_reg16(P5CON,0x0000);
 	write_reg16(P5MOD,0x0000);
+
+	
+	#ifdef PWR_LED
+	drv_pinMode(11,OUTPUT);			//PWR LED ON
+	drv_digitalWrite(11,LOW);
+	#endif
 }
 
 void HALT_Until_Event(HALT_EVENT halt_event)
@@ -274,6 +281,10 @@ void sleep_long(unsigned long ms)
 	// setup timer
 	timer_16bit_start(6);
 	
+	#ifdef PWR_LED
+	drv_digitalWrite(11,HIGH);		// PWR LED OFF
+	#endif
+	
 	while(delay_flag == false)
 	{
 		if((uart_tx_sending == true) || (uartf_tx_sending == true))
@@ -288,6 +299,9 @@ void sleep_long(unsigned long ms)
 		}
 	}
 	timer_16bit_stop(6);
+	#ifdef PWR_LED
+	drv_digitalWrite(11,LOW);		// PWR LED ON
+	#endif
 	return;
 }
 
@@ -425,6 +439,9 @@ void noInterrupts()
 
 void wait_event(bool *flag)
 {
+	#ifdef PWR_LED
+	drv_digitalWrite(11,HIGH);		// PWR LED OFF
+	#endif
 	while(*flag == false)
 	{
 		if((uart_tx_sending == true) || (uartf_tx_sending == true))
@@ -439,5 +456,8 @@ void wait_event(bool *flag)
 		}
 	}
 	*flag = false;
+	#ifdef PWR_LED
+	drv_digitalWrite(11,LOW);		// PWR LED ON
+	#endif
 }
 

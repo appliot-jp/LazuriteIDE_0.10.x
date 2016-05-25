@@ -124,6 +124,9 @@ int HAL_I2C_read(unsigned char devAddr, unsigned char addr, unsigned char *data,
 	int dtmp;
 
 	Wire0.beginTransmission(devAddr);
+#ifdef LAZURIE_MINI
+	Wire0.write_byte(0);
+#endif
 	Wire0.write_byte(addr);
 	Wire0.endTransmission(false);
 	Wire0.requestFrom(devAddr,size,true);
