@@ -1,2 +1,0 @@
-diff.tool=WinMerge
-difftool.WinMerge.cmd="C:/Tool/WinMerge/WinMergeU.exe" -r -u "$LOCAL" "$REMOTE"
