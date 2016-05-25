@@ -44,8 +44,6 @@
 #define SPI_MODE_MASK 		0x60	// SPR1 = bit 1, SPR0 = bit 0 on SPCR
 #define SPI_MSBFIRST		0x10	// 1: MSBFIRST,  0: LSBFIRST(default)
 
-#define SPI0_CSB(v)			P10D = v
-
 //********************************************************************************
 //   global parameters
 //********************************************************************************

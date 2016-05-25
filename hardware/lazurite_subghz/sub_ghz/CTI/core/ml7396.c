@@ -859,8 +859,10 @@ typedef struct {
 #define HW_EVENT_FIFO_EMPTY   0x00000010  /* FIFO_EMPTY */
 #define HW_EVENT_FIFO_FULL    0x00000020  /* FIFO_FULL */
 #define HW_EVENT_CCA_DONE     0x00000100  /* CCA検出完了 */
-#define HW_EVENT_FIFO_TX_DONE 0x00030000  /* 送信完了 */
-#define HW_EVENT_FIFO_RX_DONE 0x000c0000  /* 受信完了 */
+#define HW_EVENT_TX_DONE      0x00030000  /* 送信完了 */
+// 2016.05.20 Eiichi Saito :Position measurement: Interruption all clear 
+#define HW_EVENT_TX_FIFO_DONE 0x00C00000  /* 送信FIFO書込み完了 */
+#define HW_EVENT_RX_DONE      0x000C0000  /* 受信完了 */
 #define HW_EVENT_CRC_ERROR    0x00300000  /* CRCエラー */
 #define HW_EVENT_TIMEOUT      0x80000000  /* タイマータイムアウト */
 
@@ -879,10 +881,10 @@ typedef struct {
 /* 各状態における割り込み許可状況 */
 static const uint32_t event_enable[] = {
     0,                                                                             /* ML7396_StateReset */
-    HW_EVENT_FIFO_RX_DONE|HW_EVENT_FIFO_FULL|HW_EVENT_CRC_ERROR,                   /* ML7396_StateIdle */
-    HW_EVENT_FIFO_TX_DONE|HW_EVENT_FIFO_EMPTY,                                     /* ML7396_StateSendACK */
-    HW_EVENT_FIFO_TX_DONE|HW_EVENT_FIFO_EMPTY|HW_EVENT_CCA_DONE|HW_EVENT_TIMEOUT,  /* ML7396_StateSending */
-    HW_EVENT_FIFO_RX_DONE|HW_EVENT_FIFO_FULL|HW_EVENT_CRC_ERROR|HW_EVENT_TIMEOUT,  /* ML7396_StateWaitACK */
+    HW_EVENT_RX_DONE|HW_EVENT_FIFO_FULL|HW_EVENT_CRC_ERROR,                   /* ML7396_StateIdle */
+    HW_EVENT_TX_DONE|HW_EVENT_FIFO_EMPTY,                                     /* ML7396_StateSendACK */
+    HW_EVENT_TX_DONE|HW_EVENT_FIFO_EMPTY|HW_EVENT_CCA_DONE|HW_EVENT_TIMEOUT,  /* ML7396_StateSending */
+    HW_EVENT_RX_DONE|HW_EVENT_FIFO_FULL|HW_EVENT_CRC_ERROR|HW_EVENT_TIMEOUT,  /* ML7396_StateWaitACK */
     0                                                                              /* ML7396_StateSleep */
 };
 
@@ -1078,15 +1080,18 @@ static int em_txstart(EM_Data *em_data, ML7396_Buffer *buffer) {
 	else
 		ml7396_setAckTimerEnable(0);		//ACKを返さない時、送信完了後はTXOFFする。
     // 2016.05.20 Eiichi Saito :Position measurement: First time back-off
+#if 0
     if (!em_data->tx->opt.tx.cca.wait) {
         cca_wait = 100;
     }else{
-    //  cca_wait = rand();
+        cca_wait = rand();
         cca_wait = (cca_wait&0x000F) << em_data->tx->opt.tx.cca.wait;
     }
     if (!cca_wait) cca_wait = 100;
-    // REG_CCAEN();
-    // REG_RXON();
+#else
+    REG_CCAEN();
+    REG_RXON();
+#endif
 
 
     ON_ERROR_STATUS(ml7396_hwif_timer_start(cca_wait), ML7396_STATUS_ETIMSTART);  /* タイマ割り込み設定 */
@@ -1200,7 +1205,7 @@ static int em_rx_datarecv(EM_Data *em_data, const uint32_t *hw_event) {
         }
         #endif
         REG_RXCONTINUE(em_data->rx);
-        if (*hw_event & HW_EVENT_FIFO_RX_DONE) {  /* 受信完了 */
+        if (*hw_event & HW_EVENT_RX_DONE) {  /* 受信完了 */
             REG_RXDONE(em_data->rx);  /* ED値を取得 */
             #ifndef SNIFFER
             // 2015.07.10 Eiichi Saito : The conditions for an address filter are changed.
@@ -1479,7 +1484,7 @@ static int em_tx_ackrecv(EM_Data *em_data, const uint32_t *hw_event) {
             break;
         }
         REG_RXCONTINUE(&em_data->ack);
-        if (*hw_event & HW_EVENT_FIFO_RX_DONE) {  /* 受信完了 */
+        if (*hw_event & HW_EVENT_RX_DONE) {  /* 受信完了 */
             REG_RXDONE(em_data->tx);  /* ED値を取得 */
             if (is_tx_recvack(&em_data->ack, &em_data->ackheader)) {  /* 待っているACKを受信したかの判定 */
                 // 2015.12.14 Eiichi Saito: for preference of SubGHz
@@ -1588,12 +1593,12 @@ static int em_main(EM_Data *em_data, void *data, int sw_event, uint32_t hw_event
             status = em_sleep(em_data, data);
             break;
         case 0:
-            event = hw_event & (HW_EVENT_FIFO_RX_DONE|HW_EVENT_FIFO_FULL|HW_EVENT_CRC_ERROR);  /* パケット受信 */
+            event = hw_event & (HW_EVENT_RX_DONE|HW_EVENT_FIFO_FULL|HW_EVENT_CRC_ERROR);  /* パケット受信 */
             if (event) {
                 em_rx_datarecv(em_data, &event);
              // 2016.05.20 Eiichi Saito :Position measurement: All interruption clear
              // *hw_done |= event | HW_EVENT_FIFO_EMPTY | (event & HW_EVENT_CRC_ERROR) >> 14;  /* クリアする処理済割り込みフラグとFIFOバッファを指定 */
-                *hw_done = ~HW_EVENT_FIFO_CLEAR;
+                *hw_done = ~(HW_EVENT_FIFO_CLEAR|HW_EVENT_TX_FIFO_DONE|HW_EVENT_TX_FIFO_DONE); //　送信関連の割込みを残さないとACK送信がクリアされてしまう。
             }
             status = ML7396_STATUS_OK;
             break;
@@ -1609,7 +1614,7 @@ static int em_main(EM_Data *em_data, void *data, int sw_event, uint32_t hw_event
                 em_rx_acksend(em_data, &event);
                 *hw_done |= event | HW_EVENT_FIFO_FULL;  /* クリアする処理済割り込みフラグを指定 */
             }
-            event = hw_event & HW_EVENT_FIFO_TX_DONE;  /* ACK送信完了 */
+            event = hw_event & HW_EVENT_TX_DONE;  /* ACK送信完了 */
             if (event) {
                 em_rx_ackdone(em_data, &event);
                 *hw_done |= event;  /* クリアする処理済割り込みフラグを指定 */
@@ -1638,7 +1643,7 @@ static int em_main(EM_Data *em_data, void *data, int sw_event, uint32_t hw_event
                 em_tx_datasend(em_data, &event);
                 *hw_done |= event | HW_EVENT_FIFO_FULL;  /* クリアする処理済割り込みフラグを指定 */
             }
-            event = hw_event & HW_EVENT_FIFO_TX_DONE;  /* パケット送信完了 */
+            event = hw_event & HW_EVENT_TX_DONE;  /* パケット送信完了 */
             if (event) {
                 em_tx_datadone(em_data, &event);
                 *hw_done |= event;  /* クリアする処理済割り込みフラグを指定 */
@@ -1652,7 +1657,7 @@ static int em_main(EM_Data *em_data, void *data, int sw_event, uint32_t hw_event
     case ML7396_StateWaitACK:
         switch (sw_event) {
         case 0:
-            event = hw_event & (HW_EVENT_FIFO_RX_DONE|HW_EVENT_FIFO_FULL|HW_EVENT_CRC_ERROR);  /* ACK受信 */
+            event = hw_event & (HW_EVENT_RX_DONE|HW_EVENT_FIFO_FULL|HW_EVENT_CRC_ERROR);  /* ACK受信 */
             if (event) {
                 em_tx_ackrecv(em_data, &event);
              // 2016.05.20 Eiichi Saito :Position measurement: All interruption clear
@@ -1720,7 +1725,7 @@ static void sint_handler(void) {
     #if 1   // 本制御が0のとき従来の割込み処理となる。
     if((em_data.state == ML7396_StateSending) &&
                 hw_event&(HW_EVENT_CCA_DONE|
-                    HW_EVENT_FIFO_EMPTY|HW_EVENT_FIFO_TX_DONE)) {
+                    HW_EVENT_FIFO_EMPTY|HW_EVENT_TX_DONE)) {
 
         em_data.store_hw_event = hw_event;
         // 2016.05.20 Eiichi Saito :Position measurement: Cca result 
