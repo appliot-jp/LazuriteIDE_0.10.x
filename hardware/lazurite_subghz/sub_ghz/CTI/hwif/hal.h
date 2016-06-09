@@ -59,11 +59,20 @@
 // 2015.06.08 Eiichi Saito
 #define HAL_delayMicroseconds(v) delay_microseconds((unsigned long)v)
 
-extern int HAL_SPI_setup(void);
-extern int HAL_SPI_transfer(const uint8_t *wdata, uint8_t *rdata, uint8_t size);
-extern int HAL_GPIO_setup(void);
-extern int HAL_GPIO_setValue(uint8_t pin, uint8_t value);
-extern int HAL_GPIO_getValue(uint8_t pin, uint8_t *value);
+// 2016.6.8 Eiichi Saito: SubGHz API common
+extern int HAL_init(void);
+extern int HAL_remove(void);
+//extern int wait_event_interruptible(wait_queue_head_t *q,condition);
+//extern int wake_up_interruptible( wait_queue_head_t *q );
+//extern inline void init_waitqueue_head(wait_queue_head_t *q);
+//extern int HAL_SPI_setup(void);
+// 2016.6.8 Eiichi Saito: SubGHz API common
+//extern int HAL_SPI_transfer(const uint8_t *wdata, uint8_t *rdata, uint8_t size);
+extern int HAL_SPI_transfer(const unsigned char *wdata, unsigned char wsize,unsigned char *rdata, unsigned char rsize);
+// 2016.6.8 Eiichi Saito: SubGHz API common
+// extern int HAL_GPIO_setup(void);
+// extern int HAL_GPIO_setValue(uint8_t pin, uint8_t value);
+// extern int HAL_GPIO_getValue(uint8_t pin, uint8_t *value);
 extern int HAL_GPIO_setInterrupt(void (*func)(void));
 extern int HAL_GPIO_enableInterrupt(void);
 extern int HAL_GPIO_disableInterrupt(void);
@@ -75,11 +84,14 @@ extern int HAL_TIMER_enableInterrupt(void);
 extern int HAL_TIMER_disableInterrupt(void);
 #endif  /* #ifndef ML7396_HWIF_NOTHAVE_TIMER_DI */
 extern int HAL_TIMER_getTick(uint32_t *tick);
-extern int HAL_I2C_setup(void);
-extern int HAL_I2C_read(uint8_t daddr, uint8_t addr, uint8_t *data, uint8_t size);
+// 2016.6.8 Eiichi Saito: SubGHz API common
+// extern int HAL_I2C_setup(void);
+// extern int HAL_I2C_read(uint8_t daddr, uint8_t addr, uint8_t *data, uint8_t size);
+extern int HAL_I2C_read(unsigned short addr, unsigned char *data, unsigned char size);
 // 2015.12.14 Eiichi Saito: for preference of SubGHz
-extern void HAL_EX_enableInterrupt(void);
-extern void HAL_EX_disableInterrupt(void);
+// 2016.6.8 Eiichi Saito: SubGHz API common
+//extern void HAL_EX_enableInterrupt(void);
+//extern void HAL_EX_disableInterrupt(void);
 
 
 #endif  /* #ifndef _INCLUDE_HAL_H */

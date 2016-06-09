@@ -218,6 +218,8 @@
 #define REG_ADR_DISCARD_COUNT_L   2, 0x6f  /* 廃棄パケット数の表示(下位8ビット) */
 #define REG_ADR_DISCARD_COUNT_H   2, 0x70  /* 廃棄パケット数の表示(上位8ビット) */
 
+// 2016.6.8 Eiichi Saito: SubGHz API common
+#define REG_ADR_WRITE_BIT         0x01     /* SPIライトビット */
 
 /** 外部公開関数
  */

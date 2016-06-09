@@ -193,7 +193,9 @@ int ml7396_regread(uint8_t bank, uint8_t addr, uint8_t *data, uint8_t size) {
     reg.wdata[0] = (addr << 1) | 0x00;
     memset(reg.wdata + 1, 0xff, size);  /* ここは仕様上不定値でも問題ないが、余計なノイズ出力を抑えるため'H'固定にする */
     ON_ERROR_STATUS(ml7396_hwif_spi_transfer(reg.wdata, reg.rdata, size + 1), ML7396_STATUS_EREGREAD);
-    memcpy(data, reg.rdata + 1, size);
+    // 2016.6.8 Eiichi Saito: SubGHz API common
+//  memcpy(data, reg.rdata + 1, size);
+    memcpy(data, reg.rdata, size);
     status = ML7396_STATUS_OK;
 error:
     --reg.lock;
@@ -939,7 +941,9 @@ static int em_setup(EM_Data *em_data, void *data) {
             REG_RDB(REG_ADR_CLK_SET, reg_data);
         } while (!(reg_data & 0x80));
         // 2015.10.26 Eiichi Saito   addition random backoff
-        HAL_I2C_read(0x50, 0x26, get_my_addr, 2);
+        // 2016.6.8 Eiichi Saito: SubGHz API common
+        // HAL_I2C_read(0x50, 0x26, get_my_addr, 2);
+        HAL_I2C_read(0x26, get_my_addr, 2);
         srand(n2u16(get_my_addr));
         /* break無し */
     default:
@@ -1433,7 +1437,8 @@ static int em_tx_datadone(EM_Data *em_data, const uint32_t *hw_event) {
             em_data->ack.status = ML7396_BUFFER_INIT;
             SWITCH_STATE(ML7396_StateWaitACK);
             // 2015.12.14 Eiichi Saito: for preference of SubGHz
-            HAL_EX_disableInterrupt();
+            // 2016.6.8 Eiichi Saito: SubGHz API common
+            // HAL_EX_disableInterrupt();
             ON_ERROR_STATUS(ml7396_hwif_timer_start(em_data->tx->opt.tx.ack.wait), ML7396_STATUS_ETIMSTART);  /* タイマ割り込み設定 */
             REG_RXON();
         }
@@ -1488,7 +1493,8 @@ static int em_tx_ackrecv(EM_Data *em_data, const uint32_t *hw_event) {
             REG_RXDONE(em_data->tx);  /* ED値を取得 */
             if (is_tx_recvack(&em_data->ack, &em_data->ackheader)) {  /* 待っているACKを受信したかの判定 */
                 // 2015.12.14 Eiichi Saito: for preference of SubGHz
-                HAL_EX_enableInterrupt();
+                // 2016.6.8 Eiichi Saito: SubGHz API common
+                // HAL_EX_enableInterrupt();
                 ON_ERROR_STATUS(ml7396_hwif_timer_stop(), ML7396_STATUS_ETIMSTOP);  /* タイマ割り込み停止 */
                 REG_TRXOFF();
                 BUFFER_DONE(em_data->tx);
@@ -1533,7 +1539,8 @@ static int em_tx_acktimeout(EM_Data *em_data, const uint32_t *hw_event) {
     }
     else {
         // 2015.12.14 Eiichi Saito: for preference of SubGHz
-        HAL_EX_enableInterrupt();
+        // 2016.6.8 Eiichi Saito: SubGHz API common
+        // HAL_EX_enableInterrupt();
         // 2015.12.01 Eiichi Saito : SugGHz timer chaneged from TM01 to TM67.
         ON_ERROR_STATUS(ml7396_hwif_timer_stop(), ML7396_STATUS_ETIMSTOP);  /* タイマ割り込み停止 */
         em_data->tx->status = ML7396_BUFFER_ERETRY;

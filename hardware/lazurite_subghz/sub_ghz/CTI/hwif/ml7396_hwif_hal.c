@@ -61,11 +61,11 @@ static void timer_handler(void) {
 }
 #endif  /* #ifdef ML7396_HWIF_NOTHAVE_TIMER_DI */
 
-static void idle(void) {
-    /* 1) 最適化で消えない事
-     * 2) アイドル期間中に実行したい短い処理が在ればここに追加
-     */
-}
+// 2016.6.8 Eiichi Saito: SubGHz API common
+//static void idle(void) {
+//     // 1) 最適化で消えない事
+//     // 2) アイドル期間中に実行したい短い処理が在ればここに追加
+//}
 
 int ml7396_hwif_init(void) {
     int status = -1;
@@ -76,25 +76,40 @@ int ml7396_hwif_init(void) {
     hwif.timer.active = Disable;
     hwif.timer.call_count = 0;
 #endif  /* #ifdef ML7396_HWIF_NOTHAVE_TIMER_DI */
-    HAL_SPI_setup();
-    HAL_GPIO_setup();
+// 2016.6.8 Eiichi Saito: SubGHz API common
+    HAL_init();
+//  HAL_SPI_setup();
+//  HAL_GPIO_setup();
     HAL_TIMER_setup();
-    HAL_I2C_setup();
+//  HAL_I2C_setup();
     ml7396_hwif_timer_tick(&wait_t);  /* 時間待ち起点 - (A) */
-    HAL_GPIO_setValue(HAL_GPIO_RESETN, 0);
-    for (t = wait_t; wait_t - t <= 3; ml7396_hwif_timer_tick(&wait_t))  /* (A)から3msec以上経過を待つ - (B) */
-        idle();
-    HAL_GPIO_setValue(HAL_GPIO_RESETN, 1);
-    for (t = wait_t; wait_t - t <= 3; ml7396_hwif_timer_tick(&wait_t))  /* (B)から3msec以上経過を待つ */
-        idle();
+// 2016.6.8 Eiichi Saito: SubGHz API common
+//  HAL_GPIO_setValue(HAL_GPIO_RESETN, 0);
+//  for (t = wait_t; wait_t - t <= 3; ml7396_hwif_timer_tick(&wait_t))  // (A)から3msec以上経過を待つ - (B) 
+//      idle();
+//  HAL_GPIO_setValue(HAL_GPIO_RESETN, 1);
+//  for (t = wait_t; wait_t - t <= 3; ml7396_hwif_timer_tick(&wait_t))  // (B)から3msec以上経過を待つ
+//      idle();
     status = 0;
     return status;
 }
 
 int ml7396_hwif_spi_transfer(const uint8_t *wdata, uint8_t *rdata, uint8_t size) {
-    int status = -1;
 
-    HAL_SPI_transfer(wdata, rdata, size);
+    int status = -1;
+// 2016.6.8 Eiichi Saito: SubGHz API common
+    uint8_t wsize, rsize;
+
+    if(wdata[0]&REG_ADR_WRITE_BIT) {
+            wsize = size;
+            rsize = 0;
+    }else{
+            wsize = 1;
+            rsize = size - wsize;
+    }
+
+    HAL_SPI_transfer(wdata, wsize, rdata, rsize);
+//  HAL_SPI_transfer(wdata, rdata, size);
     status = 0;
     return status;
 }
@@ -203,7 +218,9 @@ int ml7396_hwif_timer_tick(uint32_t *msec) {
 static int eeprom_read(uint8_t addr, uint8_t *data, uint8_t size) {
     int status = -1;
 
-    HAL_I2C_read(0x50, addr, data, size);
+    // 2016.6.8 Eiichi Saito: SubGHz API common
+    // HAL_I2C_read(0x50, addr, data, size);
+    HAL_I2C_read(addr, data, size);
     status = 0;
     return status;
 }

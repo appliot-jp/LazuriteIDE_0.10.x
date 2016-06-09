@@ -48,6 +48,54 @@ static unsigned char hal_setbit_exi;
 //*****************************************************
 // Function
 //*****************************************************
+// 2016.6.8 Eiichi Saito: SubGHz API common
+static void idle(void) {
+     // 1) 最適化で消えない事
+     // 2) アイドル期間中に実行したい短い処理が在ればここに追加
+}
+
+// 2016.6.8 Eiichi Saito: SubGHz API common
+int HAL_init(void){
+
+    uint32_t wait_t, t;
+
+    // SPI init
+	SPI0.setDataMode(SPI_MODE0);
+	SPI0.setClockDivider(SPI_CLOCK_DIV8);
+	SPI0.begin();
+
+    // GPIO init
+	drv_digitalWrite(HAL_GPIO_RESETN,HIGH);
+	drv_digitalWrite(HAL_GPIO_CSB,HIGH);
+	drv_pinMode(HAL_GPIO_SINTN,INPUT);
+	drv_pinMode(HAL_GPIO_RESETN,OUTPUT);
+	drv_pinMode(HAL_GPIO_CSB,OUTPUT);
+
+    drv_digitalWrite(HAL_GPIO_RESETN, 0);
+    for (t = wait_t; wait_t - t <= 3; ml7396_hwif_timer_tick(&wait_t)) // (A)から3msec以上経過を待つ - (B) 
+        idle();
+    drv_digitalWrite(HAL_GPIO_RESETN, 1);
+    for (t = wait_t; wait_t - t <= 3; ml7396_hwif_timer_tick(&wait_t)) // (B)から3msec以上経過を待つ
+        idle();
+
+    // I2C init
+	Wire0.begin();
+}
+
+int HAL_remove(void){
+}
+
+//int wait_event_interruptible(wait_queue_head_t *q,condition){
+//}
+
+//int wake_up_interruptible( wait_queue_head_t *q ){
+//}
+
+//inline void init_waitqueue_head(wait_queue_head_t *q){
+//}
+
+/*
+// 2016.6.8 Eiichi Saito: SubGHz API common
 int HAL_SPI_setup(void)
 {
 	SPI0.setDataMode(SPI_MODE0);
@@ -69,7 +117,27 @@ int HAL_SPI_transfer(const unsigned char *wdata, unsigned char *rdata, unsigned 
 	drv_digitalWrite(HAL_GPIO_CSB, HIGH);
 	return HAL_STATUS_OK;
 }
+*/
+int HAL_SPI_transfer(const unsigned char *wdata, unsigned char wsize,unsigned char *rdata, unsigned char rsize)
+{
+	unsigned char n;
+	drv_digitalWrite(HAL_GPIO_CSB, HIGH);
+	drv_digitalWrite(HAL_GPIO_CSB, LOW);
+	for(n=0;n<wsize;n++)
+	{
+		SPI0.write(*(wdata + n));
+	}
+    for(n=0;n<rsize;n++)
+    {
+        *(rdata + n) = SPI0.read();
+    }
 
+	drv_digitalWrite(HAL_GPIO_CSB, HIGH);
+	return HAL_STATUS_OK;
+}
+
+/*
+// 2016.6.8 Eiichi Saito: SubGHz API common
 int HAL_GPIO_setup(void)
 {
 	drv_digitalWrite(HAL_GPIO_RESETN,HIGH);
@@ -91,7 +159,7 @@ int HAL_GPIO_setValue(uint8_t pin, uint8_t data)
 	drv_digitalWrite(pin, data);
 	return HAL_STATUS_OK;
 }
-
+*/
 int HAL_GPIO_setInterrupt(void (*func)(void))
 {
 	hal_gpio_func = func;
@@ -112,24 +180,31 @@ int HAL_GPIO_disableInterrupt(void)
 	return HAL_STATUS_OK;
 }
 
+// 2016.6.8 Eiichi Saito: SubGHz API common
+/*
 int HAL_I2C_setup(void)
 {
 	Wire0.begin();
 	return HAL_STATUS_OK;
 }
+*/
 
-int HAL_I2C_read(unsigned char devAddr, unsigned char addr, unsigned char *data, unsigned char size)
+// 2016.6.8 Eiichi Saito: SubGHz API common
+// int HAL_I2C_read(unsigned char devAddr, unsigned char addr, unsigned char *data, unsigned char size)
+int HAL_I2C_read(unsigned short addr, unsigned char *data, unsigned char size)
 {
 	unsigned char n;
 	int dtmp;
 
-	Wire0.beginTransmission(devAddr);
+    // 2016.6.8 Eiichi Saito: SubGHz API common
+	Wire0.beginTransmission(0x50);
 #ifdef LAZURIE_MINI
 	Wire0.write_byte(0);
 #endif
 	Wire0.write_byte(addr);
 	Wire0.endTransmission(false);
-	Wire0.requestFrom(devAddr,size,true);
+    // 2016.6.8 Eiichi Saito: SubGHz API common
+	Wire0.requestFrom(0x50,size,true);
 	
 	for(n=0;n<size;n++)
 	{
@@ -177,6 +252,7 @@ int HAL_TIMER_stop(void)
 
 
 // 2015.12.14 Eiichi Saito: for preference of SubGHz
+/*
 void HAL_EX_disableInterrupt(void)
 {
     irq_ua0_dis();
@@ -197,4 +273,5 @@ void HAL_EX_enableInterrupt(void)
     irq_tm1_ena();
     IE1 |= hal_setbit_exi;
 }
+*/
 
