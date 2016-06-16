@@ -22,7 +22,9 @@
 #define _INCLUDE_ML7396_HWIF_H
 
 
+#ifdef LAZURITE_IDE
 #include <stdint.h>
+#endif
 
 
 /** ハードウェアインタフェイス関数

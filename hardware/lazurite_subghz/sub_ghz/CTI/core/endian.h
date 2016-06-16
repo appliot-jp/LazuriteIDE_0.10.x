@@ -22,7 +22,9 @@
 #define _INCLUDE_ENDIAN_H
 
 
+#ifdef LAZURITE_IDE
 #include <stdint.h>
+#endif
 
 
 /** CPUのエンディアンへ変換

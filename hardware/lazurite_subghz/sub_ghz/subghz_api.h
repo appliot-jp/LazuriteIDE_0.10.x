@@ -22,9 +22,11 @@
 #ifndef	_SUBGHZ_API_H_
 #define _SUBGHZ_API_H_
 
+#ifdef LAZURITE_IDE
 #include "common.h"
 #include "lazurite.h"
-#include "bp3596.h"
+#endif
+#include "CTI/api/bp3596.h"
 
 typedef enum {
 	SUBGHZ_OK = 0,
@@ -112,10 +114,11 @@ typedef struct
 typedef struct
 {
 	SUBGHZ_MSG (*init)(void);
+	SUBGHZ_MSG (*remove)(void);
 	SUBGHZ_MSG (*begin)(uint8_t ch, uint16_t panid, SUBGHZ_RATE rate, SUBGHZ_POWER txPower);
 	SUBGHZ_MSG (*close)(void);
-	SUBGHZ_MSG (*send)(uint16_t panid, uint16_t dstAddr, uint8_t *data, uint16_t len, void (*callback)(uint8_t rssi, uint8_t status));
-	SUBGHZ_MSG (*rxEnable)(void (*callback)(uint8_t *data, uint8_t rssi, int status));
+	SUBGHZ_MSG (*send)(uint16_t panid, uint16_t dstAddr, uint8_t *data, uint16_t len, void (*callback)(uint8_t rssi, int status));
+	SUBGHZ_MSG (*rxEnable)(void (*callback)(const uint8_t *data, uint8_t rssi, int status));
 	SUBGHZ_MSG (*rxDisable)(void);
 	short (*readData)(uint8_t *data, uint16_t max_size);
 	uint16_t (*getMyAddress)(void);

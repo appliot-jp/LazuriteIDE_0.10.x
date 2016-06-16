@@ -21,8 +21,15 @@
 #define Version 1,4  /* バージョン番号: Major, Miner */
 
 
+#ifdef LAZURITE_IDE
 #include <stdint.h>
 #include <string.h>
+#else
+//#include "../others/stdint.h"
+#include <linux/string.h>
+#include <linux/kernel.h>
+#endif
+
 #include "../core/ml7396.h"
 #include "../core/endian.h"
 #include "../core/ieee802154.h"
@@ -45,7 +52,7 @@ static struct {
     uint16_t *panID;  /* 自機が属しているPANIDのポインタ */
     struct {
         ML7396_Buffer buffer;
-        void (*done)(const void *data, uint8_t rssi, int status);  /* コールバック関数 */
+        void (*done)(const uint8_t *data, uint8_t rssi, int status);  /* コールバック関数 */
         struct {
             uint16_t dstpanid;
             uint16_t dstaddr0;
@@ -77,10 +84,11 @@ static void txdone(ML7396_Buffer *buffer) {
 static int rxfilter(const ML7396_Header *header) {
     int filter = 0;
 
-    if (api.rx.filter.dstpanid == 0 && api.rx.filter.dstaddr0 == 0 && api.rx.filter.dstaddr1 == 0 ||
-        header->dstpanid == api.rx.filter.dstpanid ||
-        header->dstaddr == api.rx.filter.dstaddr0 ||
-        header->dstaddr == api.rx.filter.dstaddr1 )
+    if (
+		// (api.rx.filter.dstpanid == 0 && api.rx.filter.dstaddr0 == 0 && api.rx.filter.dstaddr1 == 0) ||
+        (header->dstpanid == api.rx.filter.dstpanid) ||
+        (header->dstaddr == api.rx.filter.dstaddr0) ||
+        (header->dstaddr == api.rx.filter.dstaddr1) )
         filter = !0;
     return filter;
 }
@@ -288,7 +296,7 @@ int BP3596_setFilter(uint16_t panID, uint16_t addr0, uint16_t addr1) {
 }
 
 // 2016.03.14 tx send event
-int BP3596_sendIdle(void)
+void BP3596_sendIdle(void)
 {
     ml7396_txidle();
 }
@@ -474,7 +482,7 @@ error:
     return status;
 }
 
-int BP3596_setFuncRecvComplete(void (*recvComplete)(const void *data, uint8_t rssi, int status)) {
+int BP3596_setFuncRecvComplete(void (*recvComplete)(const uint8_t *data, uint8_t rssi, int status)) {
     int status = BP3596_STATUS_UNKNOWN;
 
     if (recvComplete == NULL) {

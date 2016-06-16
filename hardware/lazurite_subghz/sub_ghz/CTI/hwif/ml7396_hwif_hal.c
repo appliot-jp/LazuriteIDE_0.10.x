@@ -19,12 +19,20 @@
  */
 
 
+#ifdef LAZURITE_IDE
 #include <stddef.h>
 #include <stdint.h>
 #include "hal.h"
 #include "../core/ml7396_hwif.h"
 #include "../core/ml7396_reg.h"
 #include "../core/endian.h"
+#else
+#include <linux/stddef.h>
+#include "hal.h"
+#include "../core/ml7396_hwif.h"
+#include "../core/ml7396_reg.h"
+#include "../core/endian.h"
+#endif
 
 static volatile struct {
     struct {                    /* タイマ関係パラメータ */
@@ -69,7 +77,7 @@ static void timer_handler(void) {
 
 int ml7396_hwif_init(void) {
     int status = -1;
-    uint32_t wait_t, t;
+    uint32_t wait_t;
 
     hwif.timer.handler = NULL;
 #ifdef ML7396_HWIF_NOTHAVE_TIMER_DI
@@ -77,7 +85,8 @@ int ml7396_hwif_init(void) {
     hwif.timer.call_count = 0;
 #endif  /* #ifdef ML7396_HWIF_NOTHAVE_TIMER_DI */
 // 2016.6.8 Eiichi Saito: SubGHz API common
-    HAL_init();
+    status = HAL_init(0x50,8);
+	if(status != 0) return status;
 //  HAL_SPI_setup();
 //  HAL_GPIO_setup();
     HAL_TIMER_setup();

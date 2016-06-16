@@ -19,18 +19,30 @@
  */
 
 
+#ifdef LAZURITE_IDE
 #include "lazurite.h"
-#include "subghz_api.h"
-#include "bp3596.h"
 #include "hal.h"
 #include "string.h"
 #include "lp_manage.h"
 #include "driver_irq.h"
+#else
+#include <linux/string.h>
+#include <linux/sched.h>
+#include <linux/wait.h>
+#endif
+
+#include "subghz_api.h"
+#include "CTI/api/bp3596.h"
+#include "CTI/hwif/hal.h"
 
 #define INIT_SLEEP
 //#define TEST_SEND_INTERVAL
 
 
+#ifndef LAZURITE_IDE
+extern wait_queue_head_t tx_done;
+extern int que_th2ex;
+#endif
 
 
 // local parameters
@@ -39,9 +51,9 @@ static struct {
 	SUBGHZ_STATUS rx_stat;
 	volatile bool sending;
 	volatile bool open;
-	void (*rx_callback)(uint8_t *data, uint8_t rssi, int status);		// change api
+	void (*rx_callback)(const uint8_t *data, uint8_t rssi, int status);		// change api
 	void (*tx_callback)(uint8_t rssi, int status);
-	uint8_t *rx_buf;
+	const uint8_t *rx_buf;
 	bool read;
 	uint16_t myAddress;
 	uint8_t addrType;
@@ -54,13 +66,7 @@ static struct {
 	uint16_t ccaWait;
 } subghz_param;
 
-#define DEBUG
-
-#ifndef DEBUG
 static struct {
-#else
-struct {
-#endif
 	unsigned long start_time;
 	unsigned long last_send_time;
 	unsigned long total_send_bytes;
@@ -98,7 +104,7 @@ static SUBGHZ_MSG subghz_init(void)
 		msg = SUBGHZ_SETUP_FAIL;
 		goto error;
 	}
-	
+
 	// get my address for setting address filter
 	result = BP3596_getMyAddr(&subghz_param.myAddress);
 	if(result != BP3596_STATUS_OK)
@@ -124,13 +130,21 @@ static SUBGHZ_MSG subghz_init(void)
 #endif // INIT_SLPPE
 	msg =  SUBGHZ_OK;
 	
-	arib.start_time = millis();
+	arib.start_time = HAL_millis();
 
 error:
 	subghz_param.tx_stat.status = result;
 	return msg;
 }
 
+static SUBGHZ_MSG subghz_remove(void)
+{
+	SUBGHZ_MSG msg;
+
+	msg = HAL_remove();
+
+	return msg;
+}
 static SUBGHZ_MSG subghz_begin(uint8_t ch, uint16_t panid, SUBGHZ_RATE rate, SUBGHZ_POWER txPower)
 {
 	SUBGHZ_MSG msg;
@@ -219,15 +233,19 @@ static void subghz_txdone(uint8_t rssi, int status)
 	
 SUBGHZ_MSG subghz_halt_until_complete(void)
 {
-	SUBGHZ_MSG msg;
+	SUBGHZ_MSG msg = SUBGHZ_OK;
 	
+#ifdef LAZURITE_IDE
 	while(subghz_param.sending == true)
 	{
   		lp_setHaltMode();
         // 2016.03.14 tx send event
 		BP3596_sendIdle();
-
 	}
+#else
+	que_th2ex = 0;
+	wait_event_interruptible(tx_done, que_th2ex);
+#endif
 	if(subghz_param.tx_stat.status > 0)
 	{
 		msg = SUBGHZ_OK;
@@ -244,7 +262,7 @@ SUBGHZ_MSG subghz_halt_until_complete(void)
 	return msg;
 }
 
-static SUBGHZ_MSG subghz_tx(uint16_t panid, uint16_t dstAddr, uint8_t *data, uint16_t len, void (*callback)(uint8_t rssi, uint8_t status))
+static SUBGHZ_MSG subghz_tx(uint16_t panid, uint16_t dstAddr, uint8_t *data, uint16_t len, void (*callback)(uint8_t rssi, int status))
 {
 	SUBGHZ_MSG msg;
 	int result;
@@ -262,7 +280,7 @@ static SUBGHZ_MSG subghz_tx(uint16_t panid, uint16_t dstAddr, uint8_t *data, uin
 	}
 	
 	// check total send bytes in an hours -- an hours
-	current_time = millis();
+	current_time = HAL_millis();
 	duration = current_time - arib.start_time;
 	if(duration > 3600000L)
 	{
@@ -298,11 +316,13 @@ static SUBGHZ_MSG subghz_tx(uint16_t panid, uint16_t dstAddr, uint8_t *data, uin
 	{
 		if(duration < 50)
 		{
-			sleep(50-duration);
+			HAL_sleep(50-duration);
 		}
 	}
 	
 //	BP3596_send(data, len, addrType, dstAddr, dstPANID);
+
+	subghz_param.tx_callback = callback;
 	
 	result = BP3596_send(data, len, subghz_param.addrType,        dstAddr, panid);
 	if(result != BP3596_STATUS_OK)
@@ -311,22 +331,18 @@ static SUBGHZ_MSG subghz_tx(uint16_t panid, uint16_t dstAddr, uint8_t *data, uin
 		goto error_not_send;
 	}
 	subghz_param.sending = true;
-	
-	subghz_param.tx_callback = callback;
-	if(subghz_param.tx_callback == NULL)
-	{
-		msg = subghz_halt_until_complete();
+
+	msg = subghz_halt_until_complete();
 //	#ifdef DEBUG
 //		Serial.print("msg=");
 //		Serial.println_long(msg,DEC);
 //	#endif
-		if(msg == SUBGHZ_TX_CCA_FAIL)
-		{
-			goto error_not_send;
-		}
+	if(msg == SUBGHZ_TX_CCA_FAIL)
+	{
+		goto error_not_send;
 	}
 	
-	arib.last_send_time = millis();
+	arib.last_send_time = HAL_millis();
 	arib.total_send_bytes = tmp_ttl_byte;
 error_not_send:
 	subghz_param.tx_stat.status = result;
@@ -334,7 +350,7 @@ error_not_send:
 }
 
 
-static void subghz_rxdone(uint8_t *data, uint8_t rssi, int status)
+static void subghz_rxdone(const uint8_t *data, uint8_t rssi, int status)
 {
 //	static long cycle = 0;
 //	Serial.print_long(++cycle, DEC);				// for test
@@ -365,6 +381,7 @@ static short subghz_readData(uint8_t *data, uint16_t max_size)
 {
 	short result = 0;
 	
+#ifdef	LAZURITE_IDE
 //	__DI();
 	dis_interrupts(DI_SUBGHZ);
 	if(subghz_param.rx_buf == NULL)
@@ -387,10 +404,11 @@ static short subghz_readData(uint8_t *data, uint16_t max_size)
 end:
 //	__EI();
 	enb_interrupts(DI_SUBGHZ);
+#endif	//LAZURITE_IDE
 	return result;
 }
 // 
-static SUBGHZ_MSG subghz_rxEnable(void (*callback)(uint8_t *data, uint8_t rssi, int status))
+static SUBGHZ_MSG subghz_rxEnable(void (*callback)(const uint8_t *data, uint8_t rssi, int status))
 {
 	int result;
 	SUBGHZ_MSG msg = SUBGHZ_OK;
@@ -473,6 +491,7 @@ static uint16_t subghz_getMyAddress(void)
 	return subghz_param.myAddress;
 }
 
+#ifdef LAZURITE_IDE
 static const char subghz_msg0[] = "SUBGHZ_OK";
 static const char subghz_msg1[] = "SUBGHZ_RESET_FAIL";
 static const char subghz_msg2[] = "SUBGHZ_SETUP_FAIL";
@@ -509,8 +528,10 @@ static const char* subghz_msg[] = {
 	subghz_msg15,
 	subghz_msg16,
 };
+#endif
 static void subghz_msgOut(SUBGHZ_MSG msg)
 {
+#ifdef LAZURITE_IDE
 	if((msg>=SUBGHZ_OK)&&(msg<=SUBGHZ_TTL_SEND_OVR)){
 		Serial.print(subghz_msg[msg]);
 		Serial.print("\t");
@@ -522,6 +543,7 @@ no_error:
 	Serial.print("\tSTATUS=");
 	Serial.println_long((long)subghz_param.tx_stat.status,DEC);
 	return;
+#endif
 }
 
 static SUBGHZ_MSG subghz_getSendMode(SUBGHZ_PARAM *param)
@@ -652,6 +674,7 @@ static void subghz_decMac(SUBGHZ_MAC_PARAM *mac,uint8_t *raw,uint16_t raw_len)
 // setting of function
 const SubGHz_CTRL SubGHz = {
 	subghz_init,
+	subghz_remove,
 	subghz_begin,
 	subghz_close,
 	subghz_tx,

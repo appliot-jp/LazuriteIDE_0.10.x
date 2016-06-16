@@ -19,6 +19,7 @@
  */
 
 
+#ifdef LAZURITE_IDE
 #include <limits.h>
 #include <stdint.h>
 #include <string.h>
@@ -27,8 +28,18 @@
 #include "endian.h"
 #include "ieee802154.h"
 #include "ml7396.h"
-// 2015.06.08 Eiichi Saito
 #include "hal.h"
+#else	// Linux
+#include <linux/limits.h>
+#include <linux/string.h>
+#include "ml7396_hwif.h"
+#include "ml7396_reg.h"
+#include "endian.h"
+#include "ieee802154.h"
+#include "ml7396.h"
+#include "../hwif/hal.h"
+#include "../hwif/random.h"
+#endif
 
 
 #ifdef DEBUG
@@ -131,7 +142,7 @@ static int regbank(uint8_t bank) {
             reg.wdata[0] = (0x00<<1)|0x01, reg.wdata[1] = bank&0x03;
             // 2015.05.27 Eiichi Saito
             if(bank > 2) reg.wdata[1] = reg.wdata[1] | 0x80;
-            ON_ERROR_STATUS(ml7396_hwif_spi_transfer(reg.wdata, reg.rdata, 2), ML7396_STATUS_EREGWRITE);
+            ml7396_hwif_spi_transfer(reg.wdata, reg.rdata, 2);
             reg.bank = bank;
         }
         status = ML7396_STATUS_OK;
@@ -163,10 +174,10 @@ int ml7396_regwrite(uint8_t bank, uint8_t addr, const uint8_t *data, uint8_t siz
         status = ML7396_STATUS_ELOCK;
         GOTO_ERROR;
     }
-    ON_ERROR_STATUS(regbank(bank), ML7396_STATUS_EREGWRITE);
+    regbank(bank);
     reg.wdata[0] = (addr << 1) | 0x01;
     memcpy(reg.wdata + 1, data, size);
-    ON_ERROR_STATUS(ml7396_hwif_spi_transfer(reg.wdata, reg.rdata, size + 1), ML7396_STATUS_EREGWRITE);
+    ml7396_hwif_spi_transfer(reg.wdata, reg.rdata, size + 1);
     status = ML7396_STATUS_OK;
 error:
     --reg.lock;
@@ -189,10 +200,10 @@ int ml7396_regread(uint8_t bank, uint8_t addr, uint8_t *data, uint8_t size) {
         status = ML7396_STATUS_ELOCK;
         GOTO_ERROR;
     }
-    ON_ERROR_STATUS(regbank(bank), ML7396_STATUS_EREGREAD);
+    regbank(bank);
     reg.wdata[0] = (addr << 1) | 0x00;
     memset(reg.wdata + 1, 0xff, size);  /* ここは仕様上不定値でも問題ないが、余計なノイズ出力を抑えるため'H'固定にする */
-    ON_ERROR_STATUS(ml7396_hwif_spi_transfer(reg.wdata, reg.rdata, size + 1), ML7396_STATUS_EREGREAD);
+    ml7396_hwif_spi_transfer(reg.wdata, reg.rdata, size + 1);
     // 2016.6.8 Eiichi Saito: SubGHz API common
 //  memcpy(data, reg.rdata + 1, size);
     memcpy(data, reg.rdata, size);
@@ -675,8 +686,8 @@ static const uint8_t *parse_data(const uint8_t *data, uint16_t size, ML7396_Head
     }
     else
         header->seq = ML7396_HEADER_SEQNONE;
-    if ( fc.panidcomps && fc.dstaddrmode == IEEE802154_FC_DAMODE_NONE && fc.srcaddrmode == IEEE802154_FC_SAMODE_NONE ||
-        !fc.panidcomps && fc.dstaddrmode != IEEE802154_FC_DAMODE_NONE ) {
+    if (( fc.panidcomps && (fc.dstaddrmode == IEEE802154_FC_DAMODE_NONE) && (fc.srcaddrmode == IEEE802154_FC_SAMODE_NONE)) ||
+        (!fc.panidcomps && (fc.dstaddrmode != IEEE802154_FC_DAMODE_NONE)) ) {
         if (size < 2)
             goto error;
         header->dstpanid = v2u16(data), data += 2, size -= 2;
@@ -950,7 +961,7 @@ static int em_setup(EM_Data *em_data, void *data) {
         SWITCH_STATE(ML7396_StateReset);  /* Resetステートへ移行 */
         REG_PHYRST();  /* PHYをリセット */
         em_data->rx = NULL, em_data->tx = NULL;
-        ON_ERROR_STATUS(ml7396_hwif_regset(data), ML7396_STATUS_ESETUP);  /* レジスタ設定 */
+        ml7396_hwif_regset(data);  /* レジスタ設定 */
         /* IEEE802.15.4gパケット, 自動送信ON, 受信データにEDを付加, Whiteningを行う */
         REG_RDB(REG_ADR_PACKET_MODE_SET, reg_data);
         reg_data |=  0x1e;
@@ -1084,7 +1095,7 @@ static int em_txstart(EM_Data *em_data, ML7396_Buffer *buffer) {
 	else
 		ml7396_setAckTimerEnable(0);		//ACKを返さない時、送信完了後はTXOFFする。
     // 2016.05.20 Eiichi Saito :Position measurement: First time back-off
-#if 0
+#if 1
     if (!em_data->tx->opt.tx.cca.wait) {
         cca_wait = 100;
     }else{
@@ -1215,7 +1226,7 @@ static int em_rx_datarecv(EM_Data *em_data, const uint32_t *hw_event) {
             // 2015.07.10 Eiichi Saito : The conditions for an address filter are changed.
             // アドレス判定しておかないとACK送信モードになる。
             if (!is_rx_recvdata(em_data->rx, &rxheader) ||  /* 受信/破棄の判定 */
-                em_data->rx->opt.rx.filter != NULL && !em_data->rx->opt.rx.filter(&rxheader) )  /* フィルタリングチェック */
+                ((em_data->rx->opt.rx.filter != NULL) && !em_data->rx->opt.rx.filter(&rxheader)))  /* フィルタリングチェック */
                 em_data->rx->status = ML7396_BUFFER_INIT;  /* 受信バッファを破棄して再利用 */
             else if (make_rx_sendack(&rxheader, em_data->myaddr, &em_data->ack)) {  /* ACKを送信するかの判定とACKフレーム生成 */
                 em_data->ack.status = ML7396_BUFFER_INIT;
@@ -1284,7 +1295,7 @@ error:
 static int em_rx_ackdone(EM_Data *em_data, const uint32_t *hw_event) {
     int status = ML7396_STATUS_UNKNOWN;
 
-    ML7396_Header *header = em_data->ack.data;
+    ML7396_Header *header = (ML7396_Header *)em_data->ack.data;
 
     // __asm("nop"); // for debug
     ASSERT(em_data->rx != NULL);
@@ -1309,7 +1320,7 @@ error:
  */
 static int em_tx_ccadone(EM_Data *em_data, const uint32_t *hw_event) {
     int status = ML7396_STATUS_UNKNOWN;
-    uint8_t reg_data;
+    //uint8_t reg_data;
     // 2015.10.26 Eiichi Saito   addition random backoff
     uint16_t cca_wait;
 
@@ -1729,7 +1740,7 @@ static void sint_handler(void) {
 
     /* イベントマシン呼び出し */
     // 2016.03.14 tx send event
-    #if 1   // 本制御が0のとき従来の割込み処理となる。
+    #ifdef LAZURITE_IDE   // 本制御が0のとき従来の割込み処理となる。
     if((em_data.state == ML7396_StateSending) &&
                 hw_event&(HW_EVENT_CCA_DONE|
                     HW_EVENT_FIFO_EMPTY|HW_EVENT_TX_DONE)) {
@@ -1742,6 +1753,7 @@ static void sint_handler(void) {
         }
         /* 処理済の割り込み要因をクリア */
         REG_INTCLR(hw_event);
+	
     }else
     #endif
     {
@@ -1858,7 +1870,7 @@ int ml7396_txstart(ML7396_Buffer *buffer) {
  * *data: 各種設定値
  */
 // 2016.03.14 tx send event
-int ml7396_txidle(void ) {
+void ml7396_txidle(void ) {
     /* ハードウェア要因のイベントフラグ生成 */
     uint32_t hw_done = 0;
 

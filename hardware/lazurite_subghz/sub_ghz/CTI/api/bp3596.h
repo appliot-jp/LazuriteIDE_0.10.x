@@ -22,7 +22,9 @@
 #define _INCLUDE_BP3596_H
 
 
+#ifdef LAZURITE_IDE
 #include <stdint.h>
+#endif
 
 
 /* 戻り値
@@ -65,14 +67,14 @@ extern int BP3596_getMyAddr(uint16_t *addr);
 extern int BP3596_setMyPANID(uint16_t panID);
 extern int BP3596_setFilter(uint16_t panID, uint16_t addr0, uint16_t addr1);
 // 2016.03.14 tx send event
-extern int BP3596_sendIdle(void);
+extern void BP3596_sendIdle(void);
 extern int BP3596_send(const void *data, uint16_t size,
                        uint8_t addrType, uint16_t dstAddr, uint16_t dstPANID );
 extern int BP3596_sendRaw(const void *data, uint16_t size);
 extern int BP3596_setFuncSendComplete(void (*sendComplete)(uint8_t rssi, int status));
 extern int BP3596_recvEnable(void);
 extern int BP3596_recvDisable(void);
-extern int BP3596_setFuncRecvComplete(void (*recvComplete)(const void *data, uint8_t rssi, int status));
+extern int BP3596_setFuncRecvComplete(void (*recvComplete)(const uint8_t *data, uint8_t rssi, int status));
 extern int BP3596_sleep(void);
 extern int BP3596_wakeup(void);
 extern int BP3596_getState(void);

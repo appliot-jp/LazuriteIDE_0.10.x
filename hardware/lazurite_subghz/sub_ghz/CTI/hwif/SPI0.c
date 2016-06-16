@@ -26,10 +26,7 @@
 #include "pin_assignment.h"
 #include "lp_manage.h"
 
-// 2016.6.8 Eiichi Saito: SubGHz API common
-// static volatile unsigned char _spi0_transfer(UCHAR _data);
-static volatile void _spi0_write(UCHAR _data);
-static volatile unsigned char _spi0_read(void);
+static volatile unsigned char _spi0_transfer(UCHAR _data);
 static void _spi0_attachInterrupt(void);
 static void _spi0_detachInterrupt(void); // Default
 static void _spi0_begin(void); // Default
@@ -42,10 +39,7 @@ static void _spi0_setClockDivider(UINT16 ckdiv);
 // The interface can be used for BLE or SLPR connected internally in Lazurite.
 const SPI0Class SPI0 =
 {
-// 2016.6.8 Eiichi Saito: SubGHz API common
-//  _spi0_transfer,
-	_spi0_write,
-	_spi0_read,
+	_spi0_transfer,
 	_spi0_attachInterrupt,
 	_spi0_detachInterrupt,
 	_spi0_begin,
@@ -79,19 +73,10 @@ const SPI0Class SPI0 =
 #define SPI0_GPIO_DIR		0x02
 #define SPI0_GPIO_CON		0x0707   //0000_0111_0000_0101
 #define SPI0_GPIO_MOD		0x0700
-// 2016.6.8 Eiichi Saito: SubGHz API common
-//********************************************************************************
-//   control definitions
-//********************************************************************************
-#define WRITE_ENABLE        (S0MD0=0,S0MD1=1)
-#define READ_ENABLE         (S0MD0=1,S0MD1=0)
-#define READ_WRITE_DISABLE  (S0MD0=0,S0MD1=0)
 //********************************************************************************
 //   local parameters
 //********************************************************************************
-// 2016.6.8 Eiichi Saito: SubGHz API common
-// static UINT16 _spi0_mod = (SPI0_MODE0 | SPI0_CLOCK_DIV4 | SPI0_TX_RX | SPI0_8BIT | SPI0_MSBFIRST);
-static UINT16 _spi0_mod = (SPI0_MODE0 | SPI0_CLOCK_DIV4 | SPI0_8BIT | SPI0_MSBFIRST);
+static UINT16 _spi0_mod = (SPI0_MODE0 | SPI0_CLOCK_DIV4 | SPI0_TX_RX | SPI0_8BIT | SPI0_MSBFIRST);
 
 //********************************************************************************
 //   local function definitions
@@ -99,9 +84,9 @@ static UINT16 _spi0_mod = (SPI0_MODE0 | SPI0_CLOCK_DIV4 | SPI0_8BIT | SPI0_MSBFI
 //********************************************************************************
 //   local functions
 //********************************************************************************
+
 // SPI0  not supported by Arduino
 // for BLE or SLPR
-/*
 static volatile unsigned char _spi0_transfer(UCHAR _data)
 {
 	UCHAR res;
@@ -117,27 +102,6 @@ static volatile unsigned char _spi0_transfer(UCHAR _data)
 
 	// return rx data
 	res = SIO0BUFL;
-	return res;
-}
-*/
-// 2016.6.8 Eiichi Saito: SubGHz API common
-static volatile void _spi0_write(UCHAR _data)
-{
-    WRITE_ENABLE;
-	write_reg8(SIO0BUFL,_data);
-	set_bit(S0EN);
-	while(S0EN);
-    READ_WRITE_DISABLE;
-}
-
-static volatile unsigned char _spi0_read(void)
-{
-	UCHAR res;
-    READ_ENABLE;
-	set_bit(S0EN);
-	while(S0EN);
-	res = SIO0BUFL;
-    READ_WRITE_DISABLE;
 	return res;
 }
 static void _spi0_attachInterrupt()

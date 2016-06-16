@@ -22,8 +22,12 @@
 #define _INCLUDE_ML7396_H
 
 
-#include <limits.h>
+#ifdef LAZURITE_IDE
 #include <stdint.h>
+#include <limits.h>
+#else	// Linux
+#include <linux/kernel.h>
+#endif
 
 
 /** 定数定義
@@ -207,7 +211,7 @@ extern int ml7396_rxstop(void);
  */
 extern int ml7396_txstart(ML7396_Buffer *buffer);
 // 2016.03.14 tx send event
-extern int ml7396_txidle(void);
+extern void ml7396_txidle(void);
 
 /* 省電力状態へ移行
  */

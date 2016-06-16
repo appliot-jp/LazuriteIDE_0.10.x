@@ -51,10 +51,7 @@
 //********************************************************************************
 // For equivalent to Arduino API
 typedef struct {
-// 2016.6.8 Eiichi Saito: SubGHz API common
-//  volatile unsigned char (*transfer)(UCHAR _data);
-	volatile void (*write)(UCHAR _data);
-	volatile unsigned char (*read)(void);
+	volatile unsigned char (*transfer)(UCHAR _data);
 	void (*attachInterrupt)(void);
 	void (*detachInterrupt)(void); // Default
 	void (*begin)(void); // Default
