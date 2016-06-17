@@ -89,7 +89,7 @@ int HAL_SPI_transfer(const unsigned char *wdata, uint16_t wsize,unsigned char *r
 	{
 		SPI0.transfer(*(wdata + n));
 	}
-	if(rdata==NULL) return HAL_STATUS_OK
+	if(rdata==NULL) return HAL_STATUS_OK;
     for(n=0;n<rsize;n++)
 	{
             *(rdata + n) = SPI0.transfer(0);
