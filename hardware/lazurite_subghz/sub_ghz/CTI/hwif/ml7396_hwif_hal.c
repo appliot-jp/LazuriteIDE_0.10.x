@@ -92,13 +92,6 @@ int ml7396_hwif_init(void) {
     HAL_TIMER_setup();
 //  HAL_I2C_setup();
     ml7396_hwif_timer_tick(&wait_t);  /* 時間待ち起点 - (A) */
-// 2016.6.8 Eiichi Saito: SubGHz API common
-//  HAL_GPIO_setValue(HAL_GPIO_RESETN, 0);
-//  for (t = wait_t; wait_t - t <= 3; ml7396_hwif_timer_tick(&wait_t))  // (A)から3msec以上経過を待つ - (B) 
-//      idle();
-//  HAL_GPIO_setValue(HAL_GPIO_RESETN, 1);
-//  for (t = wait_t; wait_t - t <= 3; ml7396_hwif_timer_tick(&wait_t))  // (B)から3msec以上経過を待つ
-//      idle();
     status = 0;
     return status;
 }

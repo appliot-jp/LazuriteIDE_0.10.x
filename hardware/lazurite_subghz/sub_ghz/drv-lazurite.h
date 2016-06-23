@@ -25,6 +25,9 @@
 #define	IOCTL_SET_BEGIN			0x11
 #define	IOCTL_SET_RXON			0x13
 #define	IOCTL_SET_RXOFF			0x15
+#define	IOCTL_SET_CLOSE			0x17
+#define	IOCTL_GET_SEND_MODE		0x18
+#define	IOCTL_SET_SEND_MODE		0x19
 #define	IOCTL_PARAM				(0x1000 >> 12)
 #define	IOCTL_GET_CH			0x02
 #define	IOCTL_SET_CH			0x03
@@ -58,6 +61,14 @@
 #define	IOCTL_SET_ADDR_SIZE		0x1f
 #define	IOCTL_GET_DRV_MODE		0x20
 #define	IOCTL_SET_DRV_MODE		0x21
+#define	IOCTL_GET_SENSE_TIME	0x22
+#define	IOCTL_SET_SENSE_TIME	0x23
+#define	IOCTL_GET_TX_RETRY		0x24
+#define	IOCTL_SET_TX_RETRY		0x25
+#define	IOCTL_GET_TX_INTERVAL	0x26
+#define	IOCTL_SET_TX_INTERVAL	0x27
+#define	IOCTL_GET_CCA_WAIT		0x28
+#define	IOCTL_SET_CCA_WAIT		0x29
 #define	IOCTL_RF				(0x2000 >> 12)
 #define	IOCTL_EEPROM			(0x3000 >> 12)
 #define	IOCTL_LED				(0x4000 >> 12)

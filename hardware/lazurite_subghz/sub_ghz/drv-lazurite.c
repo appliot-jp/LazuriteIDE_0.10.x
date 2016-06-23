@@ -63,6 +63,7 @@ static struct s_CHAR_DEV {
 int listed_packet = 0;
 
 static struct {
+	unsigned short drv_mode;
 	unsigned char ch;
 	unsigned char pwr;
 	unsigned char bps;
@@ -70,24 +71,25 @@ static struct {
 	unsigned short tx_panid;
 	unsigned char my_addr[8];
 	unsigned char tx_addr[8];
-	unsigned char addr_type;
 	unsigned char addr_size;
-	unsigned short drv_mode;
 	unsigned char rx_rssi;
 	unsigned char tx_rssi;
+	unsigned char addr_type;
+	unsigned char senseTime;
+	unsigned char txRetry;
+	unsigned short txInterval;
+	unsigned short ccaWait;
 	int rx_status;
 	int tx_status;
 } p = {
+	0,		// drv_mode
 	36,		// default ch
 	20,		// default pwr
 	100,		// default bps
 	0xABCD,		// default my panid
 	0xABCD,		// default tx panid
 	{0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef},		// my addr
-	{0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff},		// my addr
-	6,		// address type(0-7)
-	2,		// address size (0=no, 1 = 8bit , 2 = 16bit, 3= 64bit
-	0,		// drv_mode
+	{0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff},		// tx addr
 };
 // *****************************************************************
 //			transfer process (input from chrdev)
@@ -155,7 +157,7 @@ void rx_callback(const uint8_t *data, uint8_t rssi, int status)
 static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
 	unsigned char command = cmd>>12;
 	unsigned int param = cmd & 0x0FFF;
-	long ret=0;
+	long ret=-EFAULT;
 	mutex_lock( &chrdev.lock );
 
 	switch(command) {
@@ -173,6 +175,38 @@ static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 					ret = SubGHz.rxDisable();
 					if(ret != SUBGHZ_OK) ret *=-1;
 					break;
+				case IOCTL_SET_CLOSE:
+					ret = SubGHz.close();
+					if(ret != SUBGHZ_OK) ret *=-1;
+					break;
+				case IOCTL_GET_SEND_MODE:
+				{
+					SUBGHZ_PARAM param;
+					ret = SubGHz.getSendMode(&param);
+					if(ret != SUBGHZ_OK) ret *=-1;
+					p.addr_type = param.addrType;
+					p.senseTime = param.senseTime;
+					p.txRetry = param.txRetry;
+					p.txInterval = param.txInterval;
+					p.my_addr[0] = (param.myAddress >> 0 ) & 0x00ff;
+					p.my_addr[1] = (param.myAddress >> 8 ) & 0x00ff;
+					p.ccaWait = param.ccaWait;
+					break;
+				}
+				case IOCTL_SET_SEND_MODE:
+				{
+					SUBGHZ_PARAM param;
+					param.addrType = p.addr_type;
+					param.senseTime = p.senseTime;
+					param.txRetry = p.txRetry;
+					param.txInterval = p.txInterval;
+					param.myAddress = p.my_addr[1];
+					param.myAddress = (param.myAddress << 8 ) | p.my_addr[0];
+					p.ccaWait = param.ccaWait;
+					ret = SubGHz.setSendMode(&param);
+					if(ret != SUBGHZ_OK) ret *=-1;
+					break;
+				}
 			}
 			break;
 		case IOCTL_PARAM:
@@ -257,17 +291,15 @@ static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 					}
 					break;
 				case IOCTL_GET_MY_ADDR0:			// get panid
+					ret = SubGHz.getMyAddress();
+					p.my_addr[1] = (ret >> 8) & 0x00ff;
+					p.my_addr[0] = ret  & 0x000000ff;
+					break;
 				case IOCTL_GET_MY_ADDR1:			// get panid
 				case IOCTL_GET_MY_ADDR2:			// get panid
 				case IOCTL_GET_MY_ADDR3:			// get panid
-					ret = p.my_addr[(param-IOCTL_GET_MY_ADDR0)+1];
-					ret <<= 8;
-					ret += p.my_addr[(param-IOCTL_GET_MY_ADDR0)+0];
 					break;
 				case IOCTL_SET_MY_ADDR0:			// set panid
-				case IOCTL_SET_MY_ADDR1:			// set panid
-				case IOCTL_SET_MY_ADDR2:			// set panid
-				case IOCTL_SET_MY_ADDR3:			// set panid
 					if((arg >= 0) && (arg <= 0xffff)&&(p.drv_mode==0x0000FFFF)) {
 						p.my_addr[(param-IOCTL_SET_MY_ADDR0)+1] = (arg >> 8) & 0x000000ff;
 						p.my_addr[(param-IOCTL_SET_MY_ADDR0)+0] = arg  & 0x000000ff;
@@ -275,6 +307,9 @@ static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 					} else {
 						ret = -EINVAL;
 					}
+				case IOCTL_SET_MY_ADDR1:			// set panid
+				case IOCTL_SET_MY_ADDR2:			// set panid
+				case IOCTL_SET_MY_ADDR3:			// set panid
 					break;
 				case IOCTL_GET_TX_ADDR0:			// get panid
 				case IOCTL_GET_TX_ADDR1:			// get panid
@@ -331,6 +366,46 @@ static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 					if((arg >= 0) && (arg <= 0xFFFF)) {
 						p.drv_mode = arg;
 						ret = p.drv_mode;
+					} else {
+						ret = -EINVAL;
+					}
+					break;
+				case IOCTL_GET_SENSE_TIME:			// get panid
+					ret = p.senseTime;
+					break;
+				case IOCTL_SET_SENSE_TIME:			// get panid
+					if((arg >= 0) && (arg <= 0x00FF)) {
+						ret = p.senseTime;
+					} else {
+						ret = -EINVAL;
+					}
+					break;
+				case IOCTL_GET_TX_RETRY:			// get panid
+					ret = p.txRetry;
+					break;
+				case IOCTL_SET_TX_RETRY:			// get panid
+					if((arg >= 0) && (arg <= 0x00FF)) {
+						ret = p.txRetry;
+					} else {
+						ret = -EINVAL;
+					}
+					break;
+				case IOCTL_GET_TX_INTERVAL:			// get panid
+					ret = p.txInterval;
+					break;
+				case IOCTL_SET_TX_INTERVAL:			// get panid
+					if((arg >= 0) && (arg <= 0x00FFFF)) {
+						ret = p.txInterval;
+					} else {
+						ret = -EINVAL;
+					}
+					break;
+				case IOCTL_GET_CCA_WAIT:			// get panid
+					ret = p.ccaWait;
+					break;
+				case IOCTL_SET_CCA_WAIT:			// get panid
+					if((arg >= 0) && (arg <= 0x00FFFF)) {
+						ret = p.ccaWait;
 					} else {
 						ret = -EINVAL;
 					}
@@ -542,6 +617,17 @@ static int __init drv_param_init(void) {
 	status = SubGHz.init();
 	if(status != SUBGHZ_OK) goto error_device_create;
 
+	// get address
+	/*
+	EXT_I2C_read(0x20,p.my_addr[7],1);
+	EXT_I2C_read(0x21,p.my_addr[6],1);
+	EXT_I2C_read(0x22,p.my_addr[5],1);
+	EXT_I2C_read(0x23,p.my_addr[4],1);
+	EXT_I2C_read(0x24,p.my_addr[3],1);
+	EXT_I2C_read(0x25,p.my_addr[2],1);
+	EXT_I2C_read(0x26,p.my_addr[1],1);
+	EXT_I2C_read(0x27,p.my_addr[0],1);
+	*/
 
 	printk(KERN_INFO "[drv-lazurite] End of init\n");
 	mutex_init( &chrdev.lock );
