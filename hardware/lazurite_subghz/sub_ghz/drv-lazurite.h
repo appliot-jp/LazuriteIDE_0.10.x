@@ -69,6 +69,12 @@
 #define	IOCTL_SET_TX_INTERVAL	0x27
 #define	IOCTL_GET_CCA_WAIT		0x28
 #define	IOCTL_SET_CCA_WAIT		0x29
+#define	IOCTL_GET_RX_SEC0		0x2A
+#define	IOCTL_GET_RX_SEC1		0x2C
+#define	IOCTL_GET_RX_NSEC0		0x2E
+#define	IOCTL_GET_RX_NSEC1		0x30
+#define	IOCTL_GET_RX_RSSI		0x32
+#define	IOCTL_GET_TX_RSSI		0x34
 #define	IOCTL_RF				(0x2000 >> 12)
 #define	IOCTL_EEPROM			(0x3000 >> 12)
 #define	IOCTL_LED				(0x4000 >> 12)

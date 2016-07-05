@@ -87,8 +87,7 @@ static SUBGHZ_MSG subghz_init(void)
 	subghz_param.txRetry = 0;
 	subghz_param.txInterval = 500;
 	// 2015.10.26 Eiichi Saito   addition random backoff
-    // 2016.06.30 Eiichi Saito :Position measurement tuning
-	subghz_param.ccaWait = 7;  // <- 2
+	subghz_param.ccaWait = 2;
 	
 	// reset
 	result = BP3596_reset();
@@ -245,7 +244,7 @@ SUBGHZ_MSG subghz_halt_until_complete(void)
 	}
 #else
 	que_th2ex = 0;
-	wait_event_interruptible(tx_done, que_th2ex);
+	wait_event_interruptible_timeout(tx_done, que_th2ex,HZ);
 #endif
 	if(subghz_param.tx_stat.status > 0)
 	{
