@@ -1514,10 +1514,11 @@ static int em_tx_datasend(EM_Data *em_data, const uint32_t *hw_event) {
     int status = ML7396_STATUS_UNKNOWN;
 
     ASSERT(em_data->tx != NULL);
-    switch (em_data->tx->status) {
-    default:
-        REG_TXCONTINUE(em_data->tx);
-    }
+// 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+//  switch (em_data->tx->status) {
+//  default:
+//      REG_TXCONTINUE(em_data->tx);
+//  }
     status = ML7396_STATUS_OK;
 error:
     return status;
