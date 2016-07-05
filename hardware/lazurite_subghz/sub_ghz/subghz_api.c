@@ -87,7 +87,8 @@ static SUBGHZ_MSG subghz_init(void)
 	subghz_param.txRetry = 0;
 	subghz_param.txInterval = 500;
 	// 2015.10.26 Eiichi Saito   addition random backoff
-	subghz_param.ccaWait = 2;
+    // 2016.06.30 Eiichi Saito :Position measurement tuning
+	subghz_param.ccaWait = 7;  // <- 2
 	
 	// reset
 	result = BP3596_reset();
