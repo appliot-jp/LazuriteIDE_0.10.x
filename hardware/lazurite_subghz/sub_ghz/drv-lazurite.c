@@ -34,13 +34,11 @@
 #include "drv-lazurite.h"
 #include "CTI/hwif/hal.h"
 
-#define DATA_SIZE		256
+#define DATA_SIZE		256+16
 #define DRV_NAME		"lzgw"
 
 wait_queue_head_t tx_done;
 extern int que_th2ex;
-
-uint8_t rxbuf[DATA_SIZE];
 
 struct list_data {				
 	uint8_t	data[DATA_SIZE];
@@ -67,6 +65,7 @@ static struct {
 	unsigned char ch;
 	unsigned char pwr;
 	unsigned char bps;
+	unsigned char addr_type;
 	unsigned short my_panid;
 	unsigned short tx_panid;
 	unsigned char my_addr[8];
@@ -74,11 +73,11 @@ static struct {
 	unsigned char addr_size;
 	unsigned char rx_rssi;
 	unsigned char tx_rssi;
-	unsigned char addr_type;
 	unsigned char senseTime;
 	unsigned char txRetry;
 	unsigned short txInterval;
 	unsigned short ccaWait;
+	struct timespec rx_time;
 	int rx_status;
 	int tx_status;
 } p = {
@@ -86,6 +85,7 @@ static struct {
 	36,		// default ch
 	20,		// default pwr
 	100,		// default bps
+	6,
 	0xABCD,		// default my panid
 	0xABCD,		// default tx panid
 	{0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef},		// my addr
@@ -94,8 +94,10 @@ static struct {
 // *****************************************************************
 //			transfer process (input from chrdev)
 // *****************************************************************
-int write_list_data(const uint8_t* raw,int len){
+int write_list_data(const uint8_t* raw,int len,uint8_t rssi){
+	int offset = 0;
 	struct list_data *new_data;
+	struct timespec rx_time;
 	const uint8_t *in;
 	uint8_t *out;
 
@@ -106,17 +108,23 @@ int write_list_data(const uint8_t* raw,int len){
 	}
 
 	// copy data to list
-	if(len < DATA_SIZE)
+	if((len < DATA_SIZE) & (len>0))
 	{
+		// get time stamp
+		getnstimeofday(&rx_time);
+		// copy memory
 		in = raw;
 		out = new_data->data;
-		memcpy(out,in,len);
+		memcpy(out+offset,&rx_time,sizeof(rx_time)),offset+=sizeof(rx_time);
+		memcpy(out+offset,&rssi,sizeof(uint8_t)),offset+=sizeof(uint8_t);
+		memcpy(out+offset,in,len);
+		// new_data=>len is just length of raw data. total data size = raw + time + rssi
 		new_data->len = len;
 		// list add 
 		list_add_tail(&new_data->list, &head.list);
 		listed_packet++;
 
-		//check list length. And delete data, if list length is over maximum length.
+		//check number of list. if the number is  over, delete list.
 		while(listed_packet >4) {
 			struct list_data *data;
 			data = list_entry(head.list.next, struct list_data, list);
@@ -140,11 +148,7 @@ void rx_callback(const uint8_t *data, uint8_t rssi, int status)
 {
 	if(status > 0) {
 		EXT_rx_led_flash(2);
-		p.rx_status = status;
-		p.rx_rssi = rssi;
-		write_list_data(data,status);
-	} else {		// error
-		p.rx_status = status;
+		write_list_data(data,status,rssi);
 	}
 	return;
 
@@ -177,36 +181,39 @@ static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 					break;
 				case IOCTL_SET_CLOSE:
 					ret = SubGHz.close();
-					if(ret != SUBGHZ_OK) ret *=-1;
+					if(ret != SUBGHZ_OK) ret = EFAULT;
 					break;
 				case IOCTL_GET_SEND_MODE:
-				{
-					SUBGHZ_PARAM param;
-					ret = SubGHz.getSendMode(&param);
-					if(ret != SUBGHZ_OK) ret *=-1;
-					p.addr_type = param.addrType;
-					p.senseTime = param.senseTime;
-					p.txRetry = param.txRetry;
-					p.txInterval = param.txInterval;
-					p.my_addr[0] = (param.myAddress >> 0 ) & 0x00ff;
-					p.my_addr[1] = (param.myAddress >> 8 ) & 0x00ff;
-					p.ccaWait = param.ccaWait;
-					break;
-				}
+					{
+						SUBGHZ_PARAM param;
+						ret = SubGHz.getSendMode(&param);
+						if(ret != SUBGHZ_OK) ret *=-1;
+						p.addr_type = param.addrType;
+						p.senseTime = param.senseTime;
+						p.txRetry = param.txRetry;
+						p.txInterval = param.txInterval;
+						p.my_addr[0] = (param.myAddress >> 0 ) & 0x00ff;
+						p.my_addr[1] = (param.myAddress >> 8 ) & 0x00ff;
+						p.ccaWait = param.ccaWait;
+						break;
+					}
 				case IOCTL_SET_SEND_MODE:
-				{
-					SUBGHZ_PARAM param;
-					param.addrType = p.addr_type;
-					param.senseTime = p.senseTime;
-					param.txRetry = p.txRetry;
-					param.txInterval = p.txInterval;
-					param.myAddress = p.my_addr[1];
-					param.myAddress = (param.myAddress << 8 ) | p.my_addr[0];
-					p.ccaWait = param.ccaWait;
-					ret = SubGHz.setSendMode(&param);
-					if(ret != SUBGHZ_OK) ret *=-1;
+					{
+						SUBGHZ_PARAM param;
+						param.addrType = p.addr_type;
+						param.senseTime = p.senseTime;
+						param.txRetry = p.txRetry;
+						param.txInterval = p.txInterval;
+						param.myAddress = p.my_addr[1];
+						param.myAddress = (param.myAddress << 8 ) | p.my_addr[0];
+						p.ccaWait = param.ccaWait;
+						ret = SubGHz.setSendMode(&param);
+						if(ret != SUBGHZ_OK) ret *=-1;
+						break;
+					}
+				default:
+					ret = -ENOTTY;
 					break;
-				}
 			}
 			break;
 		case IOCTL_PARAM:
@@ -410,6 +417,27 @@ static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 						ret = -EINVAL;
 					}
 					break;
+				case IOCTL_GET_RX_SEC0:
+					ret = (p.rx_time.tv_sec >> 0) & 0x0000ffff;
+					break;
+				case IOCTL_GET_RX_SEC1:
+					ret = (p.rx_time.tv_sec >> 16) & 0x0000ffff;
+					break;
+				case IOCTL_GET_RX_NSEC0:
+					ret = (p.rx_time.tv_nsec >> 0) & 0x0000ffff;
+					break;
+				case IOCTL_GET_RX_NSEC1:
+					ret = (p.rx_time.tv_nsec >> 16) & 0x0000ffff;
+					break;
+				case IOCTL_GET_RX_RSSI:
+					ret = p.rx_rssi;
+					break;
+				case IOCTL_GET_TX_RSSI:
+					ret = p.tx_rssi;
+					break;
+				default:
+					ret = -ENOTTY;
+					break;
 			}
 			break;
 		case IOCTL_RF:
@@ -445,6 +473,9 @@ static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 				EXT_tx_led_flash(arg);
 			}
 			ret = 0;
+			break;
+		default:
+			ret = -ENOTTY;
 			break;
 	}
 	mutex_unlock( &chrdev.lock );
@@ -496,9 +527,13 @@ static ssize_t chardev_read (struct file * file, char __user * buf, size_t count
 			goto end;
 		}
 	} else {
+		int offset=0;
+		memcpy(&p.rx_time,&ptr->data[offset],sizeof(p.rx_time)),offset+=sizeof(p.rx_time);
+		memcpy(&p.rx_rssi,&ptr->data[offset],sizeof(uint8_t)),offset+=sizeof(uint8_t);
 		// return data
 		bytes_read = count;
-		if (bytes_read > 0 && copy_to_user (buf, &(ptr->data), bytes_read)) {
+
+		if (bytes_read > 0 && copy_to_user (buf, &ptr->data[offset], bytes_read)) {
 			printk( KERN_ERR "%s : copy_to_user failed\n", chrdev.name);
 			bytes_read = 0;
 			goto end;
@@ -516,21 +551,25 @@ end:
 static void tx_callback(uint8_t rssi,int status) {
 	p.tx_rssi = rssi;
 	p.tx_status = status;
-	que_th2ex = 1;
-	wake_up_interruptible(&tx_done);
+
+	if(que_th2ex == 0) {
+		que_th2ex = 1;
+		wake_up_interruptible(&tx_done);
+	}
 	return;
 }
 static ssize_t chardev_write (struct file * file, const char __user * buf,
 		size_t count, loff_t * ppos) {
 	int status = 0;
 	uint8_t payload[DATA_SIZE];
+
 	mutex_lock( &chrdev.lock );
 
 	if(count<DATA_SIZE)
 	{
 		uint16_t tx_addr;
 		tx_addr = p.tx_addr[1];
-		tx_addr = (tx_addr<<8) + p.tx_addr[0];
+		tx_addr = (tx_addr << 8 ) | p.tx_addr[0];
 		if(copy_from_user(payload,buf,count))
 		{
 			status = -EFAULT;
@@ -538,12 +577,13 @@ static ssize_t chardev_write (struct file * file, const char __user * buf,
 		}
 		EXT_set_tx_led(0);
 		status = SubGHz.send(p.tx_panid,tx_addr,payload,count,tx_callback);
+		p.tx_status = status;
 		if(status == SUBGHZ_OK)
 		{
 			status = count;
-		} else if(status == SUBGHZ_TX_CCA_FAIL) {
+		} else if(p.tx_status == SUBGHZ_TX_CCA_FAIL) {
 			status = -EBUSY;
-		} else if (status == SUBGHZ_TX_ACK_FAIL) {
+		} else if (p.tx_status == SUBGHZ_TX_ACK_FAIL) {
 			status = -ENODEV;
 		} else {
 			status = -EFAULT;
@@ -619,15 +659,15 @@ static int __init drv_param_init(void) {
 
 	// get address
 	/*
-	EXT_I2C_read(0x20,p.my_addr[7],1);
-	EXT_I2C_read(0x21,p.my_addr[6],1);
-	EXT_I2C_read(0x22,p.my_addr[5],1);
-	EXT_I2C_read(0x23,p.my_addr[4],1);
-	EXT_I2C_read(0x24,p.my_addr[3],1);
-	EXT_I2C_read(0x25,p.my_addr[2],1);
-	EXT_I2C_read(0x26,p.my_addr[1],1);
-	EXT_I2C_read(0x27,p.my_addr[0],1);
-	*/
+	   EXT_I2C_read(0x20,p.my_addr[7],1);
+	   EXT_I2C_read(0x21,p.my_addr[6],1);
+	   EXT_I2C_read(0x22,p.my_addr[5],1);
+	   EXT_I2C_read(0x23,p.my_addr[4],1);
+	   EXT_I2C_read(0x24,p.my_addr[3],1);
+	   EXT_I2C_read(0x25,p.my_addr[2],1);
+	   EXT_I2C_read(0x26,p.my_addr[1],1);
+	   EXT_I2C_read(0x27,p.my_addr[0],1);
+	 */
 
 	printk(KERN_INFO "[drv-lazurite] End of init\n");
 	mutex_init( &chrdev.lock );

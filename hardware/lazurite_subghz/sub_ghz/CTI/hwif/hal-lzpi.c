@@ -124,7 +124,6 @@ int rf_main_thread(void *p)
 		//printk(KERN_INFO"%s %s %d %d %d %d\n",__FILE__,__func__,__LINE__,flag_irq_enable,gpio_get_value(GPIO_SINTN),m.trigger);
 		if(((flag_irq_enable!=true)||gpio_get_value(GPIO_SINTN)!=0)&&((m.trigger&0x0f)==0))
 		{
-			//printk(KERN_INFO"%s %s %d\n",__FILE__,__func__,__LINE__);
 			que_irq=0;
 			wait_event_interruptible(rf_irq_q, que_irq);
 		}
@@ -198,7 +197,6 @@ int tx_led_thread(void *p)
 }
 // rf hardware interrupt handler
 static irqreturn_t rf_irq_handler(int irq,void *dev_id) {
-	//printk(KERN_INFO"%s %s %d %d\n",__FILE__,__func__,__LINE__,que_irq);
 	if(ext_irq_func)
 	{
 		m.trigger |= 0x01;

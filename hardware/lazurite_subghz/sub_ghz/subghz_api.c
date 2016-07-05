@@ -245,7 +245,7 @@ SUBGHZ_MSG subghz_halt_until_complete(void)
 	}
 #else
 	que_th2ex = 0;
-	wait_event_interruptible(tx_done, que_th2ex);
+	wait_event_interruptible_timeout(tx_done, que_th2ex,HZ);
 #endif
 	if(subghz_param.tx_stat.status > 0)
 	{
