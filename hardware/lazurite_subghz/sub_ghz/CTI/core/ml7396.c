@@ -257,7 +257,7 @@ error:
  * 送信手順: (自動送信OFF(送信完了で自動的にTRX_OFFになる)が有効である事)
  *   REG_TRXOFF();
  *   連続送信時の繰り返し範囲 {
- *     REG_CCAEN();
+ *     REG_CCAEN(_type);
  *     REG_RXON();
  *     CCA検出完了割り込み待ち
  *     REG_TRXOFF();
@@ -300,11 +300,13 @@ error:
 
 /* PHY強制リセット
  */
+// 2016.06.30 Eiichi Saito: Position measurement tuning
 #define REG_PHYRST() \
     do { \
         uint8_t _reg_data[1]; \
         _reg_data[0] = 0x03; \
         ON_ERROR(ml7396_regwrite(REG_ADR_RF_STATUS, _reg_data, 1)); \
+        HAL_delayMicroseconds(100); \
         _reg_data[0] = 0x88; \
         ON_ERROR(ml7396_regwrite(REG_ADR_RST_SET, _reg_data, 1)); \
     } while (0)
@@ -316,6 +318,27 @@ error:
     do { \
         uint8_t _reg_data[1]; \
         _reg_data[0] = 0x08; \
+        ON_ERROR(ml7396_regwrite(REG_ADR_RF_STATUS, _reg_data, 1)); \
+    } while (0)
+
+// 2016.06.30 Eiichi Saito: cca idle
+/* 送受信強制停止
+ *  ML7396の状態を ForceTRXOFF に変更
+ */
+#define REG_FORCE_TRXOFF() \
+    do { \
+        uint8_t _reg_data[1]; \
+        _reg_data[0] = 0x03; \
+        ON_ERROR(ml7396_regwrite(REG_ADR_RF_STATUS, _reg_data, 1)); \
+    } while (0)
+
+/* 送信開始
+ *  ML7396の状態を TX_ON に変更
+ */
+#define REG_TXON() \
+    do { \
+        uint8_t _reg_data[1]; \
+        _reg_data[0] = 0x09; \
         ON_ERROR(ml7396_regwrite(REG_ADR_RF_STATUS, _reg_data, 1)); \
     } while (0)
 
@@ -465,15 +488,31 @@ void REG_RXSTART(ML7396_Buffer *_buffer)
 
 /* CCA実行
  */
-// 2015.07.29 Eiichi Saito : not synchronize in CCA
-#define REG_CCAEN() \
+// 2016.06.30 Eiichi Saito: cca idle
+#define REG_CCAEN(_type) \
     do { \
-        uint8_t _reg_data[1]; \
-        _reg_data[0] = 0x00; \
-        ON_ERROR(ml7396_regwrite(REG_ADR_DEMSET3, _reg_data, 1)); \
-        ON_ERROR(ml7396_regwrite(REG_ADR_DEMSET14, _reg_data, 1)); \
-        _reg_data[0] = 0x10; \
-        ON_ERROR(ml7396_regwrite(REG_ADR_CCA_CNTRL, _reg_data, 1)); \
+        uint8_t _reg_cca_cntl[1]; \
+        uint8_t _reg_idl_wait[1]; \
+        ON_ERROR(ml7396_regwrite(REG_ADR_DEMSET3, _reg_cca_cntl, 1)); \
+        ON_ERROR(ml7396_regwrite(REG_ADR_DEMSET14, _reg_cca_cntl, 1)); \
+        if (_type == CCA_STOP) { \
+            _reg_cca_cntl[0] = 0x00; \
+            _reg_idl_wait[0] = 0x00; \
+        } else \
+        if (_type == CCA_FAST) { \
+            _reg_cca_cntl[0] = 0x10; \
+            _reg_idl_wait[0] = 0x00; \
+        } else \
+        if (_type == IDLE_DETECT) { \
+            _reg_cca_cntl[0] = 0x18; \
+            _reg_idl_wait[0] = 0x64; \
+        } else \
+        if (_type == CCA_RETRY) { \
+            _reg_cca_cntl[0] = 0x10; \
+            _reg_idl_wait[0] = 0x64; \
+        } \
+        ON_ERROR(ml7396_regwrite(REG_ADR_IDLE_WAIT_L, _reg_idl_wait, 1)); \
+        ON_ERROR(ml7396_regwrite(REG_ADR_CCA_CNTRL, _reg_cca_cntl, 1)); \
     } while (0)
 
 /* 割り込み要因取得
@@ -862,6 +901,13 @@ typedef struct {
     uint8_t cca_rslt;
 } EM_Data;
 
+// 2016.06.30 Eiichi Saito: cca idle
+typedef enum {
+    CCA_STOP=0,                  /* CCA強制停止 */
+    CCA_FAST,                    /* 初回ＣＣＡ */
+    IDLE_DETECT,                 /* アイドル検出モードCCA */
+    CCA_RETRY                    /* BACKOFF 付きCCA */
+} CCA_State;
 
 /** イベントフラグ
  */
@@ -936,6 +982,19 @@ error:
 	return;
 }
 
+// 2016.06.30 Eiichi Saito: cca idle
+#define UNIT_BAKOFF_PERIOD  300
+#define DEFAUL_BAKOF        1000
+
+static int backoffTimer(EM_Data *em_data){
+
+    uint16_t cca_wait;
+    cca_wait = (rand()&em_data->tx->opt.tx.cca.wait) * UNIT_BAKOFF_PERIOD;
+    if (!em_data->tx->opt.tx.cca.wait || !cca_wait)
+        cca_wait = DEFAUL_BAKOF;
+    HAL_delayMicroseconds(cca_wait);
+}
+
 static int em_setup(EM_Data *em_data, void *data) {
     int status = ML7396_STATUS_UNKNOWN;
     uint8_t reg_data;
@@ -964,7 +1023,9 @@ static int em_setup(EM_Data *em_data, void *data) {
         ml7396_hwif_regset(data);  /* レジスタ設定 */
         /* IEEE802.15.4gパケット, 自動送信ON, 受信データにEDを付加, Whiteningを行う */
         REG_RDB(REG_ADR_PACKET_MODE_SET, reg_data);
-        reg_data |=  0x1e;
+     // 2016.06.30 Eiichi Saito: cca idle
+     // reg_data |=  0x1e;
+        reg_data |=  0x1a;
         REG_WRB(REG_ADR_PACKET_MODE_SET, reg_data);
         /* 送受信時にCRC16を演算 */
         REG_RDB(REG_ADR_FEC_CRC_SET, reg_data);
@@ -978,10 +1039,15 @@ static int em_setup(EM_Data *em_data, void *data) {
 //      REG_WRB(REG_ADR_ACK_TIMER_EN, 0x10);
 //      REG_WRB(REG_ADR_ACK_TIMER_EN, 0x20);
         /* FIFO_MARGIN バイト分余裕を持ってFIFOを読み書きする設定 */
-        REG_WRB(REG_ADR_TX_ALARM_LH, FIFO_MARGIN);      /* 未使用だが設定しておく必要あり 255では何故かFIFOアクセスエラーが発生する */
-        REG_WRB(REG_ADR_TX_ALARM_HL, FIFO_MARGIN);      /* 送信FIFOの残りデータ数が FIFO_MARGIN になれば割り込み発生 */
-        REG_WRB(REG_ADR_RX_ALARM_LH, 256-FIFO_MARGIN);  /* 受信FIFOの空き領域が FIFO_MARGIN になれば割り込み発生 */
-        REG_WRB(REG_ADR_RX_ALARM_HL, 256-FIFO_MARGIN);  /* 未使用だが設定しておく必要あり */
+// 2016.06.30 Eiichi Saito: cca idle
+//      REG_WRB(REG_ADR_TX_ALARM_LH, FIFO_MARGIN);      /* 未使用だが設定しておく必要あり 255では何故かFIFOアクセスエラーが発生する */
+//      REG_WRB(REG_ADR_TX_ALARM_HL, FIFO_MARGIN);      /* 送信FIFOの残りデータ数が FIFO_MARGIN になれば割り込み発生 */
+//      REG_WRB(REG_ADR_RX_ALARM_LH, 256-FIFO_MARGIN);  /* 受信FIFOの空き領域が FIFO_MARGIN になれば割り込み発生 */
+//      REG_WRB(REG_ADR_RX_ALARM_HL, 256-FIFO_MARGIN);  /* 未使用だが設定しておく必要あり */
+        REG_WRB(REG_ADR_TX_ALARM_LH, 0x00);      /* 未使用だが設定しておく必要あり 255では何故かFIFOアクセスエラーが発生する */
+        REG_WRB(REG_ADR_TX_ALARM_HL, 0x00);      /* 送信FIFOの残りデータ数が FIFO_MARGIN になれば割り込み発生 */
+        REG_WRB(REG_ADR_RX_ALARM_LH, 0x00);  /* 受信FIFOの空き領域が FIFO_MARGIN になれば割り込み発生 */
+        REG_WRB(REG_ADR_RX_ALARM_HL, 0x00);  /* 未使用だが設定しておく必要あり */
         /* FIFOの制御仕様
          *
          * 送信:
@@ -1081,8 +1147,6 @@ error:
  */
 static int em_txstart(EM_Data *em_data, ML7396_Buffer *buffer) {
     int status = ML7396_STATUS_UNKNOWN;
-    // 2016.05.20 Eiichi Saito :Position measurement: First time back-off
-    uint16_t cca_wait;
 
     if (em_data->rx != NULL)
         REG_TRXOFF();
@@ -1094,22 +1158,22 @@ static int em_txstart(EM_Data *em_data, ML7396_Buffer *buffer) {
 		ml7396_setAckTimerEnable(1);			//ACKを返す時、送信完了後にRXONする
 	else
 		ml7396_setAckTimerEnable(0);		//ACKを返さない時、送信完了後はTXOFFする。
-    // 2016.05.20 Eiichi Saito :Position measurement: First time back-off
-#if 1
-    if (!em_data->tx->opt.tx.cca.wait) {
-        cca_wait = 100;
+    
+    // 2016.06.30 Eiichi Saito: cca idle
+    REG_FORCE_TRXOFF();
+    REG_TXSTART(em_data->tx);
+    if (IS_ERROR(em_data->tx->status)) {  /* 送信パケットサイズが異常 */
+        REG_PHYRST();
+        BUFFER_DONE(em_data->tx);
+        em_data->tx = NULL;
+        SWITCH_STATE(ML7396_StateIdle);
+        if (em_data->rx != NULL)
+            REG_RXON();
     }else{
-        cca_wait = rand();
-        cca_wait = (cca_wait&0x000F) << em_data->tx->opt.tx.cca.wait;
+        REG_TXCONTINUE(em_data->tx);
+        REG_CCAEN(CCA_FAST);
+        REG_RXON();
     }
-    if (!cca_wait) cca_wait = 100;
-#else
-    REG_CCAEN();
-    REG_RXON();
-#endif
-
-
-    ON_ERROR_STATUS(ml7396_hwif_timer_start(cca_wait), ML7396_STATUS_ETIMSTART);  /* タイマ割り込み設定 */
     status = ML7396_STATUS_OK;
 error:
     return status;
@@ -1320,9 +1384,6 @@ error:
  */
 static int em_tx_ccadone(EM_Data *em_data, const uint32_t *hw_event) {
     int status = ML7396_STATUS_UNKNOWN;
-    //uint8_t reg_data;
-    // 2015.10.26 Eiichi Saito   addition random backoff
-    uint16_t cca_wait;
 
     ASSERT(em_data->tx != NULL);
     REG_TRXOFF();  /* 自動でOFFになるなら不要 */
@@ -1335,50 +1396,23 @@ static int em_tx_ccadone(EM_Data *em_data, const uint32_t *hw_event) {
 //  switch (reg_data & 0x03) {
     switch (em_data->cca_rslt) {
     case 0x00:  /* キャリアなし */
-// 2015.10.26 Eiichi Saito   addition random backoff for Debug
-        switch (em_data->tx->status) {
-        case ML7396_BUFFER_INIT:
-            REG_TXSTART(em_data->tx);
-            if (IS_ERROR(em_data->tx->status)) {  /* 送信パケットサイズが異常 */
-                BUFFER_DONE(em_data->tx);
-                em_data->tx = NULL;
-                SWITCH_STATE(ML7396_StateIdle);
-                if (em_data->rx != NULL)
-                    REG_RXON();
-            }
-            else
-//                REG_TXCONTINUE(em_data->tx);
-                  {
-                    uint8_t _size;
-                    ASSERT((em_data->tx)->status >= 0);
-                    _size = (em_data->tx)->size - (em_data->tx)->status;
-                    if (_size > 0) {
-                        ON_ERROR(ml7396_regwrite(REG_ADR_WR_TX_FIFO, (em_data->tx)->data + (em_data->tx)->status, _size));
-                        (em_data->tx)->status += _size;
-                        HAL_delayMicroseconds(300);
-                    }
-                 }
-            break;
-        default:
-            ASSERT(0);
-        }
+        // 2016.06.30 Eiichi Saito: cca idle
+        REG_TXON();
         break;
     case 0x01:  /* キャリアあり */
-        if (em_data->count.cca < em_data->tx->opt.tx.cca.retry) {  /* リトライ回数が残っている? */
-            ++em_data->count.cca;
-            // 2015.10.26 Eiichi Saito   addition random backoff
-            if (!em_data->tx->opt.tx.cca.wait) {
-                cca_wait = 100;
-            }else{
-                cca_wait = rand();
-                cca_wait = (cca_wait&0x000F) << em_data->tx->opt.tx.cca.wait;
+        ++em_data->count.cca;
+        if (em_data->count.cca < em_data->tx->opt.tx.cca.retry) {
+            // Odd: IDLE_DETECT else Even: CCA_RETRY
+            if (em_data->count.cca <= 0x01){
+                REG_CCAEN(IDLE_DETECT);
+                /* アイドル検出のアボードタイマ設定 */
+                ON_ERROR_STATUS(ml7396_hwif_timer_start(500), ML7396_STATUS_ETIMSTART);
+            }else
+            {
+                backoffTimer(em_data);
+                REG_CCAEN(CCA_RETRY);
             }
-
-            if (!cca_wait) {
-                cca_wait = 100;
-            }
-
-            ON_ERROR_STATUS(ml7396_hwif_timer_start(cca_wait), ML7396_STATUS_ETIMSTART);  /* タイマ割り込み設定 */
+            REG_RXON();
         }
         else {
             em_data->tx->status = ML7396_BUFFER_ECCA;
@@ -1406,9 +1440,18 @@ static int em_tx_ccatimeout(EM_Data *em_data, const uint32_t *hw_event) {
 
     ASSERT(em_data->tx != NULL);
     ON_ERROR_STATUS(ml7396_hwif_timer_stop(), ML7396_STATUS_ETIMSTOP);  /* タイマ割り込み停止 */
-    REG_TRXOFF();
-    REG_CCAEN();
-    REG_RXON();
+// 2016.06.30 Eiichi Saito: cca idle
+//  REG_TRXOFF();
+//  REG_CCAEN();
+//  REG_RXON();
+    REG_CCAEN(CCA_STOP);
+    em_data->tx->status = ML7396_BUFFER_ECCA;
+    BUFFER_DONE(em_data->tx);
+    em_data->tx = NULL;
+    SWITCH_STATE(ML7396_StateIdle);
+    if (em_data->rx != NULL)
+        REG_RXON();
+
     status = ML7396_STATUS_OK;
 error:
     return status;
@@ -1459,8 +1502,23 @@ static int em_tx_datadone(EM_Data *em_data, const uint32_t *hw_event) {
             if (em_data->tx != NULL) {
                 em_data->count.ack = 0, em_data->count.cca = 0;
                 em_data->tx->status = ML7396_BUFFER_INIT;
-                REG_CCAEN();
-                REG_RXON();
+                // 2016.06.30 Eiichi Saito: cca idle
+                // REG_CCAEN();
+                // REG_RXON();
+                REG_FORCE_TRXOFF();
+                REG_TXSTART(em_data->tx);
+                if (IS_ERROR(em_data->tx->status)) {  /* 送信パケットサイズが異常 */
+                    REG_PHYRST();
+                    BUFFER_DONE(em_data->tx);
+                    em_data->tx = NULL;
+                    SWITCH_STATE(ML7396_StateIdle);
+                    if (em_data->rx != NULL)
+                        REG_RXON();
+                }else{
+                    REG_TXCONTINUE(em_data->tx);
+                    REG_CCAEN(CCA_FAST);
+                    REG_RXON();
+                }
             }
             else {
                 SWITCH_STATE(ML7396_StateIdle);
@@ -1514,8 +1572,23 @@ static int em_tx_ackrecv(EM_Data *em_data, const uint32_t *hw_event) {
                     em_data->count.ack = 0, em_data->count.cca = 0;
                     em_data->tx->status = ML7396_BUFFER_INIT;
                     SWITCH_STATE(ML7396_StateSending);
-                    REG_CCAEN();
-                    REG_RXON();
+                    // 2016.06.30 Eiichi Saito: cca idle
+                    // REG_CCAEN();
+                    // REG_RXON();
+                    REG_FORCE_TRXOFF();
+                    REG_TXSTART(em_data->tx);
+                    if (IS_ERROR(em_data->tx->status)) {  /* 送信パケットサイズが異常 */
+                        REG_PHYRST();
+                        BUFFER_DONE(em_data->tx);
+                        em_data->tx = NULL;
+                        SWITCH_STATE(ML7396_StateIdle);
+                        if (em_data->rx != NULL)
+                            REG_RXON();
+                    }else{
+                        REG_TXCONTINUE(em_data->tx);
+                        REG_CCAEN(CCA_FAST);
+                    	REG_RXON();
+                	}
                 }
                 else {
                     SWITCH_STATE(ML7396_StateIdle);
@@ -1540,13 +1613,30 @@ static int em_tx_acktimeout(EM_Data *em_data, const uint32_t *hw_event) {
     int status = ML7396_STATUS_UNKNOWN;
 
     ASSERT(em_data->tx != NULL);
-    REG_TRXOFF();
+    // 2016.06.30 Eiichi Saito: Position measurement tuning
+//  REG_TRXOFF();
+    REG_FORCE_TRXOFF();
     if (em_data->count.ack < em_data->tx->opt.tx.ack.retry) {  /* リトライ回数が残っている? */
         ++em_data->count.ack, em_data->count.cca = 0;
         em_data->tx->status = ML7396_BUFFER_INIT;  /* 送信バッファを未送信状態に戻す */
         SWITCH_STATE(ML7396_StateSending);
-        REG_CCAEN();
-        REG_RXON();
+        // 2016.06.30 Eiichi Saito: cca idle
+        // REG_CCAEN();
+        // REG_RXON();
+        REG_FORCE_TRXOFF();
+        REG_TXSTART(em_data->tx);
+        if (IS_ERROR(em_data->tx->status)) {  /* 送信パケットサイズが異常 */
+            REG_PHYRST();
+            BUFFER_DONE(em_data->tx);
+            em_data->tx = NULL;
+            SWITCH_STATE(ML7396_StateIdle);
+            if (em_data->rx != NULL)
+                REG_RXON();
+        }else{
+            REG_TXCONTINUE(em_data->tx);
+            REG_CCAEN(CCA_FAST);
+            REG_RXON();
+    	}
     }
     else {
         // 2015.12.14 Eiichi Saito: for preference of SubGHz
@@ -1616,7 +1706,7 @@ static int em_main(EM_Data *em_data, void *data, int sw_event, uint32_t hw_event
                 em_rx_datarecv(em_data, &event);
              // 2016.05.20 Eiichi Saito :Position measurement: All interruption clear
              // *hw_done |= event | HW_EVENT_FIFO_EMPTY | (event & HW_EVENT_CRC_ERROR) >> 14;  /* クリアする処理済割り込みフラグとFIFOバッファを指定 */
-                *hw_done = ~(HW_EVENT_FIFO_CLEAR|HW_EVENT_TX_FIFO_DONE|HW_EVENT_TX_FIFO_DONE); //　送信関連の割込みを残さないとACK送信がクリアされてしまう。
+                *hw_done = ~(HW_EVENT_FIFO_CLEAR|HW_EVENT_TX_FIFO_DONE); //　送信関連の割込みを残さないとACK送信がクリアされてしまう。
             }
             status = ML7396_STATUS_OK;
             break;
@@ -1752,8 +1842,9 @@ static void sint_handler(void) {
             em_data.cca_rslt &= 0x03;
         }
         /* 処理済の割り込み要因をクリア */
+        // 2016.06.30 Eiichi Saito: cca idle
+        hw_event &= ~HW_EVENT_TX_FIFO_DONE;
         REG_INTCLR(hw_event);
-	
     }else
     #endif
     {
