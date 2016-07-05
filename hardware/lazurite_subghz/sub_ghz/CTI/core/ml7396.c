@@ -493,8 +493,8 @@ void REG_RXSTART(ML7396_Buffer *_buffer)
     do { \
         uint8_t _reg_cca_cntl[1]; \
         uint8_t _reg_idl_wait[1]; \
-        ON_ERROR(ml7396_regwrite(REG_ADR_DEMSET3, _reg_cca_cntl, 1)); \
-        ON_ERROR(ml7396_regwrite(REG_ADR_DEMSET14, _reg_cca_cntl, 1)); \
+        ON_ERROR(ml7396_regwrite(REG_ADR_DEMSET3, 0x00, 1)); \
+        ON_ERROR(ml7396_regwrite(REG_ADR_DEMSET14, 0x00, 1)); \
         if (_type == CCA_STOP) { \
             _reg_cca_cntl[0] = 0x00; \
             _reg_idl_wait[0] = 0x00; \
@@ -990,8 +990,7 @@ static int backoffTimer(EM_Data *em_data){
 
     uint16_t cca_wait;
     cca_wait = (rand()&em_data->tx->opt.tx.cca.wait) * UNIT_BAKOFF_PERIOD;
-    if (!em_data->tx->opt.tx.cca.wait || !cca_wait)
-        cca_wait = DEFAUL_BAKOF;
+    if (!cca_wait) cca_wait = DEFAUL_BAKOF;
     HAL_delayMicroseconds(cca_wait);
 }
 
@@ -1254,13 +1253,20 @@ static int em_rx_datarecv(EM_Data *em_data, const uint32_t *hw_event) {
     case ML7396_BUFFER_INIT:  /* 先頭データならばパケットサイズ情報を取得 */
         REG_RXSTART(em_data->rx);
         if (IS_ERROR(em_data->rx->status)) {  /* 受信パケットサイズが異常 */
-            REG_PHYRST();  /* この時点のエラーからの復旧はPHYリセットが必要 */
             BUFFER_DONE(em_data->rx);
+#if 1
+            // 2016.07.05 Eiichi Saito: Position measurement: Two beacons and four transmission are good.
+            em_data->rx->status = ML7396_BUFFER_INIT;
+            REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
+            REG_PHYRST();
+            REG_RXON();
+#else
             em_data->rx = em_data->rx->opt.rx.next;
             if (em_data->rx != NULL) {
                 em_data->rx->status = ML7396_BUFFER_INIT;  /* 受信バッファをクリア */
                 REG_RXON();
             }
+#endif
             break;
         }
         /* break無し */
@@ -1269,17 +1275,19 @@ static int em_rx_datarecv(EM_Data *em_data, const uint32_t *hw_event) {
         if (*hw_event & HW_EVENT_CRC_ERROR) {  /* CRCエラー */
             em_data->rx->status = ML7396_BUFFER_ECRC;
             BUFFER_DONE(em_data->rx);
+#if 1
+            // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+            em_data->rx->status = ML7396_BUFFER_INIT;
+            REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
+            REG_PHYRST();
+            REG_RXON();
+#else
             em_data->rx = em_data->rx->opt.rx.next;
-            /*
             if (em_data->rx != NULL)
                 em_data->rx->status = ML7396_BUFFER_INIT;  // 受信バッファをクリア
             else
                 REG_TRXOFF();
-            */
-            // 2016.05.20 Eiichi Saito :Position measurement: Interruption all clear
-            em_data->rx->status = ML7396_BUFFER_INIT;   // 受信バッファをクリア
-            REG_PHYRST();
-            REG_RXON();
+#endif
             break;
         }
         #endif
@@ -1291,20 +1299,35 @@ static int em_rx_datarecv(EM_Data *em_data, const uint32_t *hw_event) {
             // アドレス判定しておかないとACK送信モードになる。
             if (!is_rx_recvdata(em_data->rx, &rxheader) ||  /* 受信/破棄の判定 */
                 ((em_data->rx->opt.rx.filter != NULL) && !em_data->rx->opt.rx.filter(&rxheader)))  /* フィルタリングチェック */
-                em_data->rx->status = ML7396_BUFFER_INIT;  /* 受信バッファを破棄して再利用 */
+            {
+                // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+                em_data->rx->status = ML7396_BUFFER_INIT;
+                REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
+                REG_PHYRST();
+                REG_RXON();
+            }
             else if (make_rx_sendack(&rxheader, em_data->myaddr, &em_data->ack)) {  /* ACKを送信するかの判定とACKフレーム生成 */
                 em_data->ack.status = ML7396_BUFFER_INIT;
                 switch (em_data->ack.status) {
                 case ML7396_BUFFER_INIT:  /* アルゴリズム上必ずここへ入る */
+                    // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+                    REG_FORCE_TRXOFF();
                     REG_TXSTART(&em_data->ack);
                     if (IS_ERROR(em_data->ack.status)) {  /* ACKパケットサイズが異常 */
                         /* ACK送信は諦めて正常受信の処理をする */
                         BUFFER_DONE(em_data->rx);
+#if 1
+                        // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+                        em_data->rx->status = ML7396_BUFFER_INIT;
+                        REG_PHYRST();
+                        REG_RXON();
+#else
                         em_data->rx = em_data->rx->opt.rx.next;
                         if (em_data->rx != NULL)
                             em_data->rx->status = ML7396_BUFFER_INIT;  /* 受信バッファをクリア */
                         else
                             REG_TRXOFF();
+#endif
                     }
                     else {
                         SWITCH_STATE(ML7396_StateSendACK);
@@ -1322,11 +1345,19 @@ static int em_rx_datarecv(EM_Data *em_data, const uint32_t *hw_event) {
             {
                 /* 受信完了 */
                 BUFFER_DONE(em_data->rx);
+#if 1
+                // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+                em_data->rx->status = ML7396_BUFFER_INIT;
+                REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
+                REG_PHYRST();
+                REG_RXON();
+#else
                 em_data->rx = em_data->rx->opt.rx.next;
                 if (em_data->rx != NULL)
                     em_data->rx->status = ML7396_BUFFER_INIT;  /* 受信バッファをクリア */
                 else
                     REG_TRXOFF();
+#endif
             }
         }
     }
@@ -1367,12 +1398,20 @@ static int em_rx_ackdone(EM_Data *em_data, const uint32_t *hw_event) {
         BUFFER_DONE(em_data->rx);
     em_data->last_seq = header->seq;
 
+#if 1
+    // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+    em_data->rx->status = ML7396_BUFFER_INIT;
+    REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
+    REG_PHYRST();
+    REG_RXON();
+#else
     em_data->rx = em_data->rx->opt.rx.next;
     SWITCH_STATE(ML7396_StateIdle);
     if (em_data->rx != NULL) {
         em_data->rx->status = ML7396_BUFFER_INIT;  /* 受信バッファをクリア */
         REG_RXON();
     }
+#endif
     status = ML7396_STATUS_OK;
 error:
     return status;
@@ -1386,7 +1425,8 @@ static int em_tx_ccadone(EM_Data *em_data, const uint32_t *hw_event) {
     int status = ML7396_STATUS_UNKNOWN;
 
     ASSERT(em_data->tx != NULL);
-    REG_TRXOFF();  /* 自動でOFFになるなら不要 */
+// 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+    REG_FORCE_TRXOFF();
 // 2016.05.20 Eiichi Saito :Position measurement: Cca result 
 //  REG_RDB(REG_ADR_CCA_CNTRL, reg_data);  /* CCA_RSLT読み出し */
     // 2015.07.29 Eiichi Saito : not synchronize in CCA
@@ -1421,6 +1461,10 @@ static int em_tx_ccadone(EM_Data *em_data, const uint32_t *hw_event) {
             SWITCH_STATE(ML7396_StateIdle);
             if (em_data->rx != NULL)
                 REG_RXON();
+            // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+            REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
+            REG_PHYRST();
+            REG_RXON();
         }
         break;
     default:
@@ -1451,6 +1495,10 @@ static int em_tx_ccatimeout(EM_Data *em_data, const uint32_t *hw_event) {
     SWITCH_STATE(ML7396_StateIdle);
     if (em_data->rx != NULL)
         REG_RXON();
+    // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+    REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
+    REG_PHYRST();
+    REG_RXON();
 
     status = ML7396_STATUS_OK;
 error:
@@ -1494,7 +1542,6 @@ static int em_tx_datadone(EM_Data *em_data, const uint32_t *hw_event) {
             // 2016.6.8 Eiichi Saito: SubGHz API common
             // HAL_EX_disableInterrupt();
             ON_ERROR_STATUS(ml7396_hwif_timer_start(em_data->tx->opt.tx.ack.wait), ML7396_STATUS_ETIMSTART);  /* タイマ割り込み設定 */
-            REG_RXON();
         }
         else {
             BUFFER_DONE(em_data->tx);
@@ -1524,6 +1571,11 @@ static int em_tx_datadone(EM_Data *em_data, const uint32_t *hw_event) {
                 SWITCH_STATE(ML7396_StateIdle);
                 if (em_data->rx != NULL)
                     REG_RXON();
+                // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+                em_data->tx->status = ML7396_BUFFER_INIT;
+                REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
+                REG_PHYRST();
+                REG_RXON();
             }
         }
     }
@@ -1543,8 +1595,10 @@ static int em_tx_ackrecv(EM_Data *em_data, const uint32_t *hw_event) {
     case ML7396_BUFFER_INIT:  /* 先頭データならばパケットサイズ情報を取得 */
         REG_RXSTART(&em_data->ack);
         if (IS_ERROR(em_data->ack.status)) {  /* ACKパケットサイズが異常 */
-            REG_PHYRST();  /* この時点のエラーからの復旧はPHYリセットが必要 */
             em_data->ack.status = ML7396_BUFFER_INIT;  /* 受信データを破棄して引き続き次を受信 */
+            // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+            REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
+            REG_PHYRST();
             REG_RXON();
             break;
         }
@@ -1552,7 +1606,8 @@ static int em_tx_ackrecv(EM_Data *em_data, const uint32_t *hw_event) {
     default:
         if (*hw_event & HW_EVENT_CRC_ERROR) {  /* CRCエラー */
             em_data->ack.status = ML7396_BUFFER_INIT;  /* 受信データを破棄して引き続き次を受信 */
-            // 2016.05.20 Eiichi Saito :Position measurement: Interruption all clear
+            // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+            REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
             REG_PHYRST();
             REG_RXON();
             break;
@@ -1565,7 +1620,6 @@ static int em_tx_ackrecv(EM_Data *em_data, const uint32_t *hw_event) {
                 // 2016.6.8 Eiichi Saito: SubGHz API common
                 // HAL_EX_enableInterrupt();
                 ON_ERROR_STATUS(ml7396_hwif_timer_stop(), ML7396_STATUS_ETIMSTOP);  /* タイマ割り込み停止 */
-                REG_TRXOFF();
                 BUFFER_DONE(em_data->tx);
                 em_data->tx = em_data->tx->opt.tx.next;
                 if (em_data->tx != NULL) {
@@ -1594,10 +1648,19 @@ static int em_tx_ackrecv(EM_Data *em_data, const uint32_t *hw_event) {
                     SWITCH_STATE(ML7396_StateIdle);
                     if (em_data->rx != NULL)
                         REG_RXON();
+                    // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+                    em_data->ack.status = ML7396_BUFFER_INIT;
+                    REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
+                    REG_PHYRST();
+                    REG_RXON();
                 }
             }
             else  /* ACKでない */
                 em_data->ack.status = ML7396_BUFFER_INIT;  /* 受信データを破棄して引き続き次を受信 */
+                // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+                REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
+                REG_PHYRST();
+                REG_RXON();
         }
     }
     status = ML7396_STATUS_OK;
@@ -1613,8 +1676,7 @@ static int em_tx_acktimeout(EM_Data *em_data, const uint32_t *hw_event) {
     int status = ML7396_STATUS_UNKNOWN;
 
     ASSERT(em_data->tx != NULL);
-    // 2016.06.30 Eiichi Saito: Position measurement tuning
-//  REG_TRXOFF();
+// 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
     REG_FORCE_TRXOFF();
     if (em_data->count.ack < em_data->tx->opt.tx.ack.retry) {  /* リトライ回数が残っている? */
         ++em_data->count.ack, em_data->count.cca = 0;
@@ -1626,12 +1688,15 @@ static int em_tx_acktimeout(EM_Data *em_data, const uint32_t *hw_event) {
         REG_FORCE_TRXOFF();
         REG_TXSTART(em_data->tx);
         if (IS_ERROR(em_data->tx->status)) {  /* 送信パケットサイズが異常 */
-            REG_PHYRST();
             BUFFER_DONE(em_data->tx);
             em_data->tx = NULL;
             SWITCH_STATE(ML7396_StateIdle);
             if (em_data->rx != NULL)
                 REG_RXON();
+            // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+            REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
+            REG_PHYRST();
+            REG_RXON();
         }else{
             REG_TXCONTINUE(em_data->tx);
             REG_CCAEN(CCA_FAST);
@@ -1650,6 +1715,10 @@ static int em_tx_acktimeout(EM_Data *em_data, const uint32_t *hw_event) {
         SWITCH_STATE(ML7396_StateIdle);
         if (em_data->rx != NULL)
             REG_RXON();
+        // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+        REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
+        REG_PHYRST();
+        REG_RXON();
     }
     status = ML7396_STATUS_OK;
 error:
