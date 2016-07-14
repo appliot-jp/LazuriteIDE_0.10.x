@@ -1332,8 +1332,10 @@ static int em_rx_datarecv(EM_Data *em_data, const uint32_t *hw_event) {
                     else {
                         SWITCH_STATE(ML7396_StateSendACK);
                         // 2015.12.14 Eiichi Saito adjusted 2msec from receiveing data to starting ack
-                        HAL_delayMicroseconds(600);
                         REG_TXCONTINUE(&em_data->ack);
+                        HAL_delayMicroseconds(600);
+                        // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+                        REG_TXON();
                     }
                     break;
                 default:  /* コンパイラの最適化でこの分岐は消えると思われる */
@@ -1400,6 +1402,8 @@ static int em_rx_ackdone(EM_Data *em_data, const uint32_t *hw_event) {
 
 #if 1
     // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
+    em_data->rx = em_data->rx->opt.rx.next;
+    SWITCH_STATE(ML7396_StateIdle);
     em_data->rx->status = ML7396_BUFFER_INIT;
     REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
     REG_PHYRST();
