@@ -2,9 +2,9 @@
 # Syntax Coloring Map (default)
 #######################################
 
-timer2		KEYWORD3
-callback	KEYWORD2
+timer2			KEYWORD3
+callback		KEYWORD2
 set			KEYWORD2
-start		KEYWORD2
-stop		KEYWORD2
+start			KEYWORD2
+stop			KEYWORD2
 wait_event_timeout	KEYWORD2
