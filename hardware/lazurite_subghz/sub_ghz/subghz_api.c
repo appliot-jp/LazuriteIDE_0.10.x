@@ -361,21 +361,14 @@ static void subghz_rxdone(const uint8_t *data, uint8_t rssi, int status)
 //	Serial.print_long(status, DEC);					// for test
 //	Serial.println("");
 
-//	__DI();
+	subghz_param.rx_buf = data;	
+	subghz_param.rx_stat.rssi = rssi;
+	subghz_param.rx_stat.status = status;
 
 	if(subghz_param.rx_callback != NULL)
 	{
 		subghz_param.rx_callback(data, rssi, status);
 	}
-	else
-	{
-		subghz_param.rx_buf = data;	
-		subghz_param.rx_stat.rssi = rssi;
-//		subghz_param.rx_stat.rssi = 1;					// for test
-		subghz_param.rx_stat.status = status;
-	}
-//	__EI();
-	return;
 }
 
 static short subghz_readData(uint8_t *data, uint16_t max_size)
