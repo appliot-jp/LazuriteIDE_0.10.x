@@ -50,7 +50,7 @@ extern void delay_long(unsigned long ms);
 extern void sleep_long(unsigned long ms);
 extern void delay_microseconds(unsigned long us);
 extern volatile unsigned long millis(void);
-extern unsigned long micros(void);
+extern volatile unsigned long micros(void);
 extern void interrupts(void);
 extern void noInterrupts(void);
 extern void wait_event(bool *flag);

@@ -36,6 +36,7 @@ PRJSRC=hardware\\lazurite_subghz\\lazurite\\serial.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\tone.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\WInterrupts.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\wiring_shift.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\wiring_pulse.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\WMath.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_adc.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_extirq.c

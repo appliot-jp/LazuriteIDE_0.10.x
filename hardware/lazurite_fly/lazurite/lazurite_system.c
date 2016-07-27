@@ -341,7 +341,7 @@ unsigned long millis(void)
 	return result;
 }
 
-unsigned long micros(void)
+volatile unsigned long micros(void)
 {
 	unsigned long timer_l;
 	unsigned long timer_h;
