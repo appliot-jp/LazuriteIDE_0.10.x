@@ -471,7 +471,10 @@ int ml7396_hwif_regset(void *data) {
     //  reg_data[0] = 0x06, ml7396_regwrite(REG_ADR_OSC_ADJ2, reg_data, 1);  /* XA */
     //  reg_data[0] = 0x58, ml7396_regwrite(REG_ADR_OSC_ADJ, reg_data, 1);  /* XA */
     }
-
+#ifdef LAZURITE_MINI
+    eeprom_read(0x81, reg_data, 1), ml7396_regwrite(REG_ADR_PA_REG_ADJ3, reg_data, 1);
+    eeprom_read(0x82, reg_data, 1), ml7396_regwrite(REG_ADR_RF_CNTRL_SET, reg_data, 1);
+#endif
     /* 可変値設定 */
     switch (setup->rate) {
     case  50:  /*  50kbps */
