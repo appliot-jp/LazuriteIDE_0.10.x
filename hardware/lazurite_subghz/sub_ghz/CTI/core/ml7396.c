@@ -431,6 +431,7 @@ void REG_RXSTART(ML7396_Buffer *_buffer)
 /* 送信バッファ書き込み(先頭データ)
  */
 // 2015.05.07 Eiichi Saito : Change PHR CRC length field 0x0800 -> 0x1800
+#if 1
 #define REG_TXSTART(_buffer) \
     do { \
         uint16_t _data_size; \
@@ -447,6 +448,24 @@ void REG_RXSTART(ML7396_Buffer *_buffer)
             (_buffer)->status = 0; \
         } \
     } while (0)
+#else
+void REG_TXSTART(ML7396_Buffer* _buffer)
+{
+    uint16_t _data_size;
+    uint8_t reg_data[2]; 
+    ASSERT((_buffer)->status == ML7396_BUFFER_INIT); 
+    _data_size = (_buffer)->size; 
+    if (_data_size > (_buffer)->capacity) 
+        (_buffer)->status = ML7396_BUFFER_ESIZE; 
+    else { 
+        _data_size += TXCRC_SIZE; 
+        _data_size |= 0x1800; 
+        u2n16_set(_data_size, reg_data); 
+        ml7396_regwrite(REG_ADR_WR_TX_FIFO, reg_data, 2); 
+        (_buffer)->status = 0; 
+    }
+}
+#endif
 
 /* 送信バッファ書き込み開始(継続データ)
  * delay 300usecやTX_ONへの遷移中のFIFOアクセス（PLLアンロック）を防止するため。
@@ -493,8 +512,10 @@ void REG_RXSTART(ML7396_Buffer *_buffer)
     do { \
         uint8_t _reg_cca_cntl[1]; \
         uint8_t _reg_idl_wait[1]; \
-        ON_ERROR(ml7396_regwrite(REG_ADR_DEMSET3, 0x00, 1)); \
-        ON_ERROR(ml7396_regwrite(REG_ADR_DEMSET14, 0x00, 1)); \
+        uint8_t _reg_no_rcv[1]; \
+        _reg_no_rcv[0] = 0x00; \
+        ON_ERROR(ml7396_regwrite(REG_ADR_DEMSET3, _reg_no_rcv, 1)); \
+        ON_ERROR(ml7396_regwrite(REG_ADR_DEMSET14, _reg_no_rcv, 1)); \
         if (_type == CCA_STOP) { \
             _reg_cca_cntl[0] = 0x00; \
             _reg_idl_wait[0] = 0x00; \
@@ -1550,6 +1571,8 @@ static int em_tx_datadone(EM_Data *em_data, const uint32_t *hw_event) {
         }
         else {
             BUFFER_DONE(em_data->tx);
+            // 2016.8.17 delete tx.next
+            /*
             em_data->tx = em_data->tx->opt.tx.next;
             if (em_data->tx != NULL) {
                 em_data->count.ack = 0, em_data->count.cca = 0;
@@ -1559,7 +1582,7 @@ static int em_tx_datadone(EM_Data *em_data, const uint32_t *hw_event) {
                 // REG_RXON();
                 REG_FORCE_TRXOFF();
                 REG_TXSTART(em_data->tx);
-                if (IS_ERROR(em_data->tx->status)) {  /* 送信パケットサイズが異常 */
+                if (IS_ERROR(em_data->tx->status)) {  // 送信パケットサイズが異常
                     REG_PHYRST();
                     BUFFER_DONE(em_data->tx);
                     em_data->tx = NULL;
@@ -1572,15 +1595,16 @@ static int em_tx_datadone(EM_Data *em_data, const uint32_t *hw_event) {
                     REG_RXON();
                 }
             }
-            else {
+            else
+            */
+            {
                 SWITCH_STATE(ML7396_StateIdle);
-                if (em_data->rx != NULL)
-                    REG_RXON();
                 // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
                 em_data->tx->status = ML7396_BUFFER_INIT;
                 REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
                 REG_PHYRST();
-                REG_RXON();
+                if (em_data->rx != NULL)
+                    REG_RXON();
             }
         }
     }
@@ -1626,6 +1650,8 @@ static int em_tx_ackrecv(EM_Data *em_data, const uint32_t *hw_event) {
                 // HAL_EX_enableInterrupt();
                 ON_ERROR_STATUS(ml7396_hwif_timer_stop(), ML7396_STATUS_ETIMSTOP);  /* タイマ割り込み停止 */
                 BUFFER_DONE(em_data->tx);
+                // 2016.8.17 delete tx.next
+                /*
                 em_data->tx = em_data->tx->opt.tx.next;
                 if (em_data->tx != NULL) {
                     em_data->count.ack = 0, em_data->count.cca = 0;
@@ -1636,7 +1662,7 @@ static int em_tx_ackrecv(EM_Data *em_data, const uint32_t *hw_event) {
                     // REG_RXON();
                     REG_FORCE_TRXOFF();
                     REG_TXSTART(em_data->tx);
-                    if (IS_ERROR(em_data->tx->status)) {  /* 送信パケットサイズが異常 */
+                    if (IS_ERROR(em_data->tx->status)) {  // 送信パケットサイズが異常
                         REG_PHYRST();
                         BUFFER_DONE(em_data->tx);
                         em_data->tx = NULL;
@@ -1648,16 +1674,16 @@ static int em_tx_ackrecv(EM_Data *em_data, const uint32_t *hw_event) {
                         REG_CCAEN(CCA_FAST);
                     	REG_RXON();
                 	}
-                }
-                else {
+                } else
+                */
+                {
                     SWITCH_STATE(ML7396_StateIdle);
-                    if (em_data->rx != NULL)
-                        REG_RXON();
                     // 2016.07.05 Eiichi Saito: Position measurement: Two beacons receive and four transmission are good.
                     em_data->ack.status = ML7396_BUFFER_INIT;
                     REG_WRB(REG_ADR_INT_SOURCE_GRP3, 0x00);
                     REG_PHYRST();
-                    REG_RXON();
+                    if (em_data->rx != NULL)
+                        REG_RXON();
                 }
             }
             else  /* ACKでない */
