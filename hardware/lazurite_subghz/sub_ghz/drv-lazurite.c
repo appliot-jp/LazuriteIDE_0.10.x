@@ -70,7 +70,6 @@ static struct {
 	unsigned short tx_panid;
 	unsigned char my_addr[8];
 	unsigned char tx_addr[8];
-	unsigned char addr_size;
 	unsigned char rx_rssi;
 	unsigned char tx_rssi;
 	unsigned char senseTime;
@@ -159,7 +158,7 @@ void rx_callback(const uint8_t *data, uint8_t rssi, int status)
 // *****************************************************************
 
 static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
-	unsigned char command = cmd>>12;
+	unsigned int command = cmd & 0xF000;
 	unsigned int param = cmd & 0x0FFF;
 	long ret=-EFAULT;
 	mutex_lock( &chrdev.lock );
@@ -285,10 +284,10 @@ static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 						ret = -EINVAL;
 					}
 					break;
-				case IOCTL_GET_TX_PANID:			// get panid
+				case IOCTL_GET_RX_PANID:			// get panid
 					ret = p.tx_panid;
 					break;
-				case IOCTL_SET_TX_PANID:			// set panid
+				case IOCTL_SET_RX_PANID:			// set panid
 					if((arg >= 0) && (arg <= 0xffff)) {
 						p.tx_panid = arg;
 						ret = p.tx_panid;
@@ -318,21 +317,21 @@ static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 				case IOCTL_SET_MY_ADDR2:			// set panid
 				case IOCTL_SET_MY_ADDR3:			// set panid
 					break;
-				case IOCTL_GET_TX_ADDR0:			// get panid
-				case IOCTL_GET_TX_ADDR1:			// get panid
-				case IOCTL_GET_TX_ADDR2:			// get panid
-				case IOCTL_GET_TX_ADDR3:			// get panid
-					ret = p.tx_addr[(param-IOCTL_GET_TX_ADDR0)+1];
+				case IOCTL_GET_RX_ADDR0:			// get panid
+				case IOCTL_GET_RX_ADDR1:			// get panid
+				case IOCTL_GET_RX_ADDR2:			// get panid
+				case IOCTL_GET_RX_ADDR3:			// get panid
+					ret = p.tx_addr[(param-IOCTL_GET_RX_ADDR0)+1];
 					ret <<= 8;
-					ret += p.tx_addr[(param-IOCTL_GET_TX_ADDR0)+0];
+					ret += p.tx_addr[(param-IOCTL_GET_RX_ADDR0)+0];
 					break;
-				case IOCTL_SET_TX_ADDR0:			// set panid
-				case IOCTL_SET_TX_ADDR1:			// set panid
-				case IOCTL_SET_TX_ADDR2:			// set panid
-				case IOCTL_SET_TX_ADDR3:			// set panid
+				case IOCTL_SET_RX_ADDR0:			// set panid
+				case IOCTL_SET_RX_ADDR1:			// set panid
+				case IOCTL_SET_RX_ADDR2:			// set panid
+				case IOCTL_SET_RX_ADDR3:			// set panid
 					if((arg >= 0) && (arg <= 0xffff)) {
-						p.tx_addr[(param-IOCTL_SET_TX_ADDR0)+1] = (arg >> 8) & 0x000000ff;
-						p.tx_addr[(param-IOCTL_SET_TX_ADDR0)+0] = arg  & 0x000000ff;
+						p.tx_addr[(param-IOCTL_SET_RX_ADDR0)+1] = (arg >> 8) & 0x000000ff;
+						p.tx_addr[(param-IOCTL_SET_RX_ADDR0)+0] = arg  & 0x000000ff;
 						ret = arg;
 					} else {
 						ret = -EINVAL;
@@ -348,20 +347,6 @@ static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 					} else if((arg >= 0) && (arg <= 7)) {
 						p.addr_type = arg;
 						ret = p.addr_type;
-					} else {
-						ret = -EINVAL;
-					}
-					break;
-				case IOCTL_GET_ADDR_SIZE:			// get panid
-					ret = p.addr_size;
-					break;
-				case IOCTL_SET_ADDR_SIZE:			// set panid
-					if(p.drv_mode == 0xFFFF) {
-						p.addr_size = arg;
-						ret = arg;
-					} else if((arg >= 0) && (arg <= 3)) {
-						p.addr_size = arg;
-						ret = p.addr_size;
 					} else {
 						ret = -EINVAL;
 					}
