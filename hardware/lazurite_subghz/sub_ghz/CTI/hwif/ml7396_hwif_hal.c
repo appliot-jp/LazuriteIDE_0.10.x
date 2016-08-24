@@ -458,9 +458,15 @@ int ml7396_hwif_regset(void *data) {
     reg_data[0] = 0x0f, ml7396_regwrite(REG_ADR_SW_OUT_RAMP_ADJ,     reg_data, 1);
     reg_data[0] = 0x08, ml7396_regwrite(REG_ADR_IQ_MAG_ADJ,          reg_data, 1);
     reg_data[0] = 0x20, ml7396_regwrite(REG_ADR_IQ_PHASE_ADJ,        reg_data, 1);
+#ifdef LAZURITE_MINI
+    reg_data[0] = 0x07, ml7396_regwrite(REG_ADR_PA_REG_ADJ1,         reg_data, 1);
+    reg_data[0] = 0x07, ml7396_regwrite(REG_ADR_PA_REG_ADJ2,         reg_data, 1);
+    reg_data[0] = 0x07, ml7396_regwrite(REG_ADR_PA_REG_ADJ3,         reg_data, 1);
+#else
     reg_data[0] = 0x06, ml7396_regwrite(REG_ADR_PA_REG_ADJ1,         reg_data, 1);
     reg_data[0] = 0x01, ml7396_regwrite(REG_ADR_PA_REG_ADJ2,         reg_data, 1);
     reg_data[0] = 0x01, ml7396_regwrite(REG_ADR_PA_REG_ADJ3,         reg_data, 1);
+#endif
     reg_data[0] = 0x04, ml7396_regwrite(REG_ADR_TX_PR_LEN,           reg_data, 1);  /* 0x04以上 */
     reg_data[0] = 0x1f, ml7396_regwrite(REG_ADR_RSSI_LPF_ADJ,        reg_data, 1);
     reg_data[0] = 0x44, ml7396_regwrite(REG_ADR_PLL_CP_ADJ,          reg_data, 1);
@@ -471,10 +477,10 @@ int ml7396_hwif_regset(void *data) {
     //  reg_data[0] = 0x06, ml7396_regwrite(REG_ADR_OSC_ADJ2, reg_data, 1);  /* XA */
     //  reg_data[0] = 0x58, ml7396_regwrite(REG_ADR_OSC_ADJ, reg_data, 1);  /* XA */
     }
-#ifdef LAZURITE_MINI
-    eeprom_read(0x81, reg_data, 1), ml7396_regwrite(REG_ADR_PA_REG_ADJ3, reg_data, 1);
-    eeprom_read(0x82, reg_data, 1), ml7396_regwrite(REG_ADR_RF_CNTRL_SET, reg_data, 1);
-#endif
+//#ifdef LAZURITE_MINI
+//  eeprom_read(0x81, reg_data, 1), ml7396_regwrite(REG_ADR_PA_REG_ADJ3, reg_data, 1);
+//  eeprom_read(0x82, reg_data, 1), ml7396_regwrite(REG_ADR_RF_CNTRL_SET, reg_data, 1);
+//#endif
     /* 可変値設定 */
     switch (setup->rate) {
     case  50:  /*  50kbps */
