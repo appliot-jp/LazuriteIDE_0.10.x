@@ -84,7 +84,7 @@ static SUBGHZ_MSG subghz_init(void)
 	// setting default value
 	subghz_param.addrType = 6;
 	subghz_param.senseTime = 20;
-	subghz_param.txRetry = 0;
+	subghz_param.txRetry = 3;
 	subghz_param.txInterval = 500;
 	// 2015.10.26 Eiichi Saito   addition random backoff
     // 2016.06.30 Eiichi Saito :Position measurement tuning
