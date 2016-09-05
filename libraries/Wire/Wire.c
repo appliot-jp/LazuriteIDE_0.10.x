@@ -34,25 +34,7 @@
 //********************************************************************************
 //   global parameters
 //********************************************************************************
-static void _wire_begin(void);
-static size_t _wire_requestFrom(UCHAR address,UCHAR quantity, UCHAR sendStop);
-static int _wire_available(void);
-static int _wire_read(void);
-static size_t _wire_write(const uint8_t *data, size_t quantity);
-static size_t _wire_write_byte(uint8_t data);
-static uint8_t _wire_endTransmission(uint8_t sendStop);
-static void _wire_beginTransmission(uint8_t address);
 
-const TwoWire Wire ={
-	_wire_begin,
-	_wire_requestFrom,
-	_wire_available,
-	_wire_read,
-	_wire_beginTransmission,
-	_wire_write_byte,
-	_wire_write,
-	_wire_endTransmission
-};
 
 //********************************************************************************
 //   local parameters
@@ -68,7 +50,7 @@ static struct {
 	WIRE_PARAM rx;
 } wire;
 //static BOOL delay_status;
-
+static uint16_t timeout=0;
 //********************************************************************************
 //   local function definitions
 //********************************************************************************
@@ -83,6 +65,7 @@ static void _wire_begin(void)
 {
 	i2c_init(1);
 	i2c_begin(1);
+	timeout=0;
 	return;
 }
 
@@ -133,7 +116,7 @@ static uint8_t _wire_endTransmission(uint8_t sendStop)
 	i2c_start(1,true,sendStop);
 	
 	// wait end of communication
-	HALT_Until_Event(HALT_I2C1_END);
+	HALT_Until_Event(HALT_I2C1_END,timeout);
 	
 	wire.tx.index = 0;
 	wire.tx.length = 0;
@@ -163,7 +146,7 @@ static size_t _wire_requestFrom(UCHAR address,UCHAR quantity, UCHAR sendStop)
 	i2c_start(1,false,sendStop);						// ch, write, cont
 	
 	// wait end of communication
-	HALT_Until_Event(HALT_I2C1_END);
+	HALT_Until_Event(HALT_I2C1_END,timeout);
 
 	return i2c_read_amount(1);
 }
@@ -185,3 +168,20 @@ static int _wire_read(void)
 	}
 	return value;
 }
+static void _wire_setTimeout(uint16_t ms)
+{
+	timeout = ms;
+}
+
+const TwoWire Wire ={
+	_wire_begin,
+	_wire_requestFrom,
+	_wire_available,
+	_wire_read,
+	_wire_beginTransmission,
+	_wire_write_byte,
+	_wire_write,
+	_wire_endTransmission,
+	_wire_setTimeout
+};
+

@@ -38,10 +38,11 @@ typedef enum {
 //   global parameters
 //********************************************************************************
 extern BOOL	delay_irq_mode;
+extern uint16_t halt_event_timeout;
 //********************************************************************************
 //   extern function definitions
 //********************************************************************************
-extern void HALT_Until_Event(HALT_EVENT halt_event);
+extern void HALT_Until_Event(HALT_EVENT halt_event,uint16_t timeout);
 #define delay(v) delay_long((unsigned long)v)
 #define sleep(v) sleep_long((unsigned long)v)
 #define delayMicroseconds(v) delay_microseconds((unsigned long)v)

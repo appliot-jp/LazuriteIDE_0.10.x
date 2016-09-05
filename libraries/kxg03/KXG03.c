@@ -36,18 +36,17 @@ static byte kxg03_write(unsigned char memory_address, unsigned char *data, unsig
   return (rc);
 }
 
+
 static byte kxg03_read(unsigned char memory_address, unsigned char *data, int size)
 {
   byte rc;
   unsigned char cnt;
- 
   Wire.beginTransmission(device_address);
   Wire.write_byte(memory_address);
   rc = Wire.endTransmission(false);
   if (rc != 0) {
     return (rc);
   }
-
   Wire.requestFrom(device_address, size, true);
   cnt = 0;
   while(Wire.available()) {
@@ -96,11 +95,11 @@ static byte kxg03_init(uint8_t dev_addr)
 static byte kxg03_get_rawval(unsigned char *data)
 {
   byte rc;
-
+	
   rc = kxg03_read(KXG03_GYRO_XOUT_L, data, 12);
   if (rc != 0) {
     Serial.println("Can't get KXG03 accel value");
-  }   
+  } 
 
   return (rc);  
 }

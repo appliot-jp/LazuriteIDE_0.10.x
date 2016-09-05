@@ -309,18 +309,18 @@ void i2c_isr(UCHAR ch)
 	// ****************** RECIEVING *****************
 	case I2C_MODE_RX_ADR:										// In case of sending I2C address, skip to send data to buffer
 		I2C[ch].err_code = i2c_update_err_code(ch,I2C[ch].tx_index);
-		if(I2C[ch].err_code != I2C_RESULT_OK
-		)					// error process
+		if((I2C[ch].err_code != I2C_RESULT_OK)&&(I2C[ch].bStop != true))					// error process
 		{
-			if(I2C[ch].bStop == true)
-			{
-				i2c_send_stopbit(ch);
-				I2C[ch].status = I2C_MODE_STOPBIT;
-			}
-			else
-			{
 				I2C[ch].status = I2C_MODE_READY;
-			}
+//			if(I2C[ch].bStop == true)
+//			{
+//				i2c_send_stopbit(ch);
+//				I2C[ch].status = I2C_MODE_STOPBIT;
+//			}
+//			else
+//			{
+//				I2C[ch].status = I2C_MODE_READY;
+//			}
 			break;
 		}
 		I2C[ch].status = I2C_MODE_RX;
@@ -417,3 +417,9 @@ UINT8 i2c_get_err_status(UCHAR ch)
 {
 	return I2C[ch].err_code;
 }
+void i2c_force_stop(UCHAR ch)
+{
+	i2c_send_stopbit(ch);
+	I2C[ch].status = I2C_MODE_STOPBIT;
+}
+

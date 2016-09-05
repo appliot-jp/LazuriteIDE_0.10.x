@@ -79,6 +79,8 @@ extern void i2c_isr(UCHAR ch);
 extern UINT16 i2c_read_amount(UCHAR ch);
 extern UINT16 i2c_write_amount(UCHAR ch);
 extern UINT8 i2c_get_err_status(UCHAR ch);
+extern void i2c_force_stop(UCHAR ch);
+
 
 #endif // _DRIVER_I2C_H_
 

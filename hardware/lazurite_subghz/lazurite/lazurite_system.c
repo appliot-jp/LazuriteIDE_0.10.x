@@ -139,13 +139,25 @@ void lazurite_gpio_init(void)
 	#endif
 }
 
-void HALT_Until_Event(HALT_EVENT halt_event)
+static uint16_t halt_event_flag = false;
+static void halt_event_isr(void)
+{
+	halt_event_flag=true;
+}
+void HALT_Until_Event(HALT_EVENT halt_event,uint16_t timeout)
 {
 	BOOLEAN cont;
 	cont = true;
+	halt_event_flag = false;
 	
+	if(timeout)
+	{
+		timer_16bit_set(6,0xE8,timeout,halt_event_isr);
+		timer_16bit_start(6);
+	}
 	while(cont)
 	{
+		CHAR status;
 		lp_setHaltMode();
 		// process during waiting
 		i2c_isr(0);
@@ -153,19 +165,37 @@ void HALT_Until_Event(HALT_EVENT halt_event)
 		switch(halt_event)
 		{
 		case HALT_I2C1_END:
-			if(i2c_get_status(1) <= I2C_MODE_ERROR)
+			status=i2c_get_status(1);
+			if((halt_event_flag)||((!timeout)&&(status == I2C_MODE_ERROR)))
+			{
+				i2c_force_stop(1);
 				cont = false;
+			} else if(status < I2C_MODE_ERROR)
+			{
+				cont = false;
+			}
 			break;
 		case HALT_I2C0_END:
-			if(i2c_get_status(0) <= I2C_MODE_ERROR)
+			status=i2c_get_status(0);
+			if((halt_event_flag)||((!timeout)&&(status == I2C_MODE_ERROR)))
+			{
+				i2c_force_stop(0);
 				cont = false;
+			} else if(status < I2C_MODE_ERROR)
+			{
+				cont = false;
+			}
 			break;
 		default:
-			cont = false;
+			if(halt_event_flag) {
+				cont = false;
+			}
 			break;
-		}
+		}		
 		wdt_clear();
 	}
+	if(timeout)
+		timer_16bit_stop(6);
 	return;
 }
 
@@ -438,7 +468,7 @@ void noInterrupts()
 }
 
 void wait_event(bool *flag)
-{
+{	
 	#ifdef PWR_LED
 	drv_digitalWrite(11,HIGH);		// PWR LED OFF
 	#endif
