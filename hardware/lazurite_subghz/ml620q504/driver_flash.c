@@ -107,14 +107,18 @@ void flash_erase(unsigned char sector)
 		write_reg8( FLASHSEG, 7);
 		write_reg8( FLASHAH, 0);
 		set_bit( FSERS );
-			break;
+		__asm("nop");
+		__asm("nop");
+		break;
 	case 1:
 		/* set FLASH Accepter */
 		write_reg8( FLASHACP, 0xFA );
 		write_reg8( FLASHACP, 0xF5 );
 		write_reg8( FLASHSEG, 7);
-		write_reg16( FLASHA, 0x0400);
+		write_reg8( FLASHAH, 4);
 		set_bit( FSERS );
+		__asm("nop");
+		__asm("nop");
 		break;
 	}
 	clear_bit(FSELF);

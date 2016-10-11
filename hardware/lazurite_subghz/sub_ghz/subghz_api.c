@@ -162,6 +162,9 @@ static SUBGHZ_MSG subghz_begin(uint8_t ch, uint16_t panid, SUBGHZ_RATE rate, SUB
 			goto error;
 		}
 	}
+	//initializing parameter
+	subghz_param.sending = false;
+	subghz_param.read = false;
 	
 	subghz_param.ch = ch;
 	
@@ -603,6 +606,9 @@ static void subghz_decMac(SUBGHZ_MAC_PARAM *mac,uint8_t *raw,uint16_t raw_len)
 	//rx_addr
 	switch(mac->mac_header.alignment.rx_addr_type)
 	{
+	case 0:
+		memset(mac->rx_addr,0xff,8);
+		break;
 	case 1:
 		mac->rx_addr[0] = raw[offset],offset++;
 		for(i=1;i<8;i++) {
@@ -635,8 +641,31 @@ static void subghz_decMac(SUBGHZ_MAC_PARAM *mac,uint8_t *raw,uint16_t raw_len)
 		break;
 	}
 	//tx_addr
+/*	Serial.print_long(mac->mac_header.alignment.frame_type,DEC);
+	Serial.print(",");
+	Serial.print_long(mac->mac_header.alignment.sec_enb,DEC);
+	Serial.print(",");
+	Serial.print_long(mac->mac_header.alignment.pending,DEC);
+	Serial.print(",");
+	Serial.print_long(mac->mac_header.alignment.ack_req,DEC);
+	Serial.print(",");
+	Serial.print_long(mac->mac_header.alignment.panid_comp,DEC);
+	Serial.print(",");
+	Serial.print_long(mac->mac_header.alignment.seq_comp,DEC);
+	Serial.print(",");
+	Serial.print_long(mac->mac_header.alignment.ielist,DEC);
+	Serial.print(",");
+	Serial.print_long(mac->mac_header.alignment.tx_addr_type,DEC);
+	Serial.print(",");
+	Serial.print_long(mac->mac_header.alignment.frame_ver,DEC);
+	Serial.print(",");
+	Serial.println_long(mac->mac_header.alignment.rx_addr_type,DEC);
+*/
 	switch(mac->mac_header.alignment.tx_addr_type)
 	{
+	case 0:
+		memset(&mac->tx_addr[0],0xff,8);
+		break;
 	case 1:
 		mac->tx_addr[0] = raw[offset],offset++;
 		for(i=1;i<8;i++) {

@@ -269,6 +269,7 @@ void drv_analogWrite(unsigned char pwmnum,unsigned char ftm,unsigned char val)
 	return;
 }
 
+
 #ifdef PWM_TEST
 void reg_log_out(unsigned short adr, unsigned short val)
 {

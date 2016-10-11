@@ -1007,7 +1007,7 @@ error:
 #define UNIT_BAKOFF_PERIOD  300
 #define DEFAUL_BAKOF        1000
 
-static int backoffTimer(EM_Data *em_data){
+static void backoffTimer(EM_Data *em_data){
 
     uint16_t cca_wait;
     cca_wait = (rand()&em_data->tx->opt.tx.cca.wait) * UNIT_BAKOFF_PERIOD;
@@ -1545,7 +1545,7 @@ static int em_tx_datasend(EM_Data *em_data, const uint32_t *hw_event) {
 //      REG_TXCONTINUE(em_data->tx);
 //  }
     status = ML7396_STATUS_OK;
-error:
+// error:
     return status;
 }
 

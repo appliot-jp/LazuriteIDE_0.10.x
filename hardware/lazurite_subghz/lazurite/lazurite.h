@@ -133,6 +133,7 @@ extern void loop(void);					// Arduino loop function
 #include "WInterrupts.h"
 #include "WMath.h"
 #include "flash.h"
+#include "tone.h"
 #include <stdlib.h>
 #include <math.h>
 

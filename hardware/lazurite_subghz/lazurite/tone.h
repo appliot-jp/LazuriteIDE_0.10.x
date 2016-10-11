@@ -36,8 +36,9 @@
 //********************************************************************************
 //   extern function definitions
 //********************************************************************************
-extern void tone(UCHAR _pin, UINT16 frequency, UINT32 duration);
-extern void noTone(UCHAR _pin);
+extern void tone(uint8_t _pin, uint16_t frequency, long duration);
+extern void noTone();
+extern void setToneCh(uint8_t toneCh);
 
 #endif // _TONE_H_
 

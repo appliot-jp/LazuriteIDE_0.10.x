@@ -22,7 +22,8 @@
 #include "common.h"
 #include "lazurite.h"
 #include "digitalio.h"
-#include "driver_timer.h"
+#include "driver_gpio.h"
+#include "driver_ftm_timer.h"
 #include "serial.h"
 #include "mcu.h"
 
@@ -42,14 +43,10 @@
 // _tone_toggle_count < 0  : continue
 // _tone_toggle_count = 0  : stop
 // _tone_toggle_count > 0  : counting
-INT32 _tone_toggle_count;
-UCHAR* _tone_port;
-UCHAR  _tone_bit;
-
-#ifdef TONE_TEST
-UCHAR* _tonetest_port;
-UCHAR  _tonetest_bit;
-#endif // TONE_TEST
+static volatile int32_t tone_toggle_count;
+static uint8_t drv_tone_pin;
+static uint8_t tone_val;
+static uint8_t tone_ch=0;
 
 //********************************************************************************
 //   local function definitions
@@ -59,86 +56,70 @@ void timer_tone_isr(void);
 //   local functions
 //********************************************************************************
 
-void tone(UCHAR pin, UINT16 frequency, UINT32 duration)
-{
-	UINT32 timer_count;
-	UINT32 frequency32 = frequency;
-	if(pin > MAX_PIN_NO) return;
-	_tone_port = digital_pin_to_port[pin];
-	pinMode(pin,OUTPUT);
-	
-	// BLKCON  Enabling TM6,7
-
-	if(frequency > 250)
-	{
-		timer_count = 16000000 / (frequency32 * 2);				//timec clock = 1/1clock
-		timer_16bit_set(TONE_TIMER,0x41,(unsigned short)timer_count,timer_tone_isr);
-	}
-	else if(frequency > 30)
-	{
-		timer_count = 16000000 / (frequency32 * 8 * 2);			//timec clock = 1/8 clock
-		timer_16bit_set(TONE_TIMER,0x59,(unsigned short)timer_count,timer_tone_isr);
-	}
-	else
-	{
-		timer_count = 16000000 / (frequency32 * 64 * 2);			//timec clock = 1/64 clock
-		if(timer_count > 0xFFFF) timer_count = 0xFFFF;
-		timer_16bit_set(TONE_TIMER,0x71,(unsigned short)timer_count,timer_tone_isr);
-	}
-	
-	if(duration == 0)
-	{
-		_tone_toggle_count = -1;
-	}
-	else
-	{
-		_tone_toggle_count = frequency * duration * 2 / 1000;			// toggle cycle
-	}
-	
-#ifdef TONE_TEST
-	Serial.print("frequency =");
-	Serial.print_long(frequency, DEC);
-	Serial.print("\ttimer count =");
-	Serial.print_long(timer_count, DEC);
-	Serial.print("\tduration = ");
-	Serial.println_long(_tone_toggle_count,DEC);
-	pinMode(22,OUTPUT);
-	_tonetest_port = digital_pin_to_port[22];
-	_tonetest_bit = digital_pin_to_bit[22];
-#endif // TONE_TEST
-	timer_16bit_start(TONE_TIMER);
-	
-}
-
+#define TONE_BASE_CLOCK		4000000L
+#define TONE_FTM_CH			3
 void timer_tone_isr(void)
 {
-	if(digitalRead(_tone_port) == HIGH)			// invert port
+	if(tone_toggle_count>0)
 	{
-		digitalWrite(_tone_port,LOW);
+		tone_toggle_count--;
+		if(tone_toggle_count == 0)
+		{
+			drv_digitalWrite(drv_tone_pin, LOW);		// reset port to 0
+			ftm_timer_stop(tone_ch);
+			return;
+		}
+	}
+	
+	if(tone_val)			// invert port
+	{
+		tone_val = LOW;
 	}
 	else
 	{
-		digitalWrite(_tone_port, HIGH);
+		tone_val = HIGH;
 	}
+	drv_digitalWrite(drv_tone_pin, tone_val);
 	
 	// check duration
-	if(_tone_toggle_count>0)
-	{
-		_tone_toggle_count--;
-		if(_tone_toggle_count == 0)
-		{
-			digitalWrite(_tone_port, LOW);		// reset port to 0
-			timer_16bit_stop(TONE_TIMER);
-		}
-	}
+	ftm_timer_clear_irq(tone_ch);
 	
 	return;
 }
 
-void noTone(UCHAR _pin)
+void noTone()
 {
-	digitalWrite(_pin,LOW);					// reset port to 0
-	timer_16bit_stop(TONE_TIMER);
+	ftm_timer_stop(tone_ch);
+	ftm_timer_clear_irq(tone_ch);
 }
 
+void tone(uint8_t pin, uint16_t frequency, long duration)
+{
+	uint16_t timer_count;
+	
+	// base clock 4MHz
+	timer_count = (uint16_t)(TONE_BASE_CLOCK / (frequency*2));
+	if(duration>=0)
+	{
+		tone_toggle_count = duration * frequency * 2/1000;
+	}
+	else 
+	{
+		tone_toggle_count = -1;			// continue
+	}
+	
+	drv_tone_pin=digital_pin_to_port[pin];
+	tone_val = 0;
+	drv_digitalWrite(drv_tone_pin,tone_val);
+	drv_pinMode(drv_tone_pin,OUTPUT);
+	
+	// time setting(direct access to ML620Q504H)
+	ftm_timer_set(tone_ch,0x0021,timer_count,timer_tone_isr);
+	
+	return;
+}
 
+void setToneCh(uint8_t toneCh)
+{
+	tone_ch = toneCh;
+}

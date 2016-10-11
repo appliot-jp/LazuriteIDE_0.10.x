@@ -44,6 +44,7 @@ PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_gpio.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_i2c.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_irq.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_timer.c
+PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_ftm_timer.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_tmout.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_uart.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_flash.c
