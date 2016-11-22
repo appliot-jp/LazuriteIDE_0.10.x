@@ -77,6 +77,7 @@ CMPOPT=/DLAZURITE_IDE
 CMPOPT=/DPWR_LED
 #LDO power mode control for Lazurite Mini
 CMPOPT=/DLDO_CNT
+#CMPOPT=/DDEBUG_AES
 
 OBJDIR=obj\\
 
