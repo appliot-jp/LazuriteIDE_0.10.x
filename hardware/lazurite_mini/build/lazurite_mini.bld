@@ -51,6 +51,7 @@ PRJSRC=hardware\\lazurite_subghz\\ml620q504\\lp\\lp_manage.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\wdt\\wdt.c
 PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\subghz_api.c
 PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\api\\bp3596.c
+PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\api\\aes.c
 PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\core\\ml7396.c
 PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\hal_lazurite.c
 PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\ml7396_hwif_hal.c
