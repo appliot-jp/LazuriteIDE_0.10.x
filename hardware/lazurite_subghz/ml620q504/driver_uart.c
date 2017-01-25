@@ -239,7 +239,7 @@ void uart_begin(UINT32 baud)
 
 void uartf_begin(UINT32 baud)
 {
-
+	volatile unsigned short dummy;
 	clear_bit(DUAF0);	// UART Enable
 
 	baud = 16000000*12/(baud*13*16);
@@ -264,6 +264,11 @@ void uartf_begin(UINT32 baud)
 	uart_fifo_init(&uartf_rx_fifo);
 	// start
 	uartf_tx_flag = false;
+	set_bit(UF0RFR);
+	set_bit(UF0TFR);
+	dummy = read_reg8(UAF0BUFL);
+	dummy = read_reg16(UAF0IIR);
+	
 	return;
 }
 

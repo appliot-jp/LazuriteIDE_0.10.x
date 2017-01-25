@@ -367,6 +367,7 @@ static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 					break;
 				case IOCTL_SET_SENSE_TIME:			// get panid
 					if((arg >= 0) && (arg <= 0x00FF)) {
+						p.senseTime = arg;
 						ret = p.senseTime;
 					} else {
 						ret = -EINVAL;
@@ -377,6 +378,7 @@ static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 					break;
 				case IOCTL_SET_TX_RETRY:			// get panid
 					if((arg >= 0) && (arg <= 0x00FF)) {
+						p.txRetry = arg;
 						ret = p.txRetry;
 					} else {
 						ret = -EINVAL;
@@ -387,6 +389,7 @@ static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 					break;
 				case IOCTL_SET_TX_INTERVAL:			// get panid
 					if((arg >= 0) && (arg <= 0x00FFFF)) {
+						p.txInterval = arg;
 						ret = p.txInterval;
 					} else {
 						ret = -EINVAL;
@@ -397,6 +400,7 @@ static long chardev_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 					break;
 				case IOCTL_SET_CCA_WAIT:			// get panid
 					if((arg >= 0) && (arg <= 0x00FFFF)) {
+						p.ccaWait = arg;
 						ret = p.ccaWait;
 					} else {
 						ret = -EINVAL;

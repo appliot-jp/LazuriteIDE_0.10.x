@@ -7,7 +7,7 @@
 #define KXG03_DEVICE_ADDRESS_4E   (0x4E)    // 7bit Addrss
 #define KXG03_DEVICE_ADDRESS_4F   (0x4F)    // 7bit Address
 
-#define KXG03_WHO_AM_I_VAL        (0xED)    // sample
+#define KXG03_WHO_AM_I_VAL        (0x24)    // sample
 
 
 #define		KXG03_TEMP_OUT_L		0x00

@@ -49,7 +49,7 @@ extern void HALT_Until_Event(HALT_EVENT halt_event,uint16_t timeout);
 extern void init(void);
 extern void delay_long(unsigned long ms);
 extern void sleep_long(unsigned long ms);
-extern void delay_microseconds(unsigned long us);
+extern volatile void delay_microseconds(unsigned long us);
 extern volatile unsigned long millis(void);
 extern volatile unsigned long micros(void);
 extern void interrupts(void);

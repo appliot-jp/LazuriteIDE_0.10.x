@@ -28,9 +28,9 @@
 
 
 #define LED 26						// pin number of Blue LED
-#define SUBGHZ_CH		33			// channel number (frequency)
+#define SUBGHZ_CH		36			// channel number (frequency)
 #define SUBGHZ_PANID	0xabcd		// panid
-#define HOST_ADDRESS	0xac4e		// distination address
+#define HOST_ADDRESS	0x600c		// distination address
 
 unsigned char send_data[] = {"Welcome to Lazurite Sub-GHz\r\n"};
 
@@ -58,7 +58,7 @@ void loop(void)
 	// close
 	SubGHz.close();																// Sub-GHz module sets into power down mode.
 	
-//	sleep(2000);																// sleep
+	sleep(1000);																// sleep
 
 	return;
 }

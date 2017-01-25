@@ -25,10 +25,15 @@
 #include "driver_pin_assignment.h"
 #include "mcu.h"
 #include "rdwr_reg.h"
+#include "wdt.h"
+#include "driver_irq.h"
 
 
 void flash_write(unsigned char sector, unsigned short address, unsigned short data)
 {
+	wdt_clear();
+	dis_interrupts(DI_DFLASH);
+	
 	set_bit(FSELF);
 	write_reg8( FLASHACP, 0xFA );
 	write_reg8( FLASHACP, 0xF5 );
@@ -39,6 +44,8 @@ void flash_write(unsigned char sector, unsigned short address, unsigned short da
 	__asm("nop");
 	__asm("nop");
 	clear_bit(FSELF);
+	
+	enb_interrupts(DI_DFLASH);
 
 }
 
@@ -46,6 +53,9 @@ void flash_write_byte(unsigned char sector, unsigned short address, unsigned cha
 {
 	unsigned short tmp_data;
 	unsigned short tmp_addr = address&~(0x0001);
+	
+	wdt_clear();
+	dis_interrupts(DI_DFLASH);
 	
 	tmp_data = flash_read(sector, address&0xFE);
 	if(tmp_addr&0x0001)
@@ -68,6 +78,7 @@ void flash_write_byte(unsigned char sector, unsigned short address, unsigned cha
 	__asm("nop");
 	clear_bit(FSELF);
 
+	enb_interrupts(DI_DFLASH);
 }
 
 
@@ -97,6 +108,9 @@ unsigned char flash_read_byte(unsigned char sector, unsigned short address)
 
 void flash_erase(unsigned char sector)
 {
+	wdt_clear();
+	dis_interrupts(DI_DFLASH);
+
 	set_bit(FSELF);
 	switch(sector)
 	{
@@ -122,4 +136,6 @@ void flash_erase(unsigned char sector)
 		break;
 	}
 	clear_bit(FSELF);
+	
+	enb_interrupts(DI_DFLASH);
 }

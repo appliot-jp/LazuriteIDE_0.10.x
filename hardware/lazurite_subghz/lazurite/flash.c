@@ -21,9 +21,11 @@
 
 #include "driver_flash.h"
 #include "flash.h"
+#include "wdt.h"
 
 void flash_write_word(unsigned char sector, unsigned short address, unsigned short data)
 {
+	wdt_clear();
 	address <<= 1;
 	flash_write(sector, address, data);
 	

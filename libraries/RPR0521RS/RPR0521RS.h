@@ -41,6 +41,7 @@ typedef struct {
 	byte (*init)(void) ;
     byte (*get_rawpsalsval)(unsigned char *data);
     byte (*get_psalsval)(unsigned short *ps, float *als);
+    byte (*get_oneShot)(unsigned short *ps, float *als);
     float (*convert_lux)(unsigned short *data);
     byte (*write)(unsigned char memory_address, unsigned char *data, unsigned char size);
     byte (*read)(unsigned char memory_address, unsigned char *data, int size); 

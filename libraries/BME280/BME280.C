@@ -126,8 +126,8 @@ static void readTrim()
 	dig_H1 = (char)data[24];
     dig_H2 = (data[26]<< 8) | data[25];
 	dig_H3 = (char)data[27];
-    dig_H4 = (data[28]<< 4) | (0x0F & data[29]);
-    dig_H5 = (data[30] << 4) | ((data[29] >> 4) & 0x0F);
+    dig_H4 = (((signed short)data[28])<< 4) | (0x0F & data[29]);
+    dig_H5 = ((data[29] >> 4) & 0x0F) | (((signed short)data[30]) << 4) ;
 	dig_H6 = (char)data[31]; 
 }
 

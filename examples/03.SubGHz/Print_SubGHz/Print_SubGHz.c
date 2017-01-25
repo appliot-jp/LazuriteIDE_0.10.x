@@ -25,7 +25,7 @@
  * THE SOFTWARE.
 */
 
-#define SUBGHZ_CH	33
+#define SUBGHZ_CH	36
 #define SUBGHZ_PANID	0xABCD
 uint8_t rx_data[256];
 uint32_t last_recv_time = 0;
@@ -79,7 +79,7 @@ void loop(void)
 	uint16_t data16;
 	
 	rx_len = SubGHz.readData(rx_data,sizeof(rx_data));
-	
+	rx_data[rx_len]=0;
 	if(rx_len>0)
 	{
 		digitalWrite(BLUE_LED, LOW);

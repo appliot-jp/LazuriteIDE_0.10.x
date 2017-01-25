@@ -338,7 +338,7 @@ void sleep_long(unsigned long ms)
 
 // for quick access, API is not in use.
 // delay interval is trimmed by NOP operation
-void delay_microseconds(unsigned long us)
+volatile void delay_microseconds(unsigned long us)
 {
 	if(us >= 2)
 	{

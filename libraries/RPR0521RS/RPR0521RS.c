@@ -117,11 +117,17 @@ byte RPR0521RS_init(void)
 byte RPR0521RS_get_rawpsalsval(unsigned char *data)
 {
   byte rc;
+  unsigned char reg;
 
+  reg = 0xE6;
+  rc = RPR0521RS_write(RPR0521RS_MODE_CONTROL, &reg, sizeof(reg));
+	sleep(400);
   rc = RPR0521RS_read(RPR0521RS_PS_DATA_LSB, data, 6);
   if (rc != 0) {
     Serial.println("Can't get RPR0521RS PS/ALS_DATA value");
   }   
+  reg = 0x00;
+  rc = RPR0521RS_write(RPR0521RS_MODE_CONTROL, &reg, sizeof(reg));
 
   return (rc);  
 }
@@ -152,7 +158,43 @@ float RPR0521RS_convert_lux(unsigned short *data)
   return (lux);
 }
 
+byte RPR0521RS_get_oneShot(unsigned short *ps, float *als)
+{
+	byte rc;
+	unsigned char reg;
+	unsigned char val[6];
+	unsigned short rawps;
+	unsigned short rawals[2];
 
+	reg = 0;
+	if(ps) reg |= 0x80;
+	if(als) reg |= 0x60;
+	if(!reg) goto STANDBY;
+	reg |= 0x06;
+	
+	rc = RPR0521RS_write(RPR0521RS_MODE_CONTROL, &reg, sizeof(reg));
+	sleep(100);			// measurement time
+	
+	rc = RPR0521RS_get_rawpsalsval(val);
+	
+	if(ps)
+	{
+		rawps     = ((unsigned short)val[1] << 8) | val[0];
+		*ps  = rawps;
+	}
+	if(als)
+	{
+		rawals[0] = ((unsigned short)val[3] << 8) | val[2];
+		rawals[1] = ((unsigned short)val[5] << 8) | val[4];
+
+		*als = RPR0521RS_convert_lux(rawals);
+	}
+STANDBY:
+	reg = 0;
+	rc = RPR0521RS_write(RPR0521RS_MODE_CONTROL, &reg, sizeof(reg));
+
+	return (rc);  
+}
 
 byte RPR0521RS_get_psalsval(unsigned short *ps, float *als)
 {
@@ -182,7 +224,8 @@ const t_RPR0521RS rpr0521rs =
     RPR0521RS_init,
     RPR0521RS_get_rawpsalsval,
     RPR0521RS_get_psalsval,
+	RPR0521RS_get_oneShot,
     RPR0521RS_convert_lux,
     RPR0521RS_write,
-    RPR0521RS_read
+    RPR0521RS_read,
 } ;
