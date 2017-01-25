@@ -10,7 +10,7 @@ obj/
 /setting
 /LICENSE.txt
 /readme.txt
-/hardware/lazurite_subghz/sub_ghz
+/hardware/lazurite_subghz/sub_ghz/
 
 #ignore files
 *.bin
