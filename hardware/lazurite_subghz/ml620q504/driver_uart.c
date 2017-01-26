@@ -266,9 +266,30 @@ void uartf_begin(UINT32 baud)
 	uartf_tx_flag = false;
 	set_bit(UF0RFR);
 	set_bit(UF0TFR);
-	dummy = read_reg8(UAF0BUFL);
+	dummy = read_reg16(UAF0BUF);
 	dummy = read_reg16(UAF0IIR);
 	
+	// reset UARTF
+	{
+		unsigned short dummy;
+		dummy=UAF0IIR;
+		while(UAF0IIR==6) {
+			
+//			Serial.print("UAF0IIR\t");
+//			Serial.println_long(dummy,HEX);
+			if(dummy==0x06)
+			{
+				dummy=UAF0BUF;
+				dummy=UAF0LSR;
+//				Serial.print("UAF0LSR\t");
+//				Serial.println_long(dummy,HEX);
+				dummy = UAF0IIR;
+//				Serial.print("UAF0IIR\t");
+//				Serial.println_long(dummy,HEX);
+			}
+			dummy=UAF0IIR;
+		}
+	}	
 	return;
 }
 
