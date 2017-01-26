@@ -1,13 +1,19 @@
 #include "Benchmark_ide.h"		// Additional Header
 
-// The strings "card", "volume" and "root" is reseved for SD card library
-// Do not use them.
+/* FILE NAME: Benchmark.c
+ *
+ * Copyright (c) 2017  Lapis Semiconductor Co.,Ltd.
+ * All rights reserved.
+ *
+ * This example itself is free license, but it uses SD card library
+ * which is licensed under GPL v3.
+ */
 
 #define SDSPI_SS_PIN ( 4 )
 
 #define WRITE_SIZE   ( 1048576ul )
 #define BUF_SIZE     ( 512ul )
-#define WRITE_TIMES ((unsigned long)(WRITE_SIZE / BUF_SIZE))
+#define WRITE_TIMES  ((unsigned long)(WRITE_SIZE / BUF_SIZE))
 
 #define SECOND ( 0 )
 #define MINUTE ( 0 )

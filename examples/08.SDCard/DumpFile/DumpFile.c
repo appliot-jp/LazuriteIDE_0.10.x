@@ -1,12 +1,19 @@
 #include "DumpFile_ide.h"		// Additional Header
 
-// The strings "card", "volume" and "root" is reseved for SD card library
-// Do not use them.
+/* FILE NAME: DumpFile.c
+ *
+ * Copyright (c) 2017  Lapis Semiconductor Co.,Ltd.
+ * All rights reserved.
+ *
+ * This example itself is free license, but it uses SD card library
+ * which is licensed under GPL v3.
+ */
 
-#define SDSPI_SS_PIN (4)
-#define WRITE_SIZE (4096)
-#define BUF_SIZE (512)
-#define WRITE_TIMES ( WRITE_SIZE / BUF_SIZE )
+#define SDSPI_SS_PIN ( 4 )
+
+#define WRITE_SIZE   (4096)
+#define BUF_SIZE     (512)
+#define WRITE_TIMES  ( WRITE_SIZE / BUF_SIZE )
 
 void setup() {
   st_File_v myFile;

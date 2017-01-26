@@ -1,7 +1,13 @@
 #include "CardInfo_ide.h"		// Additional Header
 
-// The strings "card", "volume" and "root" is reseved for SD card library
-// Do not use them.
+/* FILE NAME: CardInfo.c
+ *
+ * Copyright (c) 2017  Lapis Semiconductor Co.,Ltd.
+ * All rights reserved.
+ *
+ * This example itself is free license, but it uses SD card library
+ * which is licensed under GPL v3.
+ */
 
 #define SDSPI_SS_PIN ( 4 )
 
