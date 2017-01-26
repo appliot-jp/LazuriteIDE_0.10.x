@@ -1,5 +1,12 @@
 #include "SimpleRTC_ide.h"		// Additional Header
 
+/* FILE NAME: SimpleRTC.c
+ *
+ * This example code is in the public domain.
+ *
+ * Modified by Yoshiyuki Tanaka for Lazurite RTC library.
+ */
+ 
 #define SECOND ( 50 )
 #define MINUTE ( 59 )
 #define HOUR   ( 23 )

@@ -126,6 +126,7 @@ boolean Sd2Card_init(st_Sd2Card_v *v, uint8_t sckRateID, uint8_t chipSelectPin) 
       Sd2Card_error(v, SD_CARD_ERROR_CMD0);
       goto fail;
     }
+	wdt_clear();
   }
   // check SD version
   if ((Sd2Card_cardCommand(v, CMD8, (uint32_t)0x1AA) & R1_ILLEGAL_COMMAND)) {
@@ -148,6 +149,7 @@ boolean Sd2Card_init(st_Sd2Card_v *v, uint8_t sckRateID, uint8_t chipSelectPin) 
       Sd2Card_error(v, SD_CARD_ERROR_ACMD41);
       goto fail;
     }
+	wdt_clear();
   }
   // if SD2 read OCR register to check for SDHC card
   if (v->type_ == SD_CARD_TYPE_SD2) {
@@ -257,6 +259,7 @@ uint8_t Sd2Card_waitNotBusy(uint16_t timeoutMillis) {
   uint16_t t0 = (uint16_t)millis();
   do {
     if (Sd2Card_spiRec() == 0xFF) return true;
+	wdt_clear();
   }
   while (((uint16_t)millis() - t0) < timeoutMillis);
   return false;
@@ -270,6 +273,7 @@ uint8_t Sd2Card_waitStartBlock(st_Sd2Card_v *v) {
       Sd2Card_error(v, SD_CARD_ERROR_READ_TIMEOUT);
       goto fail;
     }
+	wdt_clear();
   }
   if (v->status_ != DATA_START_BLOCK) {
     Sd2Card_error(v, SD_CARD_ERROR_READ);
