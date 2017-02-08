@@ -56,6 +56,22 @@ extern void interrupts(void);
 extern void noInterrupts(void);
 extern void wait_event(bool *flag);
 extern void set_timer0_function(void (*func)(uint32_t sys_timer_count));
+extern uint8_t voltage_check(uint8_t level);
+
+#define VLS_UNDER_1_898 (  2 )
+#define VLS_1_898		(  3 )
+#define VLS_2_000		(  4 )
+#define VLS_2_093		(  5 )
+#define VLS_2_196		(  6 )
+#define VLS_2_309		(  7 )
+#define VLS_2_409		(  8 )
+#define VLS_2_605		(  9 )
+#define VLS_2_800		( 10 )
+#define VLS_3_068		( 11 )
+#define VLS_3_394		( 12 )
+#define VLS_3_797		( 13 )
+#define VLS_4_226		( 14 )
+#define VLS_4_667		( 15 )
 
 #endif // _ARDUINO_SYSTEM_H_
 

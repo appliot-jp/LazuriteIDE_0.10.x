@@ -18,7 +18,6 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-
 #include "common.h"
 #include "mcu.h"
 #include "lazurite.h"
@@ -64,6 +63,7 @@ static void lazurite_gpio_init(void);
 static void init_timer(void);
 static void delay_isr(void);
 static volatile bool delay_flag;
+
 //********************************************************************************
 //   local functions
 //********************************************************************************
@@ -491,3 +491,37 @@ void wait_event(bool *flag)
 	#endif
 }
 
+static boolean vls_oneshot_check(uint8_t level)
+{
+	clear_bit(ENVLS);				// VLS OFF
+	write_reg16(VLSMOD, 0x700);		// reset : NO, interrupt : NO, sampling : YES
+	write_reg8(VLSCONL, level);		// set threshold
+
+	set_bit(ENVLS);					// VLS ON
+	while (VLSRF == 0) wdt_clear();	// wait until check result becomes valid
+
+	clear_bit(ENVLS);				// VLS OFF
+	return VLSF;					// return 0 : if greator than, 1 : if less than
+}
+
+// starts checking from "level" assigned in argument.
+// returns VLS_1_898 ~ VLS_4_667 : the exceeded threshold voltage,
+//               VLS_UNDER_1_898 : under 1.898V,
+//                             0 : if "level" assgined in argument is out of range.
+uint8_t voltage_check(uint8_t level)
+{
+	uint8_t ret = 0;
+
+	if ((level >= VLS_1_898) || (level <= VLS_4_667))	// check the range of level
+	{
+		clear_bit(DVLS);			// enable VLS
+		while (vls_oneshot_check(level))
+		{
+			level--;
+			if (level < VLS_1_898) break;
+		}
+		set_bit(DVLS);				// disable VLS
+		ret = level;
+	}
+	return ret;
+}
