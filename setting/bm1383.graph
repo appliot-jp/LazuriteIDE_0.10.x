@@ -1,0 +1,23 @@
+#store test
+#Mon Mar 28 15:32:03 JST 2016
+subghzChannel=36
+GraphEnb3=false
+GraphEnb2=false
+subghzPwr=20
+GraphEnb1=true
+comBaud=115200
+GraphEnb0=true
+subghzPanid=0xABCD
+subghzStrTxaddr=001d12900003902b
+GraphTitle=BM1383(Pressure, Temprature)
+comPort=
+selectedTab=1
+GraphAxisText3=
+subghzBaud=100
+GraphAxisText2=
+GraphAxisText1=Pressure
+LineNum3=1
+GraphAxisText0=Temprature
+LineNum2=1
+LineNum1=1
+LineNum0=1

@@ -1,0 +1,23 @@
+#store test
+#Mon Mar 28 15:24:02 JST 2016
+subghzChannel=36
+GraphEnb3=false
+GraphEnb2=false
+subghzPwr=20
+GraphEnb1=true
+comBaud=115200
+GraphEnb0=true
+subghzPanid=0xABCD
+subghzStrTxaddr=001d12900003902b
+GraphTitle=RPR0521(ALS,PS)
+comPort=
+selectedTab=1
+GraphAxisText3=
+subghzBaud=100
+GraphAxisText2=
+GraphAxisText1=Ambient Light Sensor
+LineNum3=1
+GraphAxisText0=Proximity Sensor
+LineNum2=1
+LineNum1=1
+LineNum0=1

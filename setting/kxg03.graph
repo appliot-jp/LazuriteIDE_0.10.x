@@ -1,0 +1,23 @@
+#store test
+#Mon Mar 28 14:13:16 JST 2016
+subghzChannel=36
+GraphEnb3=false
+GraphEnb2=false
+subghzPwr=20
+GraphEnb1=true
+comBaud=115200
+GraphEnb0=true
+subghzPanid=0xABCD
+subghzStrTxaddr=001d12900003902b
+GraphTitle=KXG03
+comPort=
+selectedTab=1
+GraphAxisText3=
+subghzBaud=100
+GraphAxisText2=
+GraphAxisText1=acc
+LineNum3=1
+GraphAxisText0=gyro
+LineNum2=1
+LineNum1=3
+LineNum0=3

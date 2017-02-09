@@ -1,0 +1,112 @@
+apl.title=Lazurite IDE
+
+menu.file=File
+menu.new=New
+menu.open=Open
+menu.sample=Sample Project
+menu.recent=Open Recent
+menu.save=Save
+menu.saveas=Save As
+menu.pagesetup=Page Setup
+menu.print=Print
+menu.envsetting=Environment
+menu.exit=Exit
+
+env.autoclean=Auto Clean
+env.displines=Lines
+env.fontsize=Font Size
+
+menu.edit=Edit
+menu.undo=Undo
+menu.redo=Redo
+menu.copy=Copy
+menu.copyhtml=Copy As HTML
+menu.cut=Cut
+menu.paste=Paste
+menu.all=Select All
+menu.goto=Go To Line
+menu.autoformat=Auto Format
+menu.comment=Comment/Uncomment
+menu.indentinc=Increase Indent
+menu.indentdec=Decrease Indent
+menu.find=Find
+menu.findnext=Find Next
+menu.findprev=Find Previous
+
+goto.label=Line Numbler:
+find.labelfind=Find What:
+find.labelreplace=Replace With:
+find.chkcase=Match Case
+find.chkwrap=Wrap Around
+
+menu.project=Project
+menu.build=Build
+menu.writefirm=Upload
+menu.reset=Reset
+menu.clean=Clean
+menu.showproject=Show Project Folder
+menu.uselib=Library
+menu.openprj=Open Project Settings
+menu.opensrc=Open Project Source
+
+menu.tool=Tool
+menu.selectboard=Board
+menu.options=Options
+menu.serialmonitor=Serial Monitor
+menu.serialcomm=Serial Communication
+menu.serialport=Serial Port
+menu.serialbaud=Baudrate
+
+menu.help=Help
+menu.about=About Lazurite IDE
+
+btn.clear=Clear
+btn.send=Send
+btn.autoscr=Auto scroll
+btn.move=Go
+btn.ok=OK
+btn.cancel=Cancel
+btn.yes=Yes(Y)
+btn.no=No(N)
+btn.next=>>
+btn.prev=<<
+btn.allfind=Find All
+btn.allreplace=Replace All
+
+url.about=http://www.lapis-semi.com/en/
+url.help=https://www.lapis-semi.com/cgi-bin/MyLAPIS/regi/login.cgi
+url.bnimg=http://www.lapis-semi.com/jp/images-top/newsbox_pic1@2x.gif
+url.bnlnk=http://www.lapis-semi.com/en/company/news/index.html
+
+image.about=res/about_en_ver1.00.0.jpg
+
+message.fileexist=File is already exist.
+message.filenotexist=File is not exist.
+message.filenew=File is not exist.\nCreate new project?
+message.filewrong=is broken\, or does not exist, or opened.
+message.cantfindboard=Was not able to connect to the specified serial port.\n\u30fbAlready other applications using the same serial port.\n\u30fbConnecting the unsupported board for this application.\nThe cause above is considered.
+message.cantconnect=Was not able to connect to the specified serial port.\n\u30fbAlready other applications using the same serial port.\nThe cause above is considered.
+message.mismatchmanu=Was not able to connect to the specified serial port.\n\u30fbAlready other applications using the same serial port.\n\u30fbConnecting the unsupported board for this application.\nThe cause above is considered.
+message.mismatchdesc=Was not able to connect to the specified serial port.\n\u30fbAlready other applications using the same serial port.\n\u30fbConnecting the unsupported board for this application.\nThe cause above is considered.
+message.noavailablecom=Please select a available serial port.
+message.noavailablebaud=Please select a available baudrate.
+message.noavailablebrd=Please select a available board.
+message.noavailableopt=Please select a available option.
+message.bldfilenotexist=Build file is not exist.
+message.srcfilenotexist=Source file is not exist.
+message.prjctopened=Project is already opened by other applications.
+message.alreadybuild=The other application was during the build\, build is aborted.
+message.exprocessing=If you edit the sample projects there may not work properly.\nAre you sure you want to continue editing?
+message.savechange=Save Changes?
+message.ssfrefresh=Are you sure you want to discard your input?
+message.forcewrite=Files has been changed from other applications.\nSave Changes?
+message.filereload=Need to reload the file, because changed from the other application.\n Do you want to reload the file?
+
+title.error=Error
+title.warning=Warning
+title.question=Quesetion
+title.information=Information
+title.plain=
+title.close=Close
+
+extfilter.supported=Supported file(*.c\,*.ino)
