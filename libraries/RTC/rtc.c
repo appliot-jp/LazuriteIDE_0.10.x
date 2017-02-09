@@ -111,7 +111,6 @@ static int _setTime( tRtcTime *prm );
 static int _getTime( tRtcTime *prm );
 static void _updateTime( uint32_t sys_timer_count );
 static int _setAlarm( tRtcAlarm* prm );
-static void _getAlarm( tRtcAlarm *prm );
 
 /*############################################################################*/
 /*#                                  API                                     #*/
@@ -333,16 +332,6 @@ static int _setAlarm( tRtcAlarm* prm )
     return ( RTC_R_OK );
 }
 
-static void _getAlarm( tRtcAlarm *prm )
-{
-    prm->sec  = _rtc_timePrm_Alarm.sec;
-    prm->min  = _rtc_timePrm_Alarm.min;
-    prm->hour = _rtc_timePrm_Alarm.hour;
-    prm->day  = _rtc_timePrm_Alarm.day;
-    prm->mon  = _rtc_timePrm_Alarm.mon;
-    prm->year = _rtc_timePrm_Alarm.year;
-}
-
 static void _updateTime( uint32_t sys_timer_count )
 {
     int             ret;
@@ -465,6 +454,9 @@ static void _updateTime( uint32_t sys_timer_count )
         }
     }
 }
+// the below warning is no problem because the argument of the callback is not used daringly.
+// Warning : W5025 : 'sys_timer_count': unreferenced formal parameter 
+
 static unsigned char _inc_Nadj( unsigned char * ptr_inc , unsigned char value_N , unsigned char value_init )
 {
     if( *ptr_inc >= value_N ) {
