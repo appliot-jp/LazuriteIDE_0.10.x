@@ -98,7 +98,7 @@ void SdFile_dateTime(uint16_t* date, uint16_t* time) {
     second = (uint16_t) RTC.getSeconds();
 
 	*date  = (year << 9) + (month << 5) + day;
-	*time  = (hour << 11) + (minute << 5) + second;
+	*time  = (hour << 11) + (minute << 5) + (second >> 1);
 }
 //------------------------------------------------------------------------------
 /**
