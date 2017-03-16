@@ -23,7 +23,8 @@
 #include "lazurite.h"
 
 #define BM1383GLV_DEVICE_ADDRESS      (0x5D)    // 7bit Addrss
-#define BM1383GLV_ID_VAL              (0x32)
+#define BM1383GLV_ID_VAL              (0x31)
+#define BM1383AGLV_ID_VAL             (0x32)
 
 #define BM1383GLV_ID                  (0x10)
 #define BM1383GLV_POWER_DOWN          (0x12)
