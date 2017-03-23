@@ -204,7 +204,7 @@ void rtc_detachInterrupt(void) {
 static int _setTime( tRtcTime *prm )
 {
     unsigned char   maxDay;
-    
+   
     /*=== parameter check. ===*/
     /*--- check [year](00-99). ---*/
     if( prm->year  > (unsigned char)99 ) {
@@ -334,9 +334,10 @@ static int _setAlarm( tRtcAlarm* prm )
 
 static void _updateTime( uint32_t sys_timer_count )
 {
-    int             ret;
+    int             ret, i;
     unsigned char   carryOfDay;
-    unsigned char   execCallback = 0;
+    unsigned char   execCallback;
+	unsigned char	*a, *c;
 
     /*=== Update second [0 to 58]. ===*/
     _rtc_timePrm.sec++;                             /* Count up second. */
@@ -398,61 +399,19 @@ static void _updateTime( uint32_t sys_timer_count )
 
     /*=== Check alarm setting. ===*/
     /* Callback alarm. */
-    if ( _rtc_timePrm_Alarm.callBack != (void*)0 ) {
-        switch (_rtc_alarmMatch) {
-        case MATCH_SS:
-            if ((_rtc_timePrm_Alarm.sec == _rtc_timePrm.sec)) {
-                execCallback = 1;
-            }
-            break;
-        case MATCH_MMSS:
-            if ((_rtc_timePrm_Alarm.sec == _rtc_timePrm.sec) && \
-                (_rtc_timePrm_Alarm.min == _rtc_timePrm.min)) {
-                execCallback = 1;
-            }
-            break;
-        case MATCH_HHMMSS:
-            if ((_rtc_timePrm_Alarm.sec == _rtc_timePrm.sec) && \
-                (_rtc_timePrm_Alarm.min == _rtc_timePrm.min) && \
-                (_rtc_timePrm_Alarm.hour == _rtc_timePrm.hour)) {
-                execCallback = 1;
-            }
-            break;
-        case MATCH_DDHHMMSS:
-            if ((_rtc_timePrm_Alarm.sec == _rtc_timePrm.sec) && \
-                (_rtc_timePrm_Alarm.min == _rtc_timePrm.min) && \
-                (_rtc_timePrm_Alarm.hour == _rtc_timePrm.hour) && \
-                (_rtc_timePrm_Alarm.day == _rtc_timePrm.day)) {
-                execCallback = 1;
-            }
-            break;
-        case MATCH_MMDDHHMMSS:
-            if ((_rtc_timePrm_Alarm.sec == _rtc_timePrm.sec) && \
-                (_rtc_timePrm_Alarm.min == _rtc_timePrm.min) && \
-                (_rtc_timePrm_Alarm.hour == _rtc_timePrm.hour) && \
-                (_rtc_timePrm_Alarm.day == _rtc_timePrm.day) && \
-                (_rtc_timePrm_Alarm.mon == _rtc_timePrm.mon)) {
-                execCallback = 1;
-            }
-            break;
-        case MATCH_YYMMDDHHMMSS:
-            if ((_rtc_timePrm_Alarm.sec == _rtc_timePrm.sec) && \
-                (_rtc_timePrm_Alarm.min == _rtc_timePrm.min) && \
-                (_rtc_timePrm_Alarm.hour == _rtc_timePrm.hour) && \
-                (_rtc_timePrm_Alarm.day == _rtc_timePrm.day) && \
-                (_rtc_timePrm_Alarm.mon == _rtc_timePrm.mon) && \
-                (_rtc_timePrm_Alarm.year == _rtc_timePrm.year)) {
-                execCallback = 1;
-            }
-            break;
-        default:
-            break;
-        }
-        if (execCallback) {
-            execCallback = 0;
+	if ((_rtc_timePrm_Alarm.callBack != (void*)0) && (_rtc_alarmMatch >= MATCH_SS) \
+		&& (_rtc_alarmMatch <= MATCH_YYMMDDHHMMSS)) {
+		a = &_rtc_timePrm_Alarm.sec;
+		c = &_rtc_timePrm.sec;
+        for (i = 0, execCallback = 0; i < _rtc_alarmMatch; i++, a++, c++) {
+			if (*a == *c) {
+                execCallback++;
+			}
+		}
+		if (execCallback == _rtc_alarmMatch) {
             _rtc_timePrm_Alarm.callBack( &_rtc_timePrm );
         }
-    }
+	}
 }
 // the below warning is no problem because the argument of the callback is not used daringly.
 // Warning : W5025 : 'sys_timer_count': unreferenced formal parameter 
