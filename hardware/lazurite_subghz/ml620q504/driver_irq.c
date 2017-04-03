@@ -21,6 +21,7 @@
 #include "mcu.h"
 #include "rdwr_reg.h"
 #include "driver_irq.h"
+#include "../sub_ghz/hwif/hal_lazurite.h"
 
 /*############################################################################*/
 /*#                                  Macro                                   #*/
@@ -184,6 +185,7 @@ static void s_handlerEXI3INT( void )
 	/* add to your aplication's code this.                                    */
 	irq_ext3_dis(); 
 	_sIrqHdr[IRQ_NO_EXI3INT]();
+	event_flag_phy = 1;
 	irq_ext3_ena();
 }
 

@@ -46,28 +46,28 @@ const unsigned char digital_pin_to_port[MAX_PIN_NO+1]=
 	24,	//	11			P44
 	25,	//	12			P45
 	18,	//	13			P36
-	8,	//	AIN0		P20
-	9,	//	AIN1		P21
-	10,	//	AIN2		P22
-	3,	//	AIN3		P03
-	16,	//	AIN4		P34
-	17,	//	AIN5		P35
-	11,	//	FLASH_CSB	P23
-	32,	//	NFC_RFDET	P54
-	33,	//	NFC_IRQ		P55
-	20,	//	SDA0		P40
-	21,	//	SCL0		P41
-	29,	//	LED_NFC		P51
-	34,	//	LED_BLE		P56
-	26,	//	NC			P46
-	0,	//	MOSI0		P00
-	1,	//	MISO0		P01
-	6,	//	RF_CSB		P10
-	2,	//	SCLK0		P02
-	5,	//	RF_P0		P05
-	4,	//	RF_P1		P04
-	27,	//	RF_IRQ		P47
-	7,	//	RF_RSTB		P11
+	8,	//	AIN0		P20		14
+	9,	//	AIN1		P21		15
+	10,	//	AIN2		P22		16
+	3,	//	AIN3		P03		17
+	16,	//	AIN4		P34		18
+	17,	//	AIN5		P35		19
+	11,	//	FLASH_CSB	P23		20
+	32,	//	NFC_RFDET	P54		21
+	33,	//	NFC_IRQ		P55		22
+	20,	//	SDA0		P40		23
+	21,	//	SCL0		P41		24
+	29,	//	LED_NFC		P51		25
+	34,	//	LED_BLE		P56		26
+	26,	//	NC			P46		27
+	0,	//	MOSI0		P00		28
+	1,	//	MISO0		P01		29
+	6,	//	RF_CSB		P10		30
+	2,	//	SCLK0		P02		31
+	5,	//	RF_P0		P05		32
+	4,	//	RF_P1		P04		33
+	27,	//	RF_IRQ		P47		34
+	7,	//	RF_RSTB		P11		35
 };
 //********************************************************************************
 //   local function definitions

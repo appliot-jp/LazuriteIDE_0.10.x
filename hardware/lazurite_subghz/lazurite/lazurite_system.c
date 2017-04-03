@@ -467,6 +467,44 @@ void noInterrupts()
 	dis_interrupts(DI_USER);
 }
 
+bool wait_event_timeout(bool *flag,uint32_t time)
+{	
+	uint32_t current_time;
+	uint32_t target_time;
+	int result = true;
+	
+	current_time = millis();
+	target_time = current_time+time;
+
+	
+	#ifdef PWR_LED
+	drv_digitalWrite(11,HIGH);		// PWR LED OFF
+	#endif
+	while((*flag == false) || (current_time >= target_time))
+	{
+		if((uart_tx_sending == true) || (uartf_tx_sending == true))
+		{
+			lp_setHaltMode();
+			wdt_clear();
+		}
+		else
+		{
+			lp_setDeepHaltMode();
+			wdt_clear();
+		}
+		current_time = millis();
+	}
+	if(*flag) result = false;
+	
+	*flag = false;
+	
+	#ifdef PWR_LED
+	drv_digitalWrite(11,LOW);		// PWR LED ON
+	#endif
+	
+	return result;
+}
+
 void wait_event(bool *flag)
 {	
 	#ifdef PWR_LED
