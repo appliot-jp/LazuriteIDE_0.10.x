@@ -59,10 +59,12 @@ static struct {
 void isr_sys_timer(void);
 static void clk_block_ctrl_init(void);
 void watch_dog_isr(void);
+static void wait_timeout_isr(void);
 static void lazurite_gpio_init(void);
 static void init_timer(void);
 static void delay_isr(void);
 static volatile bool delay_flag;
+static bool *event_flag;
 
 //********************************************************************************
 //   local functions
@@ -450,6 +452,12 @@ static void clk_block_ctrl_init(void)
 	
 }
 
+static void wait_timeout_isr(void)
+{
+    timer_16bit_stop(6);
+    *event_flag = true;
+}
+
 void watch_dog_isr(void)
 {
 #ifndef	_WDT
@@ -505,11 +513,21 @@ bool wait_event_timeout(bool *flag,uint32_t time)
 	return result;
 }
 
+bool wait_timeout(uint32_t time)
+{	
+	int result = true;
+	timer_16bit_set(6,0xE8,(unsigned long)time,wait_timeout_isr);
+	timer_16bit_start(6);
+	return result;
+}
+
 void wait_event(bool *flag)
 {	
 	#ifdef PWR_LED
 	drv_digitalWrite(11,HIGH);		// PWR LED OFF
 	#endif
+    event_flag = flag;
+
 	while(*flag == false)
 	{
 		if((uart_tx_sending == true) || (uartf_tx_sending == true))
@@ -523,7 +541,8 @@ void wait_event(bool *flag)
 			wdt_clear();
 		}
 	}
-	*flag = false;
+// @issue : the following my not need
+//	*flag = false;
 	#ifdef PWR_LED
 	drv_digitalWrite(11,LOW);		// PWR LED ON
 	#endif
