@@ -43,6 +43,12 @@
 //********************************************************************************
 //   local function definitions
 //********************************************************************************
+static void _hardware_serial11_begin(unsigned long baud);
+static void _hardware_serial11_end(void);
+static void _hardware_serial12_begin(unsigned long baud);
+static void _hardware_serial12_end(void);
+static void _hardware_serial13_begin(unsigned long baud);
+static void _hardware_serial13_end(void);
 static void _hardware_serial_print(char* data);
 static void _hardware_serial_println(char* data);
 static void _hardware_serial_print_long(long data, UCHAR fmt);
@@ -66,8 +72,8 @@ static void _hardware_serial2_println_double(double data, UCHAR digit);
 static size_t _hardware_serial2_tx_write(char* data, size_t quantity);
 
 const HardwareSerial Serial = {
-	uart_begin,
-	uart_end,
+	_hardware_serial12_begin,
+	_hardware_serial12_end,
 	uart_rx_available,
 	uart_rx_read,
 	uart_peek,
@@ -139,34 +145,65 @@ const HardwareSerial Serial3 = {
 //********************************************************************************
 //   local functions
 //********************************************************************************
+void _hardware_serial11_begin(unsigned long baud)
+{
+	uart_gpio_init(0);
+	uart_begin(baud,NULL,NULL);
+}
+void _hardware_serial11_end(void)
+{
+	uart_gpio_end(0);
+	uart_end();
+}
+void _hardware_serial12_begin(unsigned long baud)
+{
+	uart_gpio_init(1);
+	uart_begin(baud,NULL,NULL);
+}
+void _hardware_serial12_end(void)
+{
+	uart_gpio_end(1);
+	uart_end();
+}
+void _hardware_serial13_begin(unsigned long baud)
+{
+	uart_gpio_init(2);
+	uart_begin(baud,NULL,NULL);
+}
+void _hardware_serial13_end(void)
+{
+	uart_gpio_end(2);
+	uart_end();
+}
+
 void _hardware_serial21_begin(unsigned long baud)
 {
-	uartf_gpio_init(0);
+	uart_gpio_init(3);
 	uartf_begin(baud);
 }
 void _hardware_serial22_begin(unsigned long baud)
 {
-	uartf_gpio_init(1);
+	uart_gpio_init(4);
 	uartf_begin(baud);
 }
 void _hardware_serial23_begin(unsigned long baud)
 {
-	uartf_gpio_init(2);
+	uart_gpio_init(5);
 	uartf_begin(baud);
 }
 void _hardware_serial21_end(void)
 {
-	uartf_gpio_end(0);
+	uart_gpio_end(3);
 	uartf_end();
 }
 void _hardware_serial22_end(void)
 {
-	uartf_gpio_end(1);
+	uart_gpio_end(4);
 	uartf_end();
 }
 void _hardware_serial23_end(void)
 {
-	uartf_gpio_end(2);
+	uart_gpio_end(5);
 	uartf_end();
 }
 // binary write

@@ -66,6 +66,10 @@ static void delay_isr(void);
 static volatile bool delay_flag;
 static bool *event_flag;
 
+#ifdef LAZURITE_BLE
+	extern void ble_timer_func();
+#endif
+
 //********************************************************************************
 //   local functions
 //********************************************************************************
@@ -419,6 +423,9 @@ static void (*millis_timer_func)(uint32_t sys_timer_count);
 void isr_sys_timer(void)
 {
 	sys_timer_count++;
+#ifdef LAZURITE_BLE
+	ble_timer_func();
+#endif
 	if(millis_timer_func) millis_timer_func(sys_timer_count);
 	return;
 }

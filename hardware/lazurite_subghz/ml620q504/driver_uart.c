@@ -51,13 +51,6 @@
 //********************************************************************************
 //   local parameters
 //********************************************************************************
-typedef struct {
-	UCHAR max_length;
-	UCHAR *buf;
-	UCHAR wr_p;
-	UCHAR rd_p;
-	UCHAR length;
-} FIFO_CTRL;
 
 static UCHAR uart_rx_buf[UART_BUFFER_LENGTH];
 static UCHAR uart_tx_buf[UART_BUFFER_LENGTH];
@@ -94,26 +87,33 @@ static FIFO_CTRL uartf_rx_fifo = {
 	0,
 	0
 };
-
-const char* uartf_gpio_adr[] =
+const char* uart_gpio_adr[] =
 {
-	&P4D,
-	&P2D,
-	&P3D
+	&P0D,			// UART
+	&P3D,			// UART
+	&P5D,			// UART
+	&P4D,			// UARTF
+	&P2D,			// UARTF
+	&P3D			// UARTF
 };
-const char uartf_gpio_rx_bitmask[] =
+const char uart_gpio_rx_bitmask[] =
 {
-	(1<<4),
-	(1<<0),
-	(1<<4)
+	(1<<0),			// UART
+	(1<<0),			// UART
+	(1<<0),			// UART
+	(1<<4),			// UARTF
+	(1<<0),			// UARTF
+	(1<<4)			// UARTF
 };
-const char uartf_gpio_tx_bitmask[] =
+const char uart_gpio_tx_bitmask[] =
 {
-	(1<<5),
-	(1<<1),
-	(1<<5)
+	(1<<1),			// UART
+	(1<<1),			// UART
+	(1<<1),			// UART
+	(1<<5),			// UARTF
+	(1<<1),			// UARTF
+	(1<<5)			// UARTF
 };
-
 
 //********************************************************************************
 //   local function definitions
@@ -122,11 +122,6 @@ const char uartf_gpio_tx_bitmask[] =
 static void uart_tx_isr(void);
 static void uart_rx_isr(void);
 static void uartf_isr(void);
-static volatile size_t uart_fifo_in(FIFO_CTRL* fifo_p, UCHAR data);
-static volatile int uart_fifo_out(FIFO_CTRL* fifo_p);
-static volatile int uart_fifo_out_peek(FIFO_CTRL* fifo_p);
-static volatile size_t uart_fifo_available(FIFO_CTRL* fifo_p);
-static void uart_fifo_init(FIFO_CTRL* fifo_p);
 
 //********************************************************************************
 //   local functions
@@ -140,20 +135,20 @@ static void uart_fifo_init(FIFO_CTRL* fifo_p);
 // n=1   P20(A0)   P21(A1)
 // n=2   P34(A4)   P35(A5)
 // ----------------------------------------------
-void uartf_gpio_init(unsigned char n)
+void uart_gpio_init(unsigned char n)
 {
 	unsigned char* port;
 	unsigned char bit;
-	if(n>3) return;
-	port = uartf_gpio_adr[n];
-	bit = uartf_gpio_rx_bitmask[n];
+	if(n>5) return;
+	port = uart_gpio_adr[n];
+	bit = uart_gpio_rx_bitmask[n];
 	*(port+GPIO_DIR_OFFSET) |= bit;		//DIR = 1
 	*(port+GPIO_C0_OFFSET)  &= ~bit;	//C0  = 0
 	*(port+GPIO_C1_OFFSET)  |= bit;		//C1  = 1
 	*(port+GPIO_MD0_OFFSET) |= bit;		//MD0 = 1
 	*(port+GPIO_MD1_OFFSET) |= bit;		//MD1 = 1
 
-	bit = uartf_gpio_tx_bitmask[n];
+	bit = uart_gpio_tx_bitmask[n];
 	*(port+GPIO_DIR_OFFSET) &= ~bit;	//DIR = 0
 	*(port+GPIO_C0_OFFSET)  |= bit;		//C0  = 1
 	*(port+GPIO_C1_OFFSET)  |= bit;		//C1  = 1
@@ -162,21 +157,21 @@ void uartf_gpio_init(unsigned char n)
 
 }
 
-void uartf_gpio_end(unsigned char n)
+void uart_gpio_end(unsigned char n)
 {
 	volatile unsigned char* port;
 	volatile unsigned char bit;
-	if(n>3) return;
+	if(n>5) return;
 
-	port = uartf_gpio_adr[n];
-	bit = uartf_gpio_rx_bitmask[n];
+	port = uart_gpio_adr[n];
+	bit = uart_gpio_rx_bitmask[n];
 	*(port+GPIO_DIR_OFFSET)&= ~bit;		//DIR = 0
 	*(port+GPIO_C0_OFFSET) &= ~bit;		//C0  = 0
 	*(port+GPIO_C1_OFFSET) &= ~bit;		//C1  = 0
 	*(port+GPIO_MD0_OFFSET)&= ~bit;		//MD0 = 0
 	*(port+GPIO_MD1_OFFSET)&= ~bit;		//MD1 = 0
 	
-	 bit = uartf_gpio_tx_bitmask[n];
+	 bit = uart_gpio_tx_bitmask[n];
 	*(port+GPIO_DIR_OFFSET)&= ~bit;		//DIR = 0
 	*(port+GPIO_C0_OFFSET) &= ~bit;		//C0  = 0
 	*(port+GPIO_C1_OFFSET) &= ~bit;		//C1  = 0
@@ -188,19 +183,8 @@ void uartf_gpio_end(unsigned char n)
 
 // Enable UART
 // baud = baud rate(Hz)
-void uart_begin(UINT32 baud)
+void uart_begin(UINT32 baud,void (*rxcallback)(void),void (*txcallback)(void))
 {
-	set_bit(P30DIR);					// setting GPIO of RXD
-	clear_bit(P30C0);
-	set_bit(P30C1);
-	set_bit(P30MD0);
-	set_bit(P30MD1);
-	
-	clear_bit(P31DIR);					// setting GPIO of TXD
-	set_bit(P31C0);
-	set_bit(P31C1);
-	set_bit(P31MD0);
-	set_bit(P31MD1);
 	//set BLKCON
 	clear_bit(DUA0);					// enable UART0
 	clear_bit(DUA1);					// enable UART0
@@ -222,8 +206,16 @@ void uart_begin(UINT32 baud)
 	clear_bit(QUA1);						// clear irq
 	set_bit(EUA0);						// disenable interrupt of UART RX 
 	set_bit(EUA1);						// disenable interrupt of UART TX
-	irq_sethandler(IRQ_NO_UA0INT, uart_rx_isr);		// set interrupt handler of rx
-	irq_sethandler(IRQ_NO_UA1INT, uart_tx_isr);		// set interrupt handler of tx
+	if(rxcallback) {
+		irq_sethandler(IRQ_NO_UA0INT, rxcallback);		// set interrupt handler of rx
+	} else {
+		irq_sethandler(IRQ_NO_UA0INT, uart_rx_isr);		// set interrupt handler of rx
+	}
+	if(txcallback) {
+		irq_sethandler(IRQ_NO_UA1INT, txcallback);		// set interrupt handler of tx
+	} else {
+		irq_sethandler(IRQ_NO_UA1INT, uart_tx_isr);		// set interrupt handler of tx
+	}
 
 	// buffer reset
 	uart_fifo_init(&uart_tx_fifo);
@@ -303,8 +295,8 @@ void uart_end(void)
 	clear_bit(QUA1);						// clear irq
 	clear_bit(U0EN);						// rx disenable
 //	clear_bit(U1EN);						// tx disenable
-	set_bit(DUA0);							// enable UART0
-	set_bit(DUA1);							// enable UART0
+	set_bit(DUA0);							// disenable UART0
+	set_bit(DUA1);							// disenable UART0
 	return;
 }
 
@@ -578,13 +570,6 @@ volatile int uart_fifo_out_peek(FIFO_CTRL* fifo_p)
 	return fifo_p->buf[fifo_p->rd_p];
 }
 
-/*
-// return available byte of fifo
-volatile size_t uart_fifo_available(FIFO_CTRL* fifo_p)
-{
-	return (fifo_p->max_length - fifo_p->length);
-}
-*/
 
 // initializing fifo
 void uart_fifo_init(FIFO_CTRL* fifo_p)

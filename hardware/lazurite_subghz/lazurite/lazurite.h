@@ -48,7 +48,10 @@ extern void loop(void);					// Arduino loop function
 #include <math.h>
 
 #ifdef SUBGHZ
-#include "subghz_api.h"
+	#include "subghz_api.h"
+#endif
+#ifdef LAZURITE_BLE
+	#include "mk71251.h"
 #endif
 
 #endif /* _LAZURITE_H_ */
