@@ -19,8 +19,8 @@ typedef struct {
 	int (*tx_available)(void);								// add 
 	volatile int (*getStatus)(void);
 	volatile void (*advertising)(bool on);
-} MK71251;
+} BLUETOOTH;
 
-extern const MK71251 mk71251;
+extern const BLUETOOTH ble;
 
 #endif

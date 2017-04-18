@@ -25,15 +25,47 @@ static FIFO_CTRL ble_rx_fifo = {
 	0
 };
 static int mode = 0;
+static int led_status = 0;
 static uint8_t check_index;
 static const char ble_connect[] = "\r\nCONNECT\r\n";
 static const char ble_nocarrier[] = "\r\nNO CARRIER\r\n";
 
+static void ble_led_func(void) {
+	if(mode == 0) {
+		drv_digitalWrite(PWR_LED,HIGH);
+	} else if(mode == 1) {
+		switch(led_status) {
+		case 0:
+			drv_digitalWrite(PWR_LED,HIGH);
+			timer_8bit_set(TM_CH6, 0xb3, 100, ble_led_func);
+			timer_8bit_start(TM_CH6);
+			led_status++;
+			break;
+		case 1:
+			drv_digitalWrite(PWR_LED,LOW);
+			timer_8bit_set(TM_CH6, 0xb3, 10, ble_led_func);
+			timer_8bit_start(TM_CH6);
+			led_status++;
+			break;
+		default:
+			drv_digitalWrite(PWR_LED,HIGH);
+			timer_8bit_start(TM_CH6);
+			break;
+		}
+	} else {
+		led_status = 0;
+		drv_digitalWrite(PWR_LED,HIGH);
+	}
+}
 
 void ble_timer_func(void) {
-	static bool ledstate = LOW;
-	drv_digitalWrite(PWR_LED,ledstate);
-	ledstate = ~ledstate;
+	if((mode == 1) || (mode == 2))
+	{
+		drv_digitalWrite(PWR_LED,LOW);
+		timer_8bit_set(TM_CH6, 0xb3, 10, ble_led_func);
+		timer_8bit_start(TM_CH6);
+		led_status = 0;
+	}
 }
 
 static void ble_rx_callback() {
@@ -105,6 +137,7 @@ static void ble_begin() {
 	}
 	delay(1);
 	mode = 1;
+	timer_8bit_set(TM_CH6, 0xb3, 10, ble_led_func);
 }
 static void ble_end(void)
 {
@@ -223,7 +256,7 @@ static volatile void ble_advertising(bool on) {
 	return;
 }
 
-const MK71251 mk71251 = {
+const BLUETOOTH ble = {
 	ble_begin,
 	ble_end,
 	ble_rx_available,
