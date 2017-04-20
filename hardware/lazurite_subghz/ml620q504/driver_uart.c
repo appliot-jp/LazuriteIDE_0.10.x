@@ -210,21 +210,21 @@ void uart_begin(UINT32 baud,void (*rxcallback)(void),void (*txcallback)(void))
 		irq_sethandler(IRQ_NO_UA0INT, rxcallback);		// set interrupt handler of rx
 	} else {
 		irq_sethandler(IRQ_NO_UA0INT, uart_rx_isr);		// set interrupt handler of rx
+		uart_fifo_init(&uart_rx_fifo);
 	}
 	if(txcallback) {
 		irq_sethandler(IRQ_NO_UA1INT, txcallback);		// set interrupt handler of tx
 	} else {
 		irq_sethandler(IRQ_NO_UA1INT, uart_tx_isr);		// set interrupt handler of tx
+		uart_fifo_init(&uart_tx_fifo);
+		uart_tx_flag = false;
+		uart_tx_sending = false;
 	}
 
 	// buffer reset
-	uart_fifo_init(&uart_tx_fifo);
-	uart_fifo_init(&uart_rx_fifo);
 
 	// start
 	set_bit(U0EN);	// UART Enable
-	uart_tx_flag = false;
-	uart_tx_sending = false;
 
 	return;
 }

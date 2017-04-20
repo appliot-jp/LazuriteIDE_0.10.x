@@ -23,9 +23,13 @@ void loop() {
 	}
 	if(ble.available()>0)
 	{
+		digitalWrite(BLUE_LED,LOW);
 		Serial3.write_byte(ble.read());
+		digitalWrite(BLUE_LED,HIGH);
 	}
 	if(Serial3.available()>0) {
-		ble.write_byte(Serial1.read());
+		digitalWrite(ORANGE_LED,LOW);
+		ble.write_byte(Serial3.read());
+		digitalWrite(ORANGE_LED,HIGH);
 	}
 }

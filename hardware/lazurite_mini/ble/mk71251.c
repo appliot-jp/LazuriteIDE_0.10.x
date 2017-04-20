@@ -66,12 +66,12 @@ static void ble_led_func(void) {
 	else {
 		led_status--;
 		if(led_status&0x01) {
-		    timer_8bit_set((uint8_t)TM_CH6, 0xb3, current_led_param->on_time, ble_led_func);
-		    timer_8bit_start(TM_CH6);
+		    timer_8bit_set((uint8_t)TM_CH4, 0xb0, current_led_param->on_time, ble_led_func);
+		    timer_8bit_start(TM_CH4);
 			digitalWrite(current_led_param->pin,LOW);
 		} else {
-		    timer_8bit_set((uint8_t)TM_CH6, 0xb3, current_led_param->off_time, ble_led_func);
-		    timer_8bit_start(TM_CH6);
+		    timer_8bit_set((uint8_t)TM_CH4, 0xb0, current_led_param->off_time, ble_led_func);
+		    timer_8bit_start(TM_CH4);
 			digitalWrite(current_led_param->pin,HIGH);
 		}
 	}
@@ -93,8 +93,8 @@ void ble_timer_func(void) {
 	}
 	if(current_led_param->cycle == 0) digitalWrite(current_led_param->pin,HIGH);
 	else digitalWrite(current_led_param->pin,LOW);
-    timer_8bit_set(TM_CH6, 0xb3, current_led_param->on_time, ble_led_func);
-    timer_8bit_start(TM_CH6);
+    timer_8bit_set(TM_CH4, 0xb0, current_led_param->on_time, ble_led_func);
+    timer_8bit_start(TM_CH4);
     led_status = current_led_param->cycle;
 }
 
@@ -199,7 +199,7 @@ static void ble_begin(void) {
 	delay(10);
 	mode = 1;
 	digitalWrite(PWR_LED,HIGH);
-	timer_8bit_set(TM_CH6, 0xb3, 10, ble_led_func);
+	timer_8bit_set(TM_CH4, 0xb0, 10, ble_led_func);
 	ble_tx_flag = false;
 	ble_tx_sending = false;
 }
