@@ -17,6 +17,10 @@
 #include <string.h>
 #include <wdt.h>
 
+static uint8_t ble_tx_mode;				// 0 = normal, 1=cmd mode
+static uint8_t ble_cmd_buf_index;		// cmd buffer index
+static uint8_t ble_cmd_buf[40];			// data buffer for cmd mode
+
 static uint8_t ble_rx_buf[128];
 static uint8_t ble_tx_buf[128];
 static char ble_tx_flag;							// true = send, false = not send
@@ -30,7 +34,7 @@ static struct BLE_LED_CONFIG ble_led_conf = {
 		10,			// on time
 		100			// off time
 	},
-	{				// advertising
+	{				// advertise
 		1,			// cycle
 		PWR_LED,	// pin
 		10,			// on time
@@ -360,7 +364,7 @@ static volatile int ble_getStatus(void) {
 	return mode;
 }
 
-static volatile void ble_advertising(bool on) {
+static volatile void ble_advertise(bool on) {
 	switch(mode) {
 	case 0:
 		break;
@@ -396,6 +400,17 @@ static void ble_getLedConfig(struct BLE_LED_CONFIG *conf)
 {
 	memcpy(conf,&ble_led_conf,sizeof(struct BLE_LED_CONFIG));
 }
+static void ble_setConfig(struct BLE_CONFIG *conf)
+{
+	return;
+}
+static void ble_setAdvertiseData(uint8_t *data, uint8_t len)
+{
+	return;
+}
+static int ble_setPasskey(uint32_t key) {
+	return 0;
+}
 
 const BLUETOOTH ble = {
 	ble_begin,
@@ -414,7 +429,10 @@ const BLUETOOTH ble = {
 	ble_tx_write_byte,
 	ble_tx_available,
 	ble_getStatus,
-	ble_advertising,
+	ble_advertise,
 	ble_setLedConfig,
-	ble_getLedConfig
+	ble_getLedConfig,
+	ble_setConfig,
+	ble_setAdvertiseData,
+	ble_setPasskey
 };

@@ -13,6 +13,18 @@ struct BLE_LED_CONFIG {
 	struct BLE_LED_PARAM advertise;
 	struct BLE_LED_PARAM connect;
 };
+
+struct BLE_INTERVAL_PARAM {
+	uint16_t slow;
+	uint16_t fast;
+	uint16_t change_mode_time;
+};
+struct BLE_CONFIG {
+	uint8_t pwr;
+	uint8_t pairing;
+	struct BLE_INTERVAL_PARAM advertise;
+	struct BLE_INTERVAL_PARAM connect;
+};
 typedef struct {
 	void (*begin)(void);
 	void (*end)(void);
@@ -30,9 +42,12 @@ typedef struct {
 	volatile size_t (*write_byte)(char data);
 	int (*tx_available)(void);								// add 
 	volatile int (*getStatus)(void);
-	volatile void (*advertising)(bool on);
+	volatile void (*advertise)(bool on);
 	void (*setLedConfig)(struct BLE_LED_CONFIG *conf);
 	void (*getLedConfig)(struct BLE_LED_CONFIG *conf);
+	void (*setConfig)(struct BLE_CONFIG *conf);
+	void (*setAdvertiseData)(uint8_t *data, uint8_t len);
+	int (*setPasskey)(uint32_t key);
 } BLUETOOTH;
 
 extern const BLUETOOTH ble;
