@@ -108,34 +108,8 @@ void ms_timer2_stop(void)
 	timer_16bit_stop(2);
 }
 
-static bool timeout;
-void wait_event_timeout_isr(void){
-	timeout=true;
-}
-
 extern char uart_tx_sending;
 extern char uartf_tx_sending;
-
-bool wait_event_timeout(bool* flag,unsigned long ms) {
-	ms_timer2_set(ms,wait_event_timeout_isr);
-	timeout=false;
-	ms_timer2_start();
-	while((*flag == false)||(timeout==false))
-	{
-		if((uart_tx_sending == true) || (uartf_tx_sending == true))
-		{
-			lp_setHaltMode();
-			wdt_clear();
-		}
-		else
-		{
-			lp_setDeepHaltMode();
-			wdt_clear();
-		}
-	}
-	ms_timer2_stop();
-	return timeout;
-}
 
 MsTimer2 timer2 ={
 	0,					// unsigned long  current_time_h;
@@ -145,5 +119,4 @@ MsTimer2 timer2 ={
 	ms_timer2_set,		// void (*set)(unsigned long ms, void (*f)());
 	ms_timer2_start,	// void (*start)(void);
 	ms_timer2_stop,		// void (*stop)(void);
-	wait_event_timeout
 };
