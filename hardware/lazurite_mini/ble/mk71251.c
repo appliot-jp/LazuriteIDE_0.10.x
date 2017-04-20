@@ -229,7 +229,8 @@ static void ble_flush(void)
 	uart_fifo_init(&ble_rx_fifo);
 	return;
 }
-static size_t ble_print(char* data)
+
+static size_t ble_print_cmd(char* data)
 {
 	int n = 0;
 
@@ -247,8 +248,27 @@ static size_t ble_print(char* data)
 	}
 	return strlen(data);
 }
+static size_t ble_print(char* data)
+{
+	int n = 0;
+	if(mode != 3) return(mode*-1);
+	while(data[n] != NULL)
+	{
+		if(ble_tx_write_byte(data[n]) == 1)
+		{
+			n++;
+		}
+		else
+		{
+			wdt_clear();
+			lp_setHaltMode();
+		}
+	}
+	return strlen(data);
+}
 static size_t ble_println(char* data)
 {
+	if(mode != 3) return(mode*-1);
 	ble_print(data);
 	ble_print("\r\n");
 	return (strlen(data)+2);
@@ -256,6 +276,7 @@ static size_t ble_println(char* data)
 static size_t ble_print_long(long data, UCHAR fmt)
 {
 	char tmp_c[33];
+	if(mode != 3) return(mode*-1);
 	printNumber(tmp_c,data,fmt);
 	ble_print(tmp_c);
 	return strlen(tmp_c);
@@ -263,6 +284,7 @@ static size_t ble_print_long(long data, UCHAR fmt)
 static size_t ble_println_long(long data, UCHAR fmt)
 {
 	char tmp_c[33];							// 33 is maximum length of charactor
+	if(mode != 3) return(mode*-1);
 	printNumber(tmp_c, data,fmt);			// convert long data to charactor
 	ble_println(tmp_c);		// send data though uart
 	return strlen(tmp_c);
@@ -272,6 +294,7 @@ static size_t ble_print_double(double data, UCHAR digit)
 {
 	char tmp_c[33];
 //	unsigned char n;
+	if(mode != 3) return(mode*-1);
 	printFloat(tmp_c,data,digit);
 	ble_print(tmp_c);
 	return strlen(tmp_c);
@@ -338,17 +361,29 @@ static volatile int ble_getStatus(void) {
 }
 
 static volatile void ble_advertising(bool on) {
-	if(on) {
-		ble_print("ATD\r");
-		mode = 2;
-	} else {
-		if(mode == 2) {
-			ble_print("\r");
+	switch(mode) {
+	case 0:
+		break;
+	case 1:
+		if(on) {
+			ble_print_cmd("ATD\r");
+			mode = 2;
 		}
-		else if(mode == 3) {
-			ble_print("+++AT\rATH");
+		break;
+	case 2:
+		if(!on) {
+			ble_print_cmd("\r");
 			mode = 1;
 		}
+		break;
+	case 3:
+		if(!on) {
+			ble_print_cmd("+++AT\rATH");
+			mode = 1;
+		}
+		break;
+	default:
+		break;
 	}
 	return;
 }
