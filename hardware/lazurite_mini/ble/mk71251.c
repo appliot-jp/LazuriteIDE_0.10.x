@@ -5,7 +5,7 @@
 #define BLE_GPIO2			32		// P54
 #define BLE_GPIO1			33		// P55
 #define BLE_GPIO0			21		// P41
-#define PWR_LED				11		// P55
+#define PWR_LED				20		// P23
 
 #include <driver_uart.h>
 #include <driver_irq.h>
@@ -18,6 +18,38 @@
 #include <wdt.h>
 
 static uint8_t ble_rx_buf[128];
+static uint8_t ble_tx_buf[128];
+static char ble_tx_flag;							// true = send, false = not send
+static char ble_tx_sending=false;
+static char led_status;
+static struct BLE_LED_PARAM *current_led_param;
+static struct BLE_LED_CONFIG ble_led_conf = {
+	{				// sleep
+		3,			// cycle
+		PWR_LED,	// pin
+		10,			// on time
+		100			// off time
+	},
+	{				// advertising
+		1,			// cycle
+		PWR_LED,	// pin
+		10,			// on time
+		100			// off time
+	},
+	{				// connect
+		0,			// cycle
+		PWR_LED,	// pin
+		10,			// on time
+		100			// off time
+	}
+};
+
+static FIFO_CTRL ble_tx_fifo = {
+	sizeof(ble_tx_buf),
+	ble_tx_buf,
+	0,
+	0
+};
 static FIFO_CTRL ble_rx_fifo = {
 	sizeof(ble_rx_buf),
 	ble_rx_buf,
@@ -25,60 +57,88 @@ static FIFO_CTRL ble_rx_fifo = {
 	0
 };
 static int mode = 0;
-static int led_status = 0;
 static uint8_t check_index;
 static const char ble_connect[] = "\r\nCONNECT\r\n";
 static const char ble_nocarrier[] = "\r\nNO CARRIER\r\n";
 
 static void ble_led_func(void) {
-	if(mode == 0) {
-		drv_digitalWrite(PWR_LED,HIGH);
-	} else if(mode == 1) {
-		switch(led_status) {
-		case 0:
-			drv_digitalWrite(PWR_LED,HIGH);
-			timer_8bit_set(TM_CH6, 0xb3, 100, ble_led_func);
-			timer_8bit_start(TM_CH6);
-			led_status++;
-			break;
-		case 1:
-			drv_digitalWrite(PWR_LED,LOW);
-			timer_8bit_set(TM_CH6, 0xb3, 10, ble_led_func);
-			timer_8bit_start(TM_CH6);
-			led_status++;
-			break;
-		default:
-			drv_digitalWrite(PWR_LED,HIGH);
-			timer_8bit_start(TM_CH6);
-			break;
+	if(led_status==0) digitalWrite(current_led_param->pin,HIGH);
+	else {
+		led_status--;
+		if(led_status&0x01) {
+		    timer_8bit_set((uint8_t)TM_CH6, 0xb3, current_led_param->on_time, ble_led_func);
+		    timer_8bit_start(TM_CH6);
+			digitalWrite(current_led_param->pin,LOW);
+		} else {
+		    timer_8bit_set((uint8_t)TM_CH6, 0xb3, current_led_param->off_time, ble_led_func);
+		    timer_8bit_start(TM_CH6);
+			digitalWrite(current_led_param->pin,HIGH);
 		}
-	} else {
-		led_status = 0;
-		drv_digitalWrite(PWR_LED,HIGH);
 	}
 }
 
 void ble_timer_func(void) {
-	if((mode == 1) || (mode == 2))
-	{
-		drv_digitalWrite(PWR_LED,LOW);
-		timer_8bit_set(TM_CH6, 0xb3, 10, ble_led_func);
-		timer_8bit_start(TM_CH6);
-		led_status = 0;
+	switch(mode) {
+	case 1:
+		current_led_param=&ble_led_conf.sleep;
+		break;
+	case 2:
+		current_led_param=&ble_led_conf.advertise;
+		break;
+	case 3:
+		current_led_param=&ble_led_conf.connect;
+		break;
+	default:
+		return;
 	}
+	if(current_led_param->cycle == 0) digitalWrite(current_led_param->pin,HIGH);
+	else digitalWrite(current_led_param->pin,LOW);
+    timer_8bit_set(TM_CH6, 0xb3, current_led_param->on_time, ble_led_func);
+    timer_8bit_start(TM_CH6);
+    led_status = current_led_param->cycle;
 }
 
-static void ble_rx_callback() {
+void ble_tx_isr(void)
+{
+	int data;
+	if(ble_tx_flag == false)
+	{
+		ble_tx_sending = false;
+	}
+	data = uart_fifo_out(&ble_tx_fifo);
+	if(data < 0)
+	{
+		if(mode != 3) {
+			if(ble_tx_sending==false) {
+				drv_digitalWrite(BLE_GPIO1,HIGH);
+			}
+		}
+		ble_tx_flag = false;
+		return;
+	}
+	write_reg8(UA1BUF, (char)data);
+	return;
+}
+
+static void ble_rx_isr() {
 	char data;
+	int i=0;
+	
 	data = read_reg8(UA0BUF);
 	if(mode == 3) {
-		uart_fifo_in(&ble_rx_fifo, data);
+//		uart_fifo_in(&ble_rx_fifo, data);
 		if(check_index < (sizeof(ble_nocarrier)-1)) {
 			if (data == ble_nocarrier[check_index]) {
 				check_index++;
 			} else if (data == ble_nocarrier[0]){
 				check_index = 1;
 			} else {
+				while(check_index>0) {
+					uart_fifo_in(&ble_rx_fifo, ble_nocarrier[i]);
+					i++;
+					check_index--;
+				};
+				uart_fifo_in(&ble_rx_fifo, data);
 				check_index = 0;				
 			}
 			if(check_index >= (sizeof(ble_nocarrier)-1)) {
@@ -89,7 +149,7 @@ static void ble_rx_callback() {
 			}
 		}
 	} else {
-		uart_fifo_in(&ble_rx_fifo, data);
+//		uart_fifo_in(&ble_rx_fifo, data);
 		if(check_index < (sizeof(ble_connect)-1)) {
 			if (data == ble_connect[check_index]) {
 				check_index++;
@@ -104,7 +164,7 @@ static void ble_rx_callback() {
 	}
 	return;
 }
-static void ble_begin() {
+static void ble_begin(void) {
 	drv_pinMode(BLE_RSTB,OUTPUT);
 	drv_digitalWrite(BLE_RSTB,LOW);
   
@@ -117,32 +177,37 @@ static void ble_begin() {
 	drv_pinMode(BLE_GPIO3,OUTPUT);
 	drv_digitalWrite(BLE_GPIO3,LOW);
 
-	drv_pinMode(PWR_LED,OUTPUT);
-	drv_digitalWrite(PWR_LED,LOW);
+	pinMode(PWR_LED,OUTPUT);
+	digitalWrite(PWR_LED,LOW);
 
 	delay(20);
 	
 	check_index = 0;
 
 	uart_fifo_init(&ble_rx_fifo);
+	uart_fifo_init(&ble_tx_fifo);
 
 	uart_gpio_init(0);
-	uart_begin(57600,ble_rx_callback,NULL);
+	uart_begin(57600,ble_rx_isr,ble_tx_isr);
 
 	// release reset
 	drv_digitalWrite(BLE_RSTB,HIGH);
-
+	delay(100);
 	// waiting callibration
 	while(drv_digitalRead(BLE_GPIO0) == HIGH) {
 	}
-	delay(1);
+	delay(10);
 	mode = 1;
+	digitalWrite(PWR_LED,HIGH);
 	timer_8bit_set(TM_CH6, 0xb3, 10, ble_led_func);
+	ble_tx_flag = false;
+	ble_tx_sending = false;
 }
 static void ble_end(void)
 {
 	uart_gpio_end(0);
 	uart_end();
+	mode = 0;
 }
 
 static int ble_rx_read(void)
@@ -170,7 +235,7 @@ static size_t ble_print(char* data)
 
 	while(data[n] != NULL)
 	{
-		if(uart_tx_write(data[n]) == 1)
+		if(ble_tx_write_byte(data[n]) == 1)
 		{
 			n++;
 		}
@@ -222,13 +287,39 @@ static int ble_rx_available(void)
 {
 	return ble_rx_fifo.length;
 }
+size_t ble_tx_write_byte(char data)
+{
+	size_t res;
+	
+//	__DI();										// disenable interrupt
+	dis_interrupts(DI_UART);
+	res = uart_fifo_in(&ble_tx_fifo,data);
+	
+	if(res == 1)
+	{
+		if(ble_tx_flag == false)
+		{
+			// waiting CTS flag
+			drv_digitalWrite(BLE_GPIO1,LOW);
+			while(drv_digitalRead(BLE_GPIO2) == HIGH) {
+			}
+			data = (char)uart_fifo_out(&ble_tx_fifo);
+			write_reg8(UA1BUF,data);
+			ble_tx_flag = true;
+			ble_tx_sending = true;
+		}
+	}
+//	__EI();										// enable interrupt
+	enb_interrupts(DI_UART);
+	return res;
+}
 static size_t ble_tx_write(char* data, size_t quantity)
 {
 	size_t n;
 	
 	for(n=0;n<quantity;n++)
 	{
-		if(uart_tx_write(data[n]) != 1)
+		if(ble_tx_write_byte(data[n]) != 1)
 		{
 			break;
 		}
@@ -236,6 +327,11 @@ static size_t ble_tx_write(char* data, size_t quantity)
 	
 	return n;
 }
+static int ble_tx_available(void)
+{
+	return (ble_tx_fifo.max_length-ble_tx_fifo.length);
+}
+
 
 static volatile int ble_getStatus(void) {
 	return mode;
@@ -243,17 +339,27 @@ static volatile int ble_getStatus(void) {
 
 static volatile void ble_advertising(bool on) {
 	if(on) {
-		drv_digitalWrite(BLE_GPIO1,LOW);
-		// waitign cts
-		while(drv_digitalRead(BLE_GPIO2) == HIGH) {
-		}
 		ble_print("ATD\r");
 		mode = 2;
 	} else {
-		drv_digitalWrite(BLE_GPIO1,HIGH);
-		mode = 1;
+		if(mode == 2) {
+			ble_print("\r");
+		}
+		else if(mode == 3) {
+			ble_print("+++AT\rATH");
+			mode = 1;
+		}
 	}
 	return;
+}
+
+static void ble_setLedConfig(struct BLE_LED_CONFIG *conf)
+{
+	memcpy(&ble_led_conf,conf,sizeof(struct BLE_LED_CONFIG));
+}
+static void ble_getLedConfig(struct BLE_LED_CONFIG *conf)
+{
+	memcpy(conf,&ble_led_conf,sizeof(struct BLE_LED_CONFIG));
 }
 
 const BLUETOOTH ble = {
@@ -270,8 +376,10 @@ const BLUETOOTH ble = {
 	ble_print_double,
 	ble_println_double,
 	ble_tx_write,
-	uart_tx_write,
-	uart_tx_available,
+	ble_tx_write_byte,
+	ble_tx_available,
 	ble_getStatus,
-	ble_advertising
+	ble_advertising,
+	ble_setLedConfig,
+	ble_getLedConfig
 };

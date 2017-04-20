@@ -1,6 +1,18 @@
 #ifndef _MK71251_H_
 #define _MK71251_H_
+#include <common.h>
 
+struct BLE_LED_PARAM {
+	uint8_t cycle;
+	uint8_t pin;
+	uint8_t on_time;
+	uint8_t off_time;
+};
+struct BLE_LED_CONFIG {
+	struct BLE_LED_PARAM sleep;
+	struct BLE_LED_PARAM advertise;
+	struct BLE_LED_PARAM connect;
+};
 typedef struct {
 	void (*begin)(void);
 	void (*end)(void);
@@ -19,6 +31,8 @@ typedef struct {
 	int (*tx_available)(void);								// add 
 	volatile int (*getStatus)(void);
 	volatile void (*advertising)(bool on);
+	void (*setLedConfig)(struct BLE_LED_CONFIG *conf);
+	void (*getLedConfig)(struct BLE_LED_CONFIG *conf);
 } BLUETOOTH;
 
 extern const BLUETOOTH ble;
