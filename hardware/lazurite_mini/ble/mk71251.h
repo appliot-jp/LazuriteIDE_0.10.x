@@ -2,6 +2,9 @@
 #define _MK71251_H_
 #include <common.h>
 
+#define BLE_RX_BUF_SIZE		(128)
+#define BLE_TX_BUF_SIZE		(128)
+
 typedef enum {
 	NOT_START = 0,
 	DEEPSLEEP,

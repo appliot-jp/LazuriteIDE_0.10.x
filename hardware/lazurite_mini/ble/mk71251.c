@@ -31,8 +31,8 @@ static void (*ble_callback_func)(int mode);
 static uint8_t ble_tx_mode;				// 0 = normal, 1=cmd mode
 static uint8_t ble_cmd_buf_index;		// cmd buffer index
 static bool ble_flow_ctrl = true;
-static uint8_t ble_rx_buf[128];
-static uint8_t ble_tx_buf[128];
+static uint8_t ble_rx_buf[BLE_RX_BUF_SIZE];
+static uint8_t ble_tx_buf[BLE_TX_BUF_SIZE];
 static char ble_tx_flag;							// true = UA1BUF is full, false = UA1BUF is empty
 static char ble_tx_sending;							// true = sending (can not sleep), false = not sending (enable to sleep)
 static char led_status;
