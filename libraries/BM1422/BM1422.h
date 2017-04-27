@@ -28,6 +28,7 @@
 
 #define BM1422_WIA                 (0x0F)
 #define BM1422_DATAX               (0x10)
+#define BM1422_STATUS              (0x18)
 #define BM1422_CNTL1               (0x1B)
 #define BM1422_CNTL2               (0x1C)
 #define BM1422_CNTL3               (0x1D)
@@ -37,7 +38,9 @@
 // ƒNƒ‰ƒX‚Ì’è‹`
 typedef struct {
 	byte (*init)(int slave_address) ;
-	byte (*get_val)(float *data) ; 
+	byte (*get_val)(float *data) ;
+	byte (*get_rawval)(unsigned char *data);
+	byte (*power_down)(void);
 }t_BM1422;
 
 extern const t_BM1422 bm1422;

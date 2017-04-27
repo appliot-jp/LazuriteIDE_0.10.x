@@ -68,14 +68,14 @@ static byte bm1422_init(int slave_address)
  	device_address = (slave_address == BM1422_DEVICE_ADDRESS_0F) ? BM1422_DEVICE_ADDRESS_0F :BM1422_DEVICE_ADDRESS_0E ;
   rc = bm1422_read(BM1422_WIA, &reg, sizeof(reg));
   if (rc != 0) {
-    Serial.println("Can't access BM1422");
+//    Serial.println("Can't access BM1422");
     return (rc);
   } 
-  Serial.print("BM1422_WHO_AMI Register Value = 0x");
-  Serial.println_long(reg, HEX);
+//    Serial.print("BM1422_WHO_AMI Register Value = 0x");
+//    Serial.println_long(reg, HEX);
   
   if (reg != BM1422_WIA_VAL) {
-    Serial.println("Can't find BM1422");
+//    Serial.println("Can't find BM1422");
     return (rc);
   }
 
@@ -83,7 +83,7 @@ static byte bm1422_init(int slave_address)
   reg = 0xC2;
   rc = bm1422_write(BM1422_CNTL1, &reg, sizeof(reg));
   if (rc != 0) {
-    Serial.println("Can't write BM1422_CNTL1 Register");
+//    Serial.println("Can't write BM1422_CNTL1 Register");
     return (rc);
   }
 
@@ -91,7 +91,7 @@ static byte bm1422_init(int slave_address)
   buf[1] = 0x00;
   rc = bm1422_write(BM1422_CNTL4, buf, sizeof(buf));
   if (rc != 0) {
-    Serial.println("Can't write BM1422_CNTL4 Register");
+//    Serial.println("Can't write BM1422_CNTL4 Register");
     return (rc);
   }
 
@@ -99,7 +99,7 @@ static byte bm1422_init(int slave_address)
   reg = 0x08;
   rc = bm1422_write(BM1422_CNTL2, &reg, sizeof(reg));
   if (rc != 0) {
-    Serial.println("Can't write BM1422_CNTL2 Register");
+//    Serial.println("Can't write BM1422_CNTL2 Register");
     return (rc);
   }
 
@@ -117,13 +117,13 @@ static byte bm1422_get_rawval(unsigned char *data)
   reg = 0x40;
   rc = bm1422_write(BM1422_CNTL3, &reg, sizeof(reg));
   if (rc != 0) {
-    Serial.println("Can't write BM1422_CNTL3 Register");
+//    Serial.println("Can't write BM1422_CNTL3 Register");
     return (rc);
   }
-
+  delay(1);
   rc = bm1422_read(BM1422_DATAX, data, 6);
   if (rc != 0) {
-    Serial.println("Can't get BM1422 magnet values");
+//    Serial.println("Can't get BM1422 magnet values");
   }   
 
   return (rc);  
@@ -151,8 +151,24 @@ static byte bm1422_get_val(float *data)
   return (rc);  
 }
 
+static byte bm1422_power_down(void)
+{
+  byte rc;
+  unsigned char reg;
+
+  reg = 0x20;
+  rc = bm1422_write(BM1422_CNTL1, &reg, sizeof(reg));
+  if (rc != 0) {
+//    Serial.println("Can't write BM1422_CNTL1 Register");
+  }
+
+  return (rc);
+}
+
 const t_BM1422 bm1422 =
 {
 	bm1422_init,
 	bm1422_get_val,
+	bm1422_get_rawval,
+	bm1422_power_down
 };
