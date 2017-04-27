@@ -231,6 +231,7 @@ Return true if initialization succeeds, false otherwise.
 */
   if (Sd2Card_init(&card, SPI_CLOCK_DIV4, csPin)) {
     if (SdVolume_init(&volume, &card)) {
+	  SdFile_init(&root);								// w/a for reinvoking SD.begin()
       if (SdFile_openRoot(&root, &volume)) {
         return true;
       }
