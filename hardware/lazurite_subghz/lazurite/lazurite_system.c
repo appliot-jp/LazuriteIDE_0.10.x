@@ -548,8 +548,7 @@ void wait_event(bool *flag)
 			wdt_clear();
 		}
 	}
-// @issue : the following my not need
-//	*flag = false;
+	*flag = false;
 	#ifdef PWR_LED
 	drv_digitalWrite(11,LOW);		// PWR LED ON
 	#endif
