@@ -128,10 +128,10 @@ static uint8_t kxg03_read(uint8_t addr,uint8_t* data,uint8_t size)
 	Wire.write_byte(addr);
 	rc = Wire.endTransmission(false);
 	if (rc != 0) {
-		Serial.print("read.endTransmission=0x");
-		Serial.print_long((long)addr,HEX);
-		Serial.print(",");
-		Serial.println_long((long)rc,HEX);
+//		Serial.print("read.endTransmission=0x");
+//		Serial.print_long((long)addr,HEX);
+//		Serial.print(",");
+//		Serial.println_long((long)rc,HEX);
 //		return (rc);
 	}
 	rc=Wire.requestFrom(slave_addr, size, true);
@@ -170,16 +170,16 @@ static uint8_t kxg03_init(uint8_t i2c_addr)
 //	Wire.setTimeout(100);
 	rc = kxg03_read(KXG03_WHO_AM_I, &reg, sizeof(reg));
 	if (rc != 1) {
-		Serial.print_long((long)rc,DEC);
+//		Serial.print_long((long)rc,DEC);
 //		while(1){}
-			Serial.println("Can't access KXG03");
+//			Serial.println("Can't access KXG03");
 			return (rc);
 	} 
-	Serial.print("KXG03_WHO_AM_I Register Value = 0x");
-	Serial.println_long((long)reg, HEX);
+//	Serial.print("KXG03_WHO_AM_I Register Value = 0x");
+//	Serial.println_long((long)reg, HEX);
 
 	if (reg != KXG03_WHO_AM_I_VAL) {
-		Serial.println("Can't find KXG03");
+//		Serial.println("Can't find KXG03");
 	// return (rc);
 	}
 	/*
@@ -205,8 +205,8 @@ static uint8_t kxg03_get_val(float* val)
 	
 	rc = kxg03_read(KXG03_GYRO_XOUT_L,data.d8,12);
 	if(rc!=12) {
-		Serial.print("I2C ERROR=");
-		Serial.println_long((long)rc,DEC);
+//		Serial.print("I2C ERROR=");
+//		Serial.println_long((long)rc,DEC);
 	}
 		
 	val[0] = (float)data.d16[0]/gyro_div[kxg03_gyro_range];
@@ -270,10 +270,10 @@ static const char kxg03_err_msg[][16] =
 
 void kxg03_err_msg_out(uint8_t id, uint8_t val)
 {
-	Serial.print("KXG03_");
-	Serial.print(kxg03_err_msg[id]);
-	Serial.print("=");
-	Serial.println_long(val,DEC);
+//	Serial.print("KXG03_");
+//	Serial.print(kxg03_err_msg[id]);
+//	Serial.print("=");
+//	Serial.println_long(val,DEC);
 }
 
 static int kxg03_set_acc_avr(uint8_t acc_avr)
@@ -657,6 +657,19 @@ void kxg03_set_deg_out(bool deg_out)
 	else kxg03_out_flag &= ~KXG03_DEG_OUT;
 }
 
+static uint8_t kxg03_standby(void)
+{
+	uint8_t rc;
+	uint8_t data;
+
+	// set KXG03 to stand-by
+	data = 0xEF;
+	rc = kxg03.write(KXG03_STDBY,&data,1);
+	if(rc) {
+		kxg03_err_msg_out(0,rc);
+	}
+	return rc;
+}
 
 const KXG03 kxg03 ={
 	kxg03_init,					//	uint8_t (*init)(uint8_t slave_addr);
@@ -675,6 +688,7 @@ const KXG03 kxg03 ={
 	kxg03_set_kalman_out,		// 	void (*set_kalman_out)(bool kalman_out);
 	kxg03_set_acc_out,			//	void (*set_acc_out)(bool acc_out);
 	kxg03_set_gyro_out,			//	void (*set_gyro_out)(bool gyro_out);
-	kxg03_set_deg_out			//	void (*set_deg_out)(bool deg_out);
+	kxg03_set_deg_out,			//	void (*set_deg_out)(bool deg_out);
+	kxg03_standby				//  uint8_t (*standby)(void);
 };
 

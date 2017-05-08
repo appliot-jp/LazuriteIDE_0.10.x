@@ -179,6 +179,7 @@ typedef struct {
 	void (*set_acc_out)(bool acc_out);
 	void (*set_gyro_out)(bool gyro_out);
 	void (*set_deg_out)(bool deg_out);
+	uint8_t (*standby)(void);
 }KXG03;
 
 typedef struct {
