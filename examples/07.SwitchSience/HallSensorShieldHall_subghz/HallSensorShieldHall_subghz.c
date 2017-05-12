@@ -1,9 +1,9 @@
-#include "HallSensor_serial_ide.h"		// Additional Header
+#include "HallSensorShieldHall_subghz_ide.h"		// Additional Header
 
-/* FILE NAME: Serial_Echo.c
+/* FILE NAME: HallSensorShieldHall_subghz.c
  * The MIT License (MIT)
  * 
- * Copyright (c) 2015  Lapis Semiconductor Co.,Ltd.
+ * Copyright (c) 2017  Lapis Semiconductor Co.,Ltd.
  * All rights reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,8 +23,15 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
-*/
+ */
 
+#define SUBGHZ_CH			36
+#define SUBGHZ_PANID		0xabcd
+#define SUBGHZ_BPS			100
+#define SUBGHZ_PWR			20
+#define SUBGHZ_HOST_ADDR	0x5f59
+
+uint8_t txdata[256];
 bool hall = false;
 
 void isr_hall(void)
@@ -34,35 +41,28 @@ void isr_hall(void)
 
 void setup() {
   // put your setup code here, to run once:
-//  SubGHz.init();
   Serial.begin(115200);
-  
-  hall = false;
+  SubGHz.init();
 
   pinMode(3, INPUT);
-
   attachInterrupt(1, isr_hall, CHANGE);
-
-  pinMode(26, OUTPUT);
-
 }
-
-char payload[] = "50\r\n";
 
 void loop() {
   // put your main code here, to run repeatedly:
   wait_event(&hall);
-  hall = false;
 
-  digitalWrite(26, LOW);
+  Print.init(txdata,sizeof(txdata));
+  if (digitalRead(3)) {
+    Print.p("Released");
+  } else {
+    Print.p("Detected");
+  }
+  Print.ln();
 
-//  SubGHz.begin(36,0xabcd,100,20);
-//  SubGHz.send(0xabcd,0x1002,payload,sizeof(payload),NULL);
-//  SubGHz.close();
+  SubGHz.begin(SUBGHZ_CH,SUBGHZ_PANID,SUBGHZ_BPS,SUBGHZ_PWR);
+  SubGHz.send(SUBGHZ_PANID,SUBGHZ_HOST_ADDR,txdata,Print.len(),NULL);
+  SubGHz.close();
 
-	if(digitalRead(3) == 0 ) Serial.println("Detecting");
-	else Serial.println("Release");
-
-  digitalWrite(26, HIGH);
-
+  Serial.print(txdata);
 }

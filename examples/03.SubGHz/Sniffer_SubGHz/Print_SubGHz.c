@@ -1,6 +1,6 @@
-#include "SubGHz_rxtx2_ide.h"		// Additional Header
+#include "Print_SubGHz_ide.h"		// Additional Header
 
-/* FILE NAME: SubGHz_tx64rx.c
+/* FILE NAME: Read_SubGHz.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2015  Lapis Semiconductor Co.,Ltd.
@@ -25,19 +25,12 @@
  * THE SOFTWARE.
 */
 
-
-#define ORANGE_LED 25						// pin number of Blue LED
-#define BLUE_LED 26						// pin number of Blue LED
-
-#define SUBGHZ_CH		36			// channel number (frequency)
-#define SUBGHZ_PANID	0xabcd		// panid
-#define HOST_ADDRESS	0xffff       // distination address
-
-//uint8_t host[] = HOST_ADDRESS;
-
-unsigned char send_data[] = {"group cast!!!!\r\n"};
-unsigned char rx_data[256];
+#define SUBGHZ_CH	36
+#define SUBGHZ_PANID	0xABCD
+uint8_t rx_data[256];
+uint32_t last_recv_time = 0;
 SUBGHZ_STATUS rx;							// structure for getting rx status
+#define BLUE_LED	26
 
 void print_hex_func(uint8_t data)
 {
@@ -54,45 +47,72 @@ void print_hex_func(uint8_t data)
 
 void setup(void)
 {
-	
-	SubGHz.init();					// initializing Sub-GHz
+	SUBGHZ_MSG msg;
+	uint8_t myAddr[8];
+
 	Serial.begin(115200);
-	pinMode(ORANGE_LED,OUTPUT);			// setting of LED
-	pinMode(BLUE_LED,OUTPUT);			// setting of LED
-	digitalWrite(ORANGE_LED,HIGH);			// setting of LED
-	digitalWrite(BLUE_LED,HIGH);			// setting of LED
-	SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_100KBPS, SUBGHZ_PWR_20MW);		// start Sub-GHz
-	SubGHz.rxEnable(NULL);
+	
+	msg = SubGHz.init();
+	if(msg != SUBGHZ_OK)
+	{
+		SubGHz.msgOut(msg);
+		while(1){ }
+	}
+	
+	SubGHz.getMyAddr64(myAddr);
+	Serial.print("myAddress = ");
+	print_hex_func(myAddr[0]);
+	print_hex_func(myAddr[1]);
+	Serial.print(" ");
+	print_hex_func(myAddr[2]);
+	print_hex_func(myAddr[3]);
+	Serial.print(" ");
+	Serial.print(" ");
+	print_hex_func(myAddr[4]);
+	print_hex_func(myAddr[5]);
+	Serial.print(" ");
+	print_hex_func(myAddr[6]);
+	print_hex_func(myAddr[7]);
+	Serial.println("");
+	
+	SubGHz.setPromiscuous(true);
+	
+	msg = SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_100KBPS, SUBGHZ_PWR_20MW);
+	if(msg != SUBGHZ_OK)
+	{
+		SubGHz.msgOut(msg);
+		while(1){ }
+	}
+	msg = SubGHz.rxEnable(NULL);
+	if(msg != SUBGHZ_OK)
+	{
+		SubGHz.msgOut(msg);
+		while(1){ }
+	}
+	
+	pinMode(BLUE_LED,OUTPUT);
+	digitalWrite(BLUE_LED,HIGH);
+	
+	Serial.println("TIME	HEADER	SEQ	PANID	RX_ADDR	TX_ADDR	RSSI	PAYLOAD");
+	Serial.println("-----------------------------------------------------------------------------------------------------------------");
+	
+	return;
 }
 
 void loop(void)
 {
-	volatile unsigned long current_time;
-	static volatile unsigned long last_send_time = 0x80000000;
-	int rx_len;
 	SUBGHZ_MAC_PARAM mac;
-	SUBGHZ_MSG msg;
+	short rx_len;
+	short index=0;
+	uint16_t data16;
 	
-	// Initializing
-	current_time = millis();
-	
-	// preparing data
-	if((current_time - last_send_time) > 500) {
-		digitalWrite(BLUE_LED,LOW);														// LED ON
-		msg=SubGHz.send(SUBGHZ_PANID,HOST_ADDRESS, &send_data, sizeof(send_data),NULL);// send data
-		digitalWrite(BLUE_LED,HIGH);														// LED off
-		SubGHz.msgOut(msg);
-		last_send_time = current_time;
-	}
-
 	rx_len = SubGHz.readData(rx_data,sizeof(rx_data));
 	rx_data[rx_len]=0;
 	if(rx_len>0)
 	{
-		digitalWrite(ORANGE_LED, LOW);
+		digitalWrite(BLUE_LED, LOW);
 		SubGHz.getStatus(NULL,&rx);										// get status of rx
 		SubGHz.decMac(&mac,rx_data,rx_len);
-
 		Serial.print_long(millis(),DEC);
 		Serial.print("\t");
 
@@ -128,13 +148,13 @@ void loop(void)
 		Serial.print_long(rx.rssi,DEC);
 		Serial.print("\t");
 		
-		Serial.write(mac.payload,mac.payload_len);
+		Serial.print(mac.payload);
 		// print ln
 		Serial.println("");
-		
-		digitalWrite(ORANGE_LED, HIGH);
+		digitalWrite(BLUE_LED, HIGH);
 	}
-
+	
+	
 	return;
 }
 
