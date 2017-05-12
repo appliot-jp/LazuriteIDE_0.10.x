@@ -1,4 +1,4 @@
-#include "SubGHz_tx64rx_ide.h"		// Additional Header
+#include "SubGHz_rxtx_ide.h"		// Additional Header
 
 /* FILE NAME: SubGHz_tx64rx.c
  * The MIT License (MIT)
@@ -31,11 +31,11 @@
 
 #define SUBGHZ_CH		36			// channel number (frequency)
 #define SUBGHZ_PANID	0xabcd		// panid
-#define HOST_ADDRESS	{0x00,00,0x12,0x90,0x00,0x04,0x7f,0xad}		// distination address
+#define HOST_ADDRESS	0x7fad	// distination address
 
-uint8_t host[] = HOST_ADDRESS;
+//uint8_t host[] = HOST_ADDRESS;
 
-unsigned char send_data[] = {"IDE No Receiver!!!!\r\n"};
+unsigned char send_data[] = {"RX_IDE!!!!\r\n"};
 unsigned char rx_data[256];
 SUBGHZ_STATUS rx;							// structure for getting rx status
 
@@ -80,7 +80,7 @@ void loop(void)
 	if((current_time - last_send_time) > 99) {
 		digitalWrite(BLUE_LED,LOW);														// LED ON
 //		msg=SubGHz.send64be(host, &send_data, sizeof(send_data),NULL);// send data
-		msg=SubGHz.send(0xabcd,0xffff, &send_data, sizeof(send_data),NULL);// send data
+		msg=SubGHz.send(SUBGHZ_PANID,HOST_ADDRESS, &send_data, sizeof(send_data),NULL);// send data
 		digitalWrite(BLUE_LED,HIGH);														// LED off
 		SubGHz.msgOut(msg);
 		last_send_time = current_time;

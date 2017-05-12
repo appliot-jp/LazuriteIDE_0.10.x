@@ -38,7 +38,6 @@ unsigned char send_data[] = {"Welcome to Lazurite Sub-GHz\r\n"};
 
 void setup(void)
 {
-	
 	SubGHz.init();					// initializing Sub-GHz
 	Serial.begin(115200);
 	pinMode(LED,OUTPUT);			// setting of LED

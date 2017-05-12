@@ -1,4 +1,4 @@
-#include "HallSensor_serial_ide.h"		// Additional Header
+#include "HallSensor_sg_ide.h"		// Additional Header
 
 #define SUBGHZ_CH			36
 #define SUBGHZ_PANID		0xabcd
