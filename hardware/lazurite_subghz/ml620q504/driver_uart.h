@@ -29,6 +29,15 @@
 //   global definitions
 //********************************************************************************
 #define UART_BUFFER_LENGTH 128
+
+typedef struct {
+	UCHAR max_length;
+	UCHAR *buf;
+	UCHAR wr_p;
+	UCHAR rd_p;
+	UCHAR length;
+} FIFO_CTRL;
+
 //********************************************************************************
 //   global parameters
 //********************************************************************************
@@ -39,15 +48,17 @@ extern char uartf_tx_sending;							// true = send, false = not send
 //********************************************************************************
 //   extern function definitions
 //********************************************************************************
+extern void uart_gpio_init(unsigned char n);
+extern void uart_gpio_end(unsigned char n);
+extern void uart_end(void);
+extern void uart_begin(UINT32 baud,void (*rxcallback)(void), void (*txcallback)(void));
+extern int uart_tx_available(void);
+extern int uart_rx_available(void);
 extern void uartf_gpio_init(unsigned char n);
 extern void uartf_gpio_end(unsigned char n);
-extern void uart_begin(UINT32 baud);
 extern void uartf_begin(UINT32 baud);
-extern void uart_end(void);
 extern void uartf_end(void);
-extern int uart_rx_available(void);
 extern int uartf_rx_available(void);
-extern int uart_tx_available(void);
 extern int uartf_tx_available(void);
 extern size_t uart_tx_write(char data);
 extern size_t uartf_tx_write(char data);
@@ -57,6 +68,11 @@ extern void uart_flush(void);
 extern void uartf_flush(void);
 extern int uart_peek(void);
 extern int uartf_peek(void);
+
+extern void uart_fifo_init(FIFO_CTRL* fifo_p);
+extern volatile size_t uart_fifo_in(FIFO_CTRL* fifo_p, UCHAR data);
+extern volatile int uart_fifo_out(FIFO_CTRL* fifo_p);
+extern volatile int uart_fifo_out_peek(FIFO_CTRL* fifo_p);
 
 #endif // _DRIVER_UART_H_
 

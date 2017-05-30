@@ -1,6 +1,6 @@
 #include "Print_SubGHz_ide.h"		// Additional Header
 
-/* FILE NAME: Read_SubGHz.c
+/* FILE NAME: Print_SubGHz.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2015  Lapis Semiconductor Co.,Ltd.
@@ -32,10 +32,23 @@ uint32_t last_recv_time = 0;
 SUBGHZ_STATUS rx;							// structure for getting rx status
 #define BLUE_LED	26
 
+static const unsigned char *aes_key = NULL;		// disable AES key
+
+void print_hex_func(uint8_t data)
+{
+	if(data == 0) Serial.print("00");
+	else if(data < 16) {
+		Serial.print("0");
+		Serial.print_long(data,HEX);
+	} else {
+		Serial.print_long(data,HEX);
+	}
+}
+
 void setup(void)
 {
 	SUBGHZ_MSG msg;
-	long myAddress;
+	uint8_t myAddr[8];
 
 	Serial.begin(115200);
 	
@@ -46,9 +59,25 @@ void setup(void)
 		while(1){ }
 	}
 	
-	myAddress = SubGHz.getMyAddress();
-	Serial.print("myAddress1 = ");
-	Serial.println_long(myAddress,HEX);	
+	SubGHz.getMyAddr64(myAddr);
+	Serial.print("myAddress = ");
+	print_hex_func(myAddr[0]);
+	print_hex_func(myAddr[1]);
+	Serial.print(" ");
+	print_hex_func(myAddr[2]);
+	print_hex_func(myAddr[3]);
+	Serial.print(" ");
+	Serial.print(" ");
+	print_hex_func(myAddr[4]);
+	print_hex_func(myAddr[5]);
+	Serial.print(" ");
+	print_hex_func(myAddr[6]);
+	print_hex_func(myAddr[7]);
+	Serial.println("");
+
+
+	SubGHz.setKey(key);
+	
 	msg = SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_100KBPS, SUBGHZ_PWR_20MW);
 	if(msg != SUBGHZ_OK)
 	{
@@ -88,21 +117,33 @@ void loop(void)
 		Serial.print_long(millis(),DEC);
 		Serial.print("\t");
 
-		Serial.print_long(mac.mac_header.header,HEX);
+		Serial.print_long(mac.mac_header.fc16,HEX);
 		Serial.print("\t");
 
 		Serial.print_long(mac.seq_num,HEX);
 		Serial.print("\t");
 
-		Serial.print_long(mac.rx_panid,HEX);
+		Serial.print_long(mac.dst_panid,HEX);
 		Serial.print("\t");
 
-		data16 = *((uint16_t *)mac.rx_addr);
-		Serial.print_long(data16,HEX);
+		print_hex_func(mac.dst_addr[7]);
+		print_hex_func(mac.dst_addr[6]);
+		print_hex_func(mac.dst_addr[5]);
+		print_hex_func(mac.dst_addr[4]);
+		print_hex_func(mac.dst_addr[3]);
+		print_hex_func(mac.dst_addr[2]);
+		print_hex_func(mac.dst_addr[1]);
+		print_hex_func(mac.dst_addr[0]);
 		Serial.print("\t");
 
-		data16 = *((uint16_t *)mac.tx_addr);
-		Serial.print_long(data16,HEX);
+		print_hex_func(mac.src_addr[7]);
+		print_hex_func(mac.src_addr[6]);
+		print_hex_func(mac.src_addr[5]);
+		print_hex_func(mac.src_addr[4]);
+		print_hex_func(mac.src_addr[3]);
+		print_hex_func(mac.src_addr[2]);
+		print_hex_func(mac.src_addr[1]);
+		print_hex_func(mac.src_addr[0]);
 		Serial.print("\t");
 
 		Serial.print_long(rx.rssi,DEC);

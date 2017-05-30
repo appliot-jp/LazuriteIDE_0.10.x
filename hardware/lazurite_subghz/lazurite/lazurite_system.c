@@ -59,10 +59,16 @@ static struct {
 void isr_sys_timer(void);
 static void clk_block_ctrl_init(void);
 void watch_dog_isr(void);
+static void wait_timeout_isr(void);
 static void lazurite_gpio_init(void);
 static void init_timer(void);
 static void delay_isr(void);
 static volatile bool delay_flag;
+static bool *event_flag;
+
+#ifdef LAZURITE_BLE
+	extern void ble_timer_func();
+#endif
 
 //********************************************************************************
 //   local functions
@@ -417,6 +423,9 @@ static void (*millis_timer_func)(uint32_t sys_timer_count);
 void isr_sys_timer(void)
 {
 	sys_timer_count++;
+#ifdef LAZURITE_BLE
+	ble_timer_func();
+#endif
 	if(millis_timer_func) millis_timer_func(sys_timer_count);
 	return;
 }
@@ -450,6 +459,12 @@ static void clk_block_ctrl_init(void)
 	
 }
 
+static void wait_timeout_isr(void)
+{
+    timer_16bit_stop(6);
+    *event_flag = true;
+}
+
 void watch_dog_isr(void)
 {
 #ifndef	_WDT
@@ -467,11 +482,59 @@ void noInterrupts()
 	dis_interrupts(DI_USER);
 }
 
+bool wait_event_timeout(bool *flag,uint32_t time)
+{	
+	uint32_t current_time;
+	uint32_t target_time;
+	int result = true;
+	
+	current_time = millis();
+	target_time = current_time+time;
+
+	
+	#ifdef PWR_LED
+	drv_digitalWrite(11,HIGH);		// PWR LED OFF
+	#endif
+	while((*flag == false) || (current_time >= target_time))
+	{
+		if((uart_tx_sending == true) || (uartf_tx_sending == true))
+		{
+			lp_setHaltMode();
+			wdt_clear();
+		}
+		else
+		{
+			lp_setDeepHaltMode();
+			wdt_clear();
+		}
+		current_time = millis();
+	}
+	if(*flag) result = false;
+	
+	*flag = false;
+	
+	#ifdef PWR_LED
+	drv_digitalWrite(11,LOW);		// PWR LED ON
+	#endif
+	
+	return result;
+}
+
+bool wait_timeout(uint32_t time)
+{	
+	int result = true;
+	timer_16bit_set(6,0xE8,(unsigned long)time,wait_timeout_isr);
+	timer_16bit_start(6);
+	return result;
+}
+
 void wait_event(bool *flag)
 {	
 	#ifdef PWR_LED
 	drv_digitalWrite(11,HIGH);		// PWR LED OFF
 	#endif
+    event_flag = flag;
+
 	while(*flag == false)
 	{
 		if((uart_tx_sending == true) || (uartf_tx_sending == true))

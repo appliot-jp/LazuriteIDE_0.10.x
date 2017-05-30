@@ -39,6 +39,7 @@ typedef enum {
 //********************************************************************************
 extern BOOL	delay_irq_mode;
 extern uint16_t halt_event_timeout;
+
 //********************************************************************************
 //   extern function definitions
 //********************************************************************************
@@ -55,6 +56,8 @@ extern volatile unsigned long micros(void);
 extern void interrupts(void);
 extern void noInterrupts(void);
 extern void wait_event(bool *flag);
+extern bool wait_timeout(uint32_t time);
+extern bool wait_event_timeout(bool *flag,uint32_t time);
 extern void set_timer0_function(void (*func)(uint32_t sys_timer_count));
 extern uint8_t voltage_check(uint8_t level);
 

@@ -37,7 +37,6 @@ typedef struct {
 	void (*set)(unsigned long ms, void (*f)());
 	void (*start)(void);
 	void (*stop)(void);
-	bool (*wait_event_timeout)(bool *flag,unsigned long ms);
 } MsTimer2;
 
 extern MsTimer2 timer2;

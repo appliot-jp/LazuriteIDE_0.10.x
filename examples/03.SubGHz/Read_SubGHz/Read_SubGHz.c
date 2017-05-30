@@ -29,6 +29,7 @@
 #define SUBGHZ_PANID	0xABCD
 uint8_t rx_data[256];
 uint32_t last_recv_time = 0;
+uint8_t myAddr64[8];
 SUBGHZ_STATUS rx;
 
 #define BLUE_LED	26
@@ -48,8 +49,24 @@ void setup(void)
 	}
 	
 	myAddress = SubGHz.getMyAddress();
-	Serial.print("myAddress1 = ");
-	Serial.println_long(myAddress,HEX);	
+	SubGHz.getMyAddr64(myAddr64);
+	Serial.print("myAddress = ");
+	Serial.println_long(myAddress,HEX);
+	Serial.print_long(myAddr64[0],HEX);
+	Serial.print(" ");
+	Serial.print_long(myAddr64[1],HEX);
+	Serial.print(" ");
+	Serial.print_long(myAddr64[2],HEX);
+	Serial.print(" ");
+	Serial.print_long(myAddr64[3],HEX);
+	Serial.print(" ");
+	Serial.print_long(myAddr64[4],HEX);
+	Serial.print(" ");
+	Serial.print_long(myAddr64[5],HEX);
+	Serial.print(" ");
+	Serial.print_long(myAddr64[6],HEX);
+	Serial.print(" ");
+	Serial.println_long(myAddr64[7],HEX);
 	msg = SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_100KBPS, SUBGHZ_PWR_20MW);
 	if(msg != SUBGHZ_OK)
 	{
