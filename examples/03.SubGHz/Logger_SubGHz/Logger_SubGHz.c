@@ -1,6 +1,6 @@
-#include "Sniffer_SubGHz_ide.h"		// Additional Header
+#include "Logger_SubGHz_ide.h"		// Additional Header
 
-/* FILE NAME: Sniffer_SubGHz.c
+/* FILE NAME: Read_SubGHz.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2015  Lapis Semiconductor Co.,Ltd.
@@ -75,8 +75,6 @@ void setup(void)
 	print_hex_func(myAddr[7]);
 	Serial.println("");
 	
-	SubGHz.setPromiscuous(true);
-	
 	msg = SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_100KBPS, SUBGHZ_PWR_20MW);
 	if(msg != SUBGHZ_OK)
 	{
@@ -113,40 +111,40 @@ void loop(void)
 		digitalWrite(BLUE_LED, LOW);
 		SubGHz.getStatus(NULL,&rx);										// get status of rx
 		SubGHz.decMac(&mac,rx_data,rx_len);
-		Serial.print_long(millis(),DEC);
-		Serial.print("\t");
+//		Serial.print_long(millis(),DEC);
+//		Serial.print("\t");
 
-		Serial.print_long(mac.mac_header.fc16,HEX);
-		Serial.print("\t");
+//		Serial.print_long(mac.mac_header.fc16,HEX);
+//		Serial.print("\t");
 
-		Serial.print_long(mac.seq_num,HEX);
-		Serial.print("\t");
+//		Serial.print_long(mac.seq_num,HEX);
+//		Serial.print("\t");
 
-		Serial.print_long(mac.dst_panid,HEX);
-		Serial.print("\t");
+//		Serial.print_long(mac.dst_panid,HEX);
+//		Serial.print("\t");
 
-		print_hex_func(mac.dst_addr[7]);
-		print_hex_func(mac.dst_addr[6]);
-		print_hex_func(mac.dst_addr[5]);
-		print_hex_func(mac.dst_addr[4]);
-		print_hex_func(mac.dst_addr[3]);
-		print_hex_func(mac.dst_addr[2]);
-		print_hex_func(mac.dst_addr[1]);
-		print_hex_func(mac.dst_addr[0]);
-		Serial.print("\t");
-
-		print_hex_func(mac.src_addr[7]);
-		print_hex_func(mac.src_addr[6]);
-		print_hex_func(mac.src_addr[5]);
-		print_hex_func(mac.src_addr[4]);
-		print_hex_func(mac.src_addr[3]);
-		print_hex_func(mac.src_addr[2]);
+//		print_hex_func(mac.dst_addr[7]);
+//		print_hex_func(mac.dst_addr[6]);
+//		print_hex_func(mac.dst_addr[5]);
+//		print_hex_func(mac.dst_addr[4]);
+//		print_hex_func(mac.dst_addr[3]);
+//		print_hex_func(mac.dst_addr[2]);
+//		print_hex_func(mac.dst_addr[1]);
+//		print_hex_func(mac.dst_addr[0]);
+//		Serial.print("\t");
+//
+//		print_hex_func(mac.src_addr[7]);
+//		print_hex_func(mac.src_addr[6]);
+//		print_hex_func(mac.src_addr[5]);
+//		print_hex_func(mac.src_addr[4]);
+//		print_hex_func(mac.src_addr[3]);
+//		print_hex_func(mac.src_addr[2]);
 		print_hex_func(mac.src_addr[1]);
 		print_hex_func(mac.src_addr[0]);
-		Serial.print("\t");
+		Serial.print(",");
 
-		Serial.print_long(rx.rssi,DEC);
-		Serial.print("\t");
+//		Serial.print_long(rx.rssi,DEC);
+//		Serial.print("\t");
 		
 		Serial.print(mac.payload);
 		// print ln

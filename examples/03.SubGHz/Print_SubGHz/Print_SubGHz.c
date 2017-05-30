@@ -1,6 +1,6 @@
 #include "Print_SubGHz_ide.h"		// Additional Header
 
-/* FILE NAME: Read_SubGHz.c
+/* FILE NAME: Print_SubGHz.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2015  Lapis Semiconductor Co.,Ltd.
@@ -32,6 +32,8 @@ uint32_t last_recv_time = 0;
 SUBGHZ_STATUS rx;							// structure for getting rx status
 #define BLUE_LED	26
 
+static const unsigned char *aes_key = NULL;		// disable AES key
+
 void print_hex_func(uint8_t data)
 {
 	if(data == 0) Serial.print("00");
@@ -41,8 +43,6 @@ void print_hex_func(uint8_t data)
 	} else {
 		Serial.print_long(data,HEX);
 	}
-	
-
 }
 
 void setup(void)
@@ -74,6 +74,9 @@ void setup(void)
 	print_hex_func(myAddr[6]);
 	print_hex_func(myAddr[7]);
 	Serial.println("");
+
+
+	SubGHz.setKey(key);
 	
 	msg = SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_100KBPS, SUBGHZ_PWR_20MW);
 	if(msg != SUBGHZ_OK)

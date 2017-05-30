@@ -1,7 +1,7 @@
 #include "Welcome_SubGHz64_ide.h"		// Additional Header
 
 
-/* FILE NAME: Welcome_SubGHz.c
+/* FILE NAME: Welcome_SubGHz64.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2015  Lapis Semiconductor Co.,Ltd.
@@ -31,8 +31,9 @@
 #define SUBGHZ_CH		36			// channel number (frequency)
 #define SUBGHZ_PANID	0xabcd		// panid
 #define HOST_ADDRESS	{0x00,0x1d,0x12,0x90,0x00,0x04,0x7f,0xad}		// distination address
+static const uint8_t host[] = HOST_ADDRESS;
+static const unsigned char *aes_key = NULL;		// disable AES key
 
-uint8_t host[] = HOST_ADDRESS;
 
 unsigned char send_data[] = {"Welcome to Lazurite Sub-GHz\r\n"};
 
@@ -42,6 +43,7 @@ void setup(void)
 	Serial.begin(115200);
 	pinMode(LED,OUTPUT);			// setting of LED
 	digitalWrite(LED,HIGH);			// setting of LED
+	SubGHz.setKey(key);
 }
 
 void loop(void)

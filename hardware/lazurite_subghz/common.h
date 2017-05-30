@@ -113,6 +113,8 @@ typedef unsigned int word;
 #define bit(b) (1UL << (b))
 #define BIT(n)				(0x01<<n)
 
+#define _BV(bit) (1 << (bit))
+
 
 /************************************************/
 /* Definition                                   */
