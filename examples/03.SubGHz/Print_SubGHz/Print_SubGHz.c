@@ -76,7 +76,7 @@ void setup(void)
 	Serial.println("");
 
 
-	SubGHz.setKey(key);
+	SubGHz.setKey(aes_key);
 	
 	msg = SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_100KBPS, SUBGHZ_PWR_20MW);
 	if(msg != SUBGHZ_OK)
