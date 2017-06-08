@@ -25,10 +25,10 @@
 */
 #include "driver_gpio.h"
 #include "lp_manage.h"
-#include "ml7396_reg.h"
-#include "hal.h"
-#include "wire0.h"
-#include "spi0.h"
+#include "phy/phy_ml7396.h"
+#include "hwif/hal.h"
+#include "hwif/wire0.h"
+#include "hwif/spi0.h"
 
 #include <string.h>
 
@@ -176,10 +176,10 @@ static void gpio_write(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac) {
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}	
 	
@@ -216,10 +216,10 @@ static void gpio_read(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac) {
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}	
 	
@@ -265,10 +265,10 @@ static void gpio_set(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac) {
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}	
 }
@@ -319,10 +319,10 @@ static void fwr(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac) {
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}	
 }
@@ -364,10 +364,10 @@ static void frd(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac) {
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}	
 }
@@ -402,10 +402,10 @@ static void fer(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac) {
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}	
 }
@@ -804,20 +804,20 @@ static void sgout()
 		SubGHz.getStatus(NULL,&rx);
 		SubGHz.decMac(&mac,rbuf,result);
 		Serial.print("0x");
-		Serial.print_long(mac.mac_header.header,HEX);
+		Serial.print_long(mac.mac_header.fc16,HEX);
 		Serial.print(",0x");
 		Serial.print_long(mac.seq_num,HEX);
 		Serial.print(",0x");
-		Serial.print_long(mac.rx_panid,HEX);
+		Serial.print_long(mac.dst_panid,HEX);
 		Serial.print(",0x");
-		addr=mac.rx_addr[1];
-		addr = (addr << 8) + mac.rx_addr[0];
+		addr=mac.dst_addr[1];
+		addr = (addr << 8) + mac.dst_addr[0];
 		Serial.print_long(addr,HEX);
 		Serial.print(",0x");
-		Serial.print_long(mac.tx_panid,HEX);
+		Serial.print_long(mac.src_panid,HEX);
 		Serial.print(",0x");
-		addr=mac.tx_addr[1];
-		addr = (addr << 8) + mac.tx_addr[0];
+		addr=mac.src_addr[1];
+		addr = (addr << 8) + mac.src_addr[0];
 		Serial.print_long(addr,HEX);
 		Serial.print(",");
 		Serial.write(mac.payload,result);
@@ -846,25 +846,25 @@ static void sgr(uint8_t** pparam)
 	Serial.println_long(result,DEC);
 	if(pinRecv) digitalWrite(pinRecv,LOW);
 	digitalWrite(RXLED,HIGH);
-	if(result > 0)
+	if(result >= 0)
 	{
 		SubGHz.getStatus(NULL,&rx);
 		SubGHz.decMac(&mac,rbuf,result);
 		Serial.print("0x");
-		Serial.print_long(mac.mac_header.header,HEX);
+		Serial.print_long(mac.mac_header.fc16,HEX);
 		Serial.print(",0x");
 		Serial.print_long(mac.seq_num,HEX);
 		Serial.print(",0x");
-		Serial.print_long(mac.rx_panid,HEX);
+		Serial.print_long(mac.dst_panid,HEX);
 		Serial.print(",0x");
-		addr=mac.rx_addr[1];
-		addr = (addr << 8) + mac.rx_addr[0];
+		addr=mac.dst_addr[1];
+		addr = (addr << 8) + mac.dst_addr[0];
 		Serial.print_long(addr,HEX);
 		Serial.print(",0x");
-		Serial.print_long(mac.tx_panid,HEX);
+		Serial.print_long(mac.src_panid,HEX);
 		Serial.print(",0x");
-		addr=mac.tx_addr[1];
-		addr = (addr << 8) + mac.tx_addr[0];
+		addr=mac.src_addr[1];
+		addr = (addr << 8) + mac.src_addr[0];
 		Serial.print_long(addr,HEX);
 		Serial.print(",");
 		Serial.write(mac.payload,result);
@@ -964,10 +964,10 @@ static void wireb(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}
 }
@@ -998,10 +998,10 @@ static void wirebt(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}
 }
@@ -1030,10 +1030,10 @@ static void wireet(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}
 }
@@ -1064,10 +1064,10 @@ static void wirew(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}
 }
@@ -1111,10 +1111,10 @@ static void wirerf(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}
 }
@@ -1134,10 +1134,10 @@ static void wirea(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}
 }
@@ -1177,10 +1177,10 @@ static void wirer(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}
 }
@@ -1199,10 +1199,10 @@ static void spib(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}
 }
@@ -1230,10 +1230,10 @@ static void spit(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}
 }
@@ -1262,10 +1262,10 @@ static void spibo(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}
 }
@@ -1295,10 +1295,10 @@ static void spidm(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}
 }
@@ -1351,10 +1351,10 @@ static void spicd(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}
 }
@@ -1369,10 +1369,10 @@ static void spie(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}
 }
@@ -1413,10 +1413,10 @@ static void bindslp(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}	
 }
@@ -1452,10 +1452,10 @@ static void bindrcv(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}	
 }
@@ -1599,11 +1599,10 @@ void eeprom_read(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac) {
 	{
 		Serial.print(obuf);
 	} else {
-		uint16_t rx_addr;
-		rx_addr = *((uint16_t *)mac->tx_addr);
+		uint16_t dst_addr;
+		dst_addr = *((uint16_t *)mac->src_addr);
 		digitalWrite(TXLED,LOW);
-		SubGHz.send(mac->rx_panid,rx_addr,obuf,Print.len(),NULL);
-		Serial.println(obuf);
+		SubGHz.send(mac->dst_panid,dst_addr,obuf,Print.len(),NULL);
 		digitalWrite(TXLED,HIGH);
 	}
 error:
@@ -1640,7 +1639,7 @@ void ml7396_write(uint8_t** pparam) {
 		Serial.print(",0x");
 		Serial.println_long(data,HEX);
 #endif	
-		ml7396_regwrite((uint8_t)bank, (uint8_t)addr,(uint8_t *)&data, 1);
+		phy_regwrite((uint8_t)bank, (uint8_t)addr,(uint8_t *)&data, 1);
 	}
 error:
 	return;
@@ -1666,7 +1665,7 @@ void ml7396_read(uint8_t** pparam){
 	((addr<0)||(addr>255))) {
 		goto error;
 	} else {		
-		ml7396_regread( bank,  addr,  &data,  1);
+		phy_regread( bank,  addr,  &data,  1);
 #ifdef DEBUG_SERIAL
 		Serial.print("rfr,");
 		Serial.print_long(bank,DEC);

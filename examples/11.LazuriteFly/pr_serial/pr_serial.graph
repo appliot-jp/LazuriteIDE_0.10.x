@@ -1,0 +1,23 @@
+#store test
+#Mon Oct 17 12:13:00 JST 2016
+subghzChannel=36
+GraphEnb3=true
+GraphEnb2=true
+subghzPwr=20
+GraphEnb1=true
+comBaud=115200
+GraphEnb0=true
+subghzPanid=0xABCD
+subghzStrTxaddr=001d12900003902b
+GraphTitle=10axis graph
+comPort=COM50
+selectedTab=0
+GraphAxisText3=acc
+subghzBaud=100
+GraphAxisText2=gyro
+GraphAxisText1=deg_acc
+LineNum3=3
+GraphAxisText0=deg_kalman
+LineNum2=3
+LineNum1=2
+LineNum0=2

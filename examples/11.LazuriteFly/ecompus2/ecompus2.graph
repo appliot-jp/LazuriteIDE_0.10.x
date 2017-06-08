@@ -1,0 +1,23 @@
+#store test
+#Thu Oct 20 17:45:07 JST 2016
+subghzChannel=36
+GraphEnb3=false
+GraphEnb2=true
+subghzPwr=20
+GraphEnb1=true
+comBaud=115200
+GraphEnb0=true
+subghzPanid=0xABCD
+subghzStrTxaddr=0
+GraphTitle=ecompus
+comPort=COM50
+selectedTab=0
+GraphAxisText3=
+subghzBaud=100
+GraphAxisText2=geomagnetic
+GraphAxisText1=mag
+LineNum3=1
+GraphAxisText0=pitch/roll
+LineNum2=1
+LineNum1=3
+LineNum0=2
