@@ -351,6 +351,25 @@ volatile void delay_microseconds(unsigned long us)
 		us -= 1;
 		while(us > 0)
 		{
+			// w/a for avoiding UART communication data lost
+			if (irq_ua0_checkIRQ()) {
+				irq_ua0_dis();
+				irq_ua0_clearIRQ();
+				uart_rx_isr();
+				irq_ua0_ena();
+			}
+			if (irq_ua1_checkIRQ()) {
+				irq_ua1_dis();
+				irq_ua1_clearIRQ();
+				uart_tx_isr();
+				irq_ua1_ena();
+			}
+			if (irq_uaf0_checkIRQ()) {
+				irq_uaf0_dis();
+				irq_uaf0_clearIRQ();
+				uartf_isr();
+				irq_uaf0_ena();
+			}
 			__asm("nop\n");
 			__asm("nop\n");
 			__asm("nop\n");
