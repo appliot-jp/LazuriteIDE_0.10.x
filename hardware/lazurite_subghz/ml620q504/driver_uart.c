@@ -120,8 +120,8 @@ const char uart_gpio_tx_bitmask[] =
 //********************************************************************************
 
 static void uart_tx_isr(void);
-static void uart_rx_isr(void);
-static void uartf_isr(void);
+void uart_rx_isr(void);
+void uartf_isr(void);
 
 //********************************************************************************
 //   local functions

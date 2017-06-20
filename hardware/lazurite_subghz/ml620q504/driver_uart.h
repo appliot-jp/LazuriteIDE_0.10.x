@@ -74,5 +74,7 @@ extern volatile size_t uart_fifo_in(FIFO_CTRL* fifo_p, UCHAR data);
 extern volatile int uart_fifo_out(FIFO_CTRL* fifo_p);
 extern volatile int uart_fifo_out_peek(FIFO_CTRL* fifo_p);
 
+extern void uart_rx_isr(void);
+extern void uartf_isr(void);
 #endif // _DRIVER_UART_H_
 
