@@ -106,6 +106,7 @@ static bool sgRxAuto = false;
 #define CMD_EEPROM_WPB "ewp"
 #define CMD_EEPROM_WRITE "ewr"
 #define CMD_EEPROM_READ "erd"
+#define CMD_HAL_INIT "hali"
 #define CMD_RF_WRITE "rfw"
 #define CMD_RF_READ "rfr"
 // *************************** TEST PROGRAM ********************************
@@ -1609,6 +1610,11 @@ error:
 	return;
 }
 
+void hali(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac) {
+	HAL_init(0x50,8);
+	Serial.println("hali");
+}
+
 void ml7396_write(uint8_t** pparam) {
 	int i=0;
 	char* en;
@@ -1733,6 +1739,7 @@ void command_decoder(uint8_t* pcmd,uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	else if(strncmp(pparam[0],CMD_EEPROM_WPB,16)==0) eeprom_wpb(pparam,mac);
 	else if(strncmp(pparam[0],CMD_EEPROM_WRITE,16)==0) eeprom_write(pparam,mac);
 	else if(strncmp(pparam[0],CMD_EEPROM_READ,16)==0) eeprom_read(pparam,mac);
+	else if(strncmp(pparam[0],CMD_HAL_INIT,16)==0) hali(pparam,mac);
 	else if(strncmp(pparam[0],CMD_RF_WRITE,16)==0) ml7396_write(pparam);
 	else if(strncmp(pparam[0],CMD_RF_READ,16)==0) ml7396_read(pparam);
 // *************************** TEST PROGRAM ********************************
