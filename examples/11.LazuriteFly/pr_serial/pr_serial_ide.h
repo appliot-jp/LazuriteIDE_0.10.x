@@ -1,5 +1,4 @@
 #include "lazurite.h"
-#include "C:\pleiades\WORKSP~1\LAZURI~1\LIBRAR~1\basic\Wire\Wire.h"
-#include "C:\pleiades\WORKSP~1\LAZURI~1\LIBRAR~1\ROHMSE~1\BM1383A\BM1383A.h"
-#include "C:\pleiades\WORKSP~1\LAZURI~1\LIBRAR~1\ROHMSE~1\BM1422\BM1422.h"
-#include "C:\pleiades\WORKSP~1\LAZURI~1\ext\LAZURI~1\KXG03_~1\kxg03_new.h"
+#include "BM1422.h"
+#include "kxg03_new.h"
+#include "Wire.h"

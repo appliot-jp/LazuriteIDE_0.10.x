@@ -71,6 +71,8 @@ static bool sgRxAuto = false;
 #define CMD_SUBGHZ_READ "sgr"
 #define CMD_SUBGHZ_READ_BINARY "sgrb"
 #define CMD_SUBGHZ_GET_MY_ADDRESS "sggma"
+#define CMD_SUBGHZ_GET_MY_ADDR64 "sggma64"
+#define CMD_SUBGHZ_SET_MY_ADDRESS "sgsma"
 #define CMD_SUBGHZ_GET_STATUS "sggs"
 #define CMD_WRITE_DATA "w"
 #define CMD_WRITE_BINARY "wb"
@@ -755,6 +757,50 @@ static void sggma(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 #endif
 	Serial.print("0x");	
 	Serial.println_long(adr,HEX);
+}
+
+static void sggma64(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
+{
+	int i=0;
+	uint8_t adr[8];
+	// command sprit
+	do {			
+		i++;
+	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
+
+	// command process
+	SubGHz.getMyAddr64(adr);
+#ifdef DEBUG_SERIAL
+	Serial.print("sggma64,");
+#endif
+	for(i=0;i<8;i++) {
+		Serial.println_long(adr,HEX);
+	}
+	Serial.println("");
+}
+
+static void sgsma(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
+{
+	int i=0;
+	char* en;
+	uint16_t addr;
+	SUBGHZ_MSG msg;
+	
+	// command sprit
+	do {			
+		i++;
+	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
+
+	// command process
+	addr = (uint16_t)strtol(pparam[1],&en,0);
+	if(*en != NULL) return;
+	{
+		msg = SubGHz.setMyAddress(addr);
+		Serial.print("sgsma,0x");
+		Serial.print_long(addr,HEX);
+		Serial.print(",");
+		Serial.println_long(msg,DEC);
+	}
 }
 
 static void sggs(uint8_t** pparam)
@@ -1704,6 +1750,8 @@ void command_decoder(uint8_t* pcmd,uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_SEND_MODE,16)== 0) sggsm(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_CLOSE,16)== 0) sgc(pparam);  		
 	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_MY_ADDRESS,16)== 0) sggma(pparam,mac);
+	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_MY_ADDR64,16)== 0) sggma64(pparam,mac);
+	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_MY_ADDRESS,16)== 0) sgsma(pparam,mac);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_STATUS,16)== 0) sggs(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_READ,16)== 0) sgr(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_READ_BINARY,16)== 0) sgrb(pparam);

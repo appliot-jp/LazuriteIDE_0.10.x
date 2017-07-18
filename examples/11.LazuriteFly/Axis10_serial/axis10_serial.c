@@ -49,7 +49,7 @@ void setup() {
   if(rc!=0) while(1);
   rc = kxg03.sync_init(KXG03_DEVICE_ADDRESS_4E, KXG03_ODR_25HZ,kxg03_isr);
   rc = bm1422.init(0);
-  rc = bm1383a.init(0);
+  rc = bm1383.init(0);
 }
 
 void loop() {
@@ -62,7 +62,7 @@ void loop() {
 	
 	rc = kxg03.get_val(&val[0]);
 	bm1422.get_val(&val[6]);
-	bm1383a.get_val(&val[9]);  
+	bm1383.get_val(&val[9]);  
 	
     Print.p("STX,");
     Print.d((double)val[0], 2);		// Gyro(x)
