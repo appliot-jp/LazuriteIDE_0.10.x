@@ -32,7 +32,7 @@
 #define SUBGHZ_PANID	0xabcd		// panid
 #define HOST_ADDRESS	{0x00,0x1d,0x12,0x90,0x00,0x04,0x7f,0xad}		// distination address
 static const uint8_t host[] = HOST_ADDRESS;
-static const unsigned char *aes_key = NULL;		// disable AES key
+static const unsigned char *key = NULL;		// disable AES key
 
 
 unsigned char send_data[] = {"Welcome to Lazurite Sub-GHz\r\n"};
