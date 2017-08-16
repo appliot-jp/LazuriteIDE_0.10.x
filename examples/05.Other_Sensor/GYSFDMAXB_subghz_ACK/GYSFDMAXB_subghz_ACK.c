@@ -46,12 +46,12 @@ void gps_output(void)
 		Serial.println("send");
 		tmp = millis();
 		msg = SubGHz.send(SUBGHZ_PANID, HOST_ADDRESS, gps_buf, bufp, NULL);	// send data
+		Serial2.flush();
 		digitalWrite(LED,HIGH);								// LED off
 		if (msg == SUBGHZ_TX_ACK_FAIL) {
 			Serial.print("Couldn't receive ACK even after ");
 			Serial.print_long(millis()-tmp,DEC);
 			Serial.println(" ms passed.");
-			Serial2.flush();
 		}
 	}
 
