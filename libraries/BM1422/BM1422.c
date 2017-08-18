@@ -120,7 +120,7 @@ static byte bm1422_get_rawval(unsigned char *data)
 //    Serial.println("Can't write BM1422_CNTL3 Register");
     return (rc);
   }
-  delay(1);
+  delayMicroseconds(500);
   rc = bm1422_read(BM1422_DATAX, data, 6);
   if (rc != 0) {
 //    Serial.println("Can't get BM1422 magnet values");
