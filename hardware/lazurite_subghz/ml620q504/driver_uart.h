@@ -76,5 +76,7 @@ extern volatile int uart_fifo_out_peek(FIFO_CTRL* fifo_p);
 
 extern void uart_rx_isr(void);
 extern void uartf_isr(void);
+extern void uart_check_irq(void);
+
 #endif // _DRIVER_UART_H_
 

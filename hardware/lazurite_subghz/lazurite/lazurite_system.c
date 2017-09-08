@@ -64,7 +64,7 @@ static void lazurite_gpio_init(void);
 static void init_timer(void);
 static void delay_isr(void);
 static volatile bool delay_flag;
-static bool *event_flag;
+static uint8_t *event_flag;
 
 #ifdef LAZURITE_BLE
 	extern void ble_timer_func();
@@ -323,7 +323,7 @@ void sleep_long(unsigned long ms)
 	
 	while(delay_flag == false)
 	{
-		if((uart_tx_sending == true) || (uartf_tx_sending == true))
+		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
 		{
 			lp_setHaltMode();
 			wdt_clear();
@@ -461,8 +461,7 @@ static void clk_block_ctrl_init(void)
 
 static void wait_timeout_isr(void)
 {
-    timer_16bit_stop(6);
-    *event_flag = true;
+    *event_flag = 2;
 }
 
 void watch_dog_isr(void)
@@ -482,22 +481,18 @@ void noInterrupts()
 	dis_interrupts(DI_USER);
 }
 
-bool wait_event_timeout(bool *flag,uint32_t time)
+uint8_t wait_event_timeout(uint8_t *flag,uint32_t time)
 {	
-	uint32_t current_time;
-	uint32_t target_time;
-	int result = true;
-	
-	current_time = millis();
-	target_time = current_time+time;
-
+	uint8_t result;
+    event_flag = flag;
+	wait_timeout(time);
 	
 	#ifdef PWR_LED
 	drv_digitalWrite(11,HIGH);		// PWR LED OFF
 	#endif
-	while((*flag == false) || (current_time >= target_time))
+	while(*flag == false)
 	{
-		if((uart_tx_sending == true) || (uartf_tx_sending == true))
+		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
 		{
 			lp_setHaltMode();
 			wdt_clear();
@@ -507,9 +502,9 @@ bool wait_event_timeout(bool *flag,uint32_t time)
 			lp_setDeepHaltMode();
 			wdt_clear();
 		}
-		current_time = millis();
 	}
-	if(*flag) result = false;
+	result = *event_flag;
+    timer_16bit_stop(6);
 	
 	*flag = false;
 	
@@ -517,10 +512,10 @@ bool wait_event_timeout(bool *flag,uint32_t time)
 	drv_digitalWrite(11,LOW);		// PWR LED ON
 	#endif
 	
-	return result;
+	return *event_flag;
 }
 
-bool wait_timeout(uint32_t time)
+static bool wait_timeout(uint32_t time)
 {	
 	int result = true;
 	timer_16bit_set(6,0xE8,(unsigned long)time,wait_timeout_isr);
@@ -537,7 +532,7 @@ void wait_event(bool *flag)
 
 	while(*flag == false)
 	{
-		if((uart_tx_sending == true) || (uartf_tx_sending == true))
+		if((uart_tx_sending == true) || (uartf_tx_sending == true) ||(subghz_api_status != 0))
 		{
 			lp_setHaltMode();
 			wdt_clear();

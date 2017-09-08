@@ -579,3 +579,19 @@ void uart_fifo_init(FIFO_CTRL* fifo_p)
 	fifo_p->length = 0;
 	return;
 }
+
+// check irq
+// Note: this function shall be invoked during MIE is disabled
+void uart_check_irq() {
+	if (irq_uaf0_checkIRQ()) {
+		irq_uaf0_dis();
+		irq_uaf0_clearIRQ();
+		uartf_isr();
+		irq_uaf0_ena();
+	} else if (irq_ua0_checkIRQ()) {
+		irq_ua0_dis();
+		irq_ua0_clearIRQ();
+		uart_rx_isr();
+		irq_ua0_ena();
+	}
+}
