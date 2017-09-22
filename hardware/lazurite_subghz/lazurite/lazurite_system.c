@@ -323,7 +323,11 @@ void sleep_long(unsigned long ms)
 	
 	while(delay_flag == false)
 	{
+#ifdef SUBGHZ
 		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
+#else
+		if((uart_tx_sending == true) || (uartf_tx_sending == true))
+#endif
 		{
 			lp_setHaltMode();
 			wdt_clear();
@@ -492,7 +496,11 @@ uint8_t wait_event_timeout(uint8_t *flag,uint32_t time)
 	#endif
 	while(*flag == false)
 	{
+#ifdef SUBGHZ
 		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
+#else
+		if((uart_tx_sending == true) || (uartf_tx_sending == true))
+#endif
 		{
 			lp_setHaltMode();
 			wdt_clear();
@@ -532,7 +540,11 @@ void wait_event(bool *flag)
 
 	while(*flag == false)
 	{
+#ifdef SUBGHZ
 		if((uart_tx_sending == true) || (uartf_tx_sending == true) ||(subghz_api_status != 0))
+#else
+		if((uart_tx_sending == true) || (uartf_tx_sending == true))
+#endif
 		{
 			lp_setHaltMode();
 			wdt_clear();
