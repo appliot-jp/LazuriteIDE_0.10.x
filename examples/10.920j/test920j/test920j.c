@@ -25,12 +25,19 @@
 */
 #include "driver_gpio.h"
 #include "lp_manage.h"
-#include "phy/phy_ml7396.h"
 #include "hwif/hal.h"
 #include "hwif/wire0.h"
 #include "hwif/spi0.h"
 
 #include <string.h>
+
+#ifdef LAZURITE_4K
+#include "phy/phy_ml7404.h"
+#define MAX_BANK 10
+#else
+#include "phy/phy_ml7396.h"
+#define MAX_BANK 3
+#endif
 
 #define DEBUG_SERIAL
 static uint8_t pinSleep=0;
@@ -71,7 +78,10 @@ static bool sgRxAuto = false;
 #define CMD_SUBGHZ_READ "sgr"
 #define CMD_SUBGHZ_READ_BINARY "sgrb"
 #define CMD_SUBGHZ_GET_MY_ADDRESS "sggma"
+#define CMD_SUBGHZ_GET_MY_ADDR64 "sggma64"
+#define CMD_SUBGHZ_SET_MY_ADDRESS "sgsma"
 #define CMD_SUBGHZ_GET_STATUS "sggs"
+#define CMD_SUBGHZ_SET_CONFIG "sgsc"
 #define CMD_WRITE_DATA "w"
 #define CMD_WRITE_BINARY "wb"
 
@@ -108,6 +118,7 @@ static bool sgRxAuto = false;
 #define CMD_EEPROM_READ "erd"
 #define CMD_RF_WRITE "rfw"
 #define CMD_RF_READ "rfr"
+#define CMD_RF_DUMP "rfd"
 // *************************** TEST PROGRAM ********************************
 
 #define PARAM_ADDR_TYPE "at"
@@ -411,8 +422,34 @@ static void fer(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac) {
 }
 
 static void sgi(uint8_t** pparam){
+	int i=0;
+	char* en;
+    uint8_t modulation;
+    uint8_t dsssSize;
+    SUBGHZ_PARAM a;
+
+	// command sprit
+	do {			
+		i++;
+	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
+
+    modulation = (uint8_t)strtol(pparam[1],&en,0);
+    dsssSize = (uint8_t)strtol(pparam[2],&en,0);
+
 	SubGHz.init();
-	Serial.println("sgi");
+
+    SubGHz.getSendMode(&a);
+    a.modulation = modulation;
+    a.dsssSize = dsssSize;
+    SubGHz.setSendMode(&a);
+
+	Serial.print("sgi");
+	Serial.print(",");
+  	Serial.print_long(modulation,DEC);
+	Serial.print(",");
+  	Serial.print_long(dsssSize,DEC);
+	Serial.println("");
+
 }
 
 static void sgb(uint8_t** pparam){
@@ -438,10 +475,10 @@ static void sgb(uint8_t** pparam){
 	if(*en != NULL) return;
 	pwr = (uint8_t)strtol(pparam[4],&en,0);
 	if(*en != NULL) return;
-	if(
-		(((ch>=24)&&(ch<=61)&&(rate==50))||((ch>=24)&&(ch<=60)&&(ch!=32)&&(rate==100))) &&
-		((pwr == 1) || (pwr == 20)) 
-	)
+//	if(
+//		(((ch>=24)&&(ch<=61)&&(rate==50))||((ch>=24)&&(ch<=60)&&(ch!=32)&&(rate==100))) &&
+//		((pwr == 1) || (pwr == 20)) 
+//	)
 	{
 		msg = SubGHz.begin(ch, panid, rate, pwr);
 		Serial.print("sgb,");
@@ -493,13 +530,20 @@ static void sgs(uint8_t** pparam){
 	}
 }
 
+uint8_t sgcs_timeout;
+
+void callback(void)
+{
+    sgcs_timeout = true;
+}
+
 static void sgcs(uint8_t** pparam){
 	int i=0;
 	char* en;
 	uint16_t distPanid=0xabcd;
 	uint16_t distAddr=0xffff;
 	uint16_t len;
-	uint16_t packets;
+	uint16_t stimer;
 	SUBGHZ_STATUS tx;
 	SUBGHZ_MSG msg;
 	
@@ -509,32 +553,38 @@ static void sgcs(uint8_t** pparam){
 	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
 
 	len = (int)strtol(pparam[1],&en,0);
-	packets = (int)strtol(pparam[2],&en,0);
+	stimer = (int)strtol(pparam[2],&en,0);
 
     for(i=0; i < len; i++){
-        wbuf[i]=i;
+        wbuf[i]=0x30 + i;
     }
 
 	if((len<20)||(len>230)) {
 		goto error;
-	} else {		
-#ifdef DEBUG_SERIAL
-		Serial.print("sgcs,");
-		Serial.print_long(len,DEC);
-		Serial.print(",0x");
-		Serial.print_long(packets,HEX);
-		Serial.print(",");
-	    Serial.println(wbuf);
-#endif	
 	}
+
+	// Setup MsTimer2;
+	timer2.set(1000*stimer,callback);
+	timer2.start();
+	sgcs_timeout =false;
+
+    do{
+        digitalWrite(TXLED,LOW);
+        msg = SubGHz.send(distPanid,distAddr,wbuf,len,NULL);
+	    Serial.print("Sending: ");
+	    Serial.println_long(msg,DEC);	
+        digitalWrite(TXLED,HIGH);
+    } while(!sgcs_timeout);
 
 	delay(100);
 
-    for(i=0; i < packets; i++){
-        digitalWrite(TXLED,LOW);
-        msg = SubGHz.send(distPanid,distAddr,wbuf,len,NULL);
-        digitalWrite(TXLED,HIGH);
-    }
+	Serial.print("sgcs,");
+	Serial.print_long(len,DEC);
+	Serial.print(",0x");
+	Serial.print_long(stimer,HEX);
+	Serial.print(",");
+    Serial.println(wbuf);
+
 error:
 	return;
 }
@@ -757,6 +807,50 @@ static void sggma(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	Serial.println_long(adr,HEX);
 }
 
+static void sggma64(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
+{
+	int i=0;
+	uint8_t adr[8];
+	// command sprit
+	do {			
+		i++;
+	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
+
+	// command process
+	SubGHz.getMyAddr64(adr);
+#ifdef DEBUG_SERIAL
+	Serial.print("sggma64,");
+#endif
+	for(i=0;i<8;i++) {
+		Serial.println_long(adr,HEX);
+	}
+	Serial.println("");
+}
+
+static void sgsma(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
+{
+	int i=0;
+	char* en;
+	uint16_t addr;
+	SUBGHZ_MSG msg;
+	
+	// command sprit
+	do {			
+		i++;
+	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
+
+	// command process
+	addr = (uint16_t)strtol(pparam[1],&en,0);
+	if(*en != NULL) return;
+	{
+		msg = SubGHz.setMyAddress(addr);
+		Serial.print("sgsma,0x");
+		Serial.print_long(addr,HEX);
+		Serial.print(",");
+		Serial.println_long(msg,DEC);
+	}
+}
+
 static void sggs(uint8_t** pparam)
 {
 	int i=0;
@@ -781,10 +875,34 @@ static void sggs(uint8_t** pparam)
 	Serial.println_long(rxStatus.status,DEC);
 }
 
-static void sgout()
+static void sgsc(uint8_t** pparam)
 {
 	int i=0;
+	SUBGHZ_STATUS txStatus;
+	SUBGHZ_STATUS rxStatus;
+	// command sprit
+	do {			
+		i++;
+	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
+
+	// command process
+	SubGHz.getStatus(&txStatus,&rxStatus);
+#ifdef DEBUG_SERIAL
+	Serial.print("sgsc,");
+#endif
+	Serial.print_long(txStatus.rssi,DEC);
+	Serial.print(",");
+	Serial.print_long(txStatus.status,DEC);
+	Serial.print(",");
+	Serial.print_long(rxStatus.rssi,DEC);
+	Serial.print(",");
+	Serial.println_long(rxStatus.status,DEC);
+}
+
+static void sgout()
+{
 	short result;
+    short index;
 	char* en;
 	SUBGHZ_MAC_PARAM mac;
 	SUBGHZ_STATUS rx;
@@ -794,7 +912,7 @@ static void sgout()
 	result = SubGHz.readData(rbuf,sizeof(rbuf));
 #ifdef DEBUG_SERIAL
 	Serial.print("sgout,");
-#endif	
+#endif
 	Serial.print_long(result,DEC);
 	Serial.print(",");
 	if(pinRecv) digitalWrite(pinRecv,LOW);
@@ -820,8 +938,15 @@ static void sgout()
 		addr = (addr << 8) + mac.src_addr[0];
 		Serial.print_long(addr,HEX);
 		Serial.print(",");
-		Serial.write(mac.payload,result);
-		Serial.println("");
+  		Serial.write(mac.payload,result);
+  		Serial.println("");
+		for(index=0;index<result;index++)
+		{
+	        Serial.print_long(rbuf[index],HEX);
+		//	Serial.print_long(mac.payload[index],HEX);
+		    Serial.print(",");
+		}
+  		Serial.println("");
 	}
 }
 
@@ -1609,7 +1734,7 @@ error:
 	return;
 }
 
-void ml7396_write(uint8_t** pparam) {
+void phy_reg_write(uint8_t** pparam) {
 	int i=0;
 	char* en;
 	int bank;
@@ -1645,7 +1770,7 @@ error:
 	return;
 }
 
-void ml7396_read(uint8_t** pparam){
+void phy_reg_read(uint8_t** pparam){
 	int i=0;
 	char* en;
 	int bank;
@@ -1661,7 +1786,7 @@ void ml7396_read(uint8_t** pparam){
 	if((pparam[1]==NULL)||(pparam[2]==NULL)) goto error;
 	bank = (int)strtol(pparam[1],&en,0);
 	addr = (int)strtol(pparam[2],&en,0);
-	if(((bank<0)||(bank>3)) &&
+	if(((bank<0)||(bank>MAX_BANK)) &&
 	((addr<0)||(addr>255))) {
 		goto error;
 	} else {		
@@ -1676,6 +1801,26 @@ void ml7396_read(uint8_t** pparam){
 		Serial.print("0x");
 		Serial.println_long((long)data,HEX);
 	}
+error:
+	return;
+}
+
+void phy_reg_dump(uint8_t** pparam){
+	int i=0;
+	char* en;
+	int bank;
+	int addr;
+	uint8_t data;
+	
+	// command sprit
+	do {			
+		i++;
+	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
+
+    phy_regdump();
+#ifdef DEBUG_SERIAL
+	Serial.println("rfd");
+#endif	
 error:
 	return;
 }
@@ -1704,7 +1849,10 @@ void command_decoder(uint8_t* pcmd,uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_SEND_MODE,16)== 0) sggsm(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_CLOSE,16)== 0) sgc(pparam);  		
 	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_MY_ADDRESS,16)== 0) sggma(pparam,mac);
+	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_MY_ADDR64,16)== 0) sggma64(pparam,mac);
+	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_MY_ADDRESS,16)== 0) sgsma(pparam,mac);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_STATUS,16)== 0) sggs(pparam);
+	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_CONFIG,16)== 0) sgsc(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_READ,16)== 0) sgr(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_READ_BINARY,16)== 0) sgrb(pparam);
 	else if(strncmp(pparam[0],CMD_SET_BAUD,16)== 0) sb(pparam,mac);
@@ -1733,8 +1881,9 @@ void command_decoder(uint8_t* pcmd,uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	else if(strncmp(pparam[0],CMD_EEPROM_WPB,16)==0) eeprom_wpb(pparam,mac);
 	else if(strncmp(pparam[0],CMD_EEPROM_WRITE,16)==0) eeprom_write(pparam,mac);
 	else if(strncmp(pparam[0],CMD_EEPROM_READ,16)==0) eeprom_read(pparam,mac);
-	else if(strncmp(pparam[0],CMD_RF_WRITE,16)==0) ml7396_write(pparam);
-	else if(strncmp(pparam[0],CMD_RF_READ,16)==0) ml7396_read(pparam);
+	else if(strncmp(pparam[0],CMD_RF_WRITE,16)==0) phy_reg_write(pparam);
+	else if(strncmp(pparam[0],CMD_RF_READ,16)==0) phy_reg_read(pparam);
+	else if(strncmp(pparam[0],CMD_RF_DUMP,16)==0) phy_reg_dump(pparam);
 // *************************** TEST PROGRAM ********************************
 }
 static char* param[16];
