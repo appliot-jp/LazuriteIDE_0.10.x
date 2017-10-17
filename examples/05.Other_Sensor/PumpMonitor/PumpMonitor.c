@@ -28,7 +28,7 @@
 #include "driver_gpio.h"
 
 #define BLUE_LED				( 26 )
-#define LSM9DS1_INT1_AG_PIN		( 23 )
+#define LSM9DS1_INT1_AG_DRV_PIN	( 23 )		// pin# 5
 #define MAX31855_SPI_SS_PIN		( 10 )
 #define FET_PIN					( 6 )
 #define BUF_SIZE				( 60 )
@@ -39,7 +39,10 @@
 #define CHB						( 2 )
 #define MEAS					( 3 )
 #define MEAS_LED				( 25 )
-#define CT_THRMCPL_INTERVAL		( 30*1000 )
+#define TIMER_INT_MS			( 1000 )
+#define CT_COUNT				( 30 )
+#define THRMCPL_COUNT			( 15 )
+#define SOUND_COUNT				( 1 )
 #define EVENT_LSM9DS1_INT		( 0x01 )
 #define EVENT_TIMER				( 0x02 )
 #define OUTPUT_CT_SENSOR		( 0x01 )
@@ -56,6 +59,10 @@ float thermocouple_f = 0.0;
 float internal_f = 0.0;
 double amps = 0;
 uint8_t level = 0;
+uint32_t snd = 0;
+uint8_t ct_count_num = 1;
+uint8_t thrmcpl_count_num = 1;
+uint8_t snd_count_num = 1;
 
 void int1_ag_isr(void)
 {
@@ -131,8 +138,8 @@ void acc_init(void)
 	LSM9DS1.init(LSM9DS1_OPMODE_XL, LSM9DS1_I2C_ADDR_XLG_6A, NULL);
 	LSM9DS1.setAccRange(LSM9DS1_XL_FS_RANGE_2G);
 	LSM9DS1.begin(LSM9DS1_ODR_XL_10Hz, NULL);
-	drv_pinMode(LSM9DS1_INT1_AG_PIN, INPUT);
-	drv_attachInterrupt(LSM9DS1_INT1_AG_PIN, 6, int1_ag_isr, RISING, false, false);
+	drv_pinMode(LSM9DS1_INT1_AG_DRV_PIN, INPUT);
+	drv_attachInterrupt(LSM9DS1_INT1_AG_DRV_PIN, 6, int1_ag_isr, RISING, false, false);
 }
 
 void thrmcpl_init(void)
@@ -185,11 +192,11 @@ uint8_t thrmcpl_update(void)
 	return ret;
 }
 
-/* void sound_init(void)
+void sound_init(void)
 {
 	pinMode(FET_PIN,OUTPUT);
 	digitalWrite(FET_PIN,LOW);
-} */
+}
 
 void setup() {
   // put your setup code here, to run once:
@@ -208,11 +215,11 @@ void setup() {
 
 	// Thermocouple
 	thrmcpl_init();
-	
-	// Sound
+
+	// Sound detector
 //	sound_init();
 
-	timer2.set(CT_THRMCPL_INTERVAL, timer_isr);
+	timer2.set(TIMER_INT_MS, timer_isr);
 	timer2.start();
 	event = true;
 	event_flag = EVENT_TIMER;
@@ -224,6 +231,8 @@ void loop() {
 
 	if (event_flag & EVENT_LSM9DS1_INT) {
 		event_flag &= ~EVENT_LSM9DS1_INT;
+
+		// Accelerometer
 		if (LSM9DS1.availableAcc()) {
 			LSM9DS1.getAcc(acc_f);
 			output_flag |= OUTPUT_ACC;
@@ -232,18 +241,43 @@ void loop() {
 
 	if (event_flag & EVENT_TIMER) {
 		event_flag &= ~EVENT_TIMER;
-		amps = ct_meas();
-		level = voltage_check(VLS_4_667);
-		output_flag |= OUTPUT_CT_SENSOR;
-		if (thrmcpl_update() == 0) {
-			output_flag |= OUTPUT_THRMCPL;
+
+		// CT sensor
+		if (ct_count_num >= CT_COUNT) {
+			ct_count_num = 1;
+			amps = ct_meas();
+			level = voltage_check(VLS_4_667);
+			output_flag |= OUTPUT_CT_SENSOR;
+		} else {
+			ct_count_num++;
 		}
+
+		// Thermocouple
+		if (thrmcpl_count_num >= THRMCPL_COUNT) {
+			thrmcpl_count_num = 1;
+			if (thrmcpl_update() == 0) {
+				output_flag |= OUTPUT_THRMCPL;
+			}
+		} else {
+			thrmcpl_count_num++;
+		}
+
+		// Sound detector
+/* 		if (snd_count_num >= SOUND_COUNT) {
+			snd_count_num = 1;
+			digitalWrite(FET_PIN,LOW);
+			snd = analogRead(A1);
+			digitalWrite(FET_PIN,HIGH);
+			output_flag |= OUTPUT_SOUND;
+		} else {
+			snd_count_num++;
+		} */
 	}
 
 	if (output_flag) {
 		Print.init(txdata, TXDATA_SIZE);
 
-		// came from CT sensor
+		// CT sensor
 		if (output_flag & OUTPUT_CT_SENSOR) {
 			output_flag &= ~OUTPUT_CT_SENSOR;
 			Print.d(amps, 2);
@@ -254,7 +288,7 @@ void loop() {
 			Print.p(",,");
 		}
 
-		// came from motion sensor
+		// Accelerometer
 		if (output_flag & OUTPUT_ACC) {
 			output_flag &= ~OUTPUT_ACC;
 			Print.f(acc_f[0], 3);
@@ -267,7 +301,7 @@ void loop() {
 			Print.p(",,,");
 		}
 
-		// came from thermocouple
+		// Thermocouple
 		if (output_flag & OUTPUT_THRMCPL) {
 			output_flag &= ~OUTPUT_THRMCPL;
 			Print.f(thermocouple_f, 2);
@@ -278,11 +312,11 @@ void loop() {
 			Print.p(",,");
 		}
 
-		// came from sound detector (TBD)
-/* 		if (output_flag & OUTPUT_SOUND) {
+		// Sound detector
+		if (output_flag & OUTPUT_SOUND) {
 			output_flag &= ~OUTPUT_SOUND;
-			Print.l(snd);
-		} */
+			Print.l(snd, DEC);
+		}
 		Print.ln();
 
 		Serial.print(txdata);
