@@ -444,8 +444,8 @@ static void sgi(uint8_t** pparam){
     SubGHz.setSendMode(&a);
 
 	Serial.print("sgi");
-	Serial.print(",");
-  	Serial.print_long(modulation,DEC);
+	Serial.print(",0x");
+  	Serial.print_long(modulation,HEX);
 	Serial.print(",");
   	Serial.print_long(dsssSize,DEC);
 	Serial.println("");
@@ -563,10 +563,12 @@ static void sgcs(uint8_t** pparam){
 		goto error;
 	}
 
-	// Setup MsTimer2;
-	timer2.set(1000*stimer,callback);
-	timer2.start();
-	sgcs_timeout =false;
+    if (stimer != 0) {
+        // Setup MsTimer2;
+        timer2.set(1000*stimer,callback);
+        timer2.start();
+    }
+    sgcs_timeout =false;
 
     do{
         digitalWrite(TXLED,LOW);
@@ -574,9 +576,8 @@ static void sgcs(uint8_t** pparam){
 	    Serial.print("Sending: ");
 	    Serial.println_long(msg,DEC);	
         digitalWrite(TXLED,HIGH);
+	    delay(500);
     } while(!sgcs_timeout);
-
-	delay(100);
 
 	Serial.print("sgcs,");
 	Serial.print_long(len,DEC);
