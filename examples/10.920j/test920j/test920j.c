@@ -4,7 +4,7 @@
  * 
  * Copyright (c) 2017  Lapis Semiconductor Co.,Ltd.
  * All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -82,6 +82,7 @@ static bool sgRxAuto = false;
 #define CMD_SUBGHZ_SET_MY_ADDRESS "sgsma"
 #define CMD_SUBGHZ_GET_STATUS "sggs"
 #define CMD_SUBGHZ_GET_ED_VAL "sged"
+#define CMD_SUBGHZ_SET_TRX_STATE "sgtrx"
 #define CMD_SUBGHZ_SET_CONFIG "sgsc"
 #define CMD_WRITE_DATA "w"
 #define CMD_WRITE_BINARY "wb"
@@ -777,10 +778,14 @@ static void sggsm(uint8_t** pparam)
 static void sged(uint8_t** pparam)
 {
 	uint8_t rssi;
+	uint8_t data;
 
 	Serial.println("sged");
 
-//SubGHz.rxEnable(NULL);
+    //�@SubGHz.rxEnable(NULL);
+
+    data = 0x06;
+    phy_regwrite(0, 0x0b,(uint8_t *)&data, 1);
 
     while(1){
     	SubGHz.getEdValue(&rssi);
@@ -790,6 +795,25 @@ static void sged(uint8_t** pparam)
     	Serial.println_long(rssi,HEX);
    	    delay(500);
     }
+}
+
+static void sgtrx(uint8_t** pparam)
+{
+	int i=0;
+	char* en;
+    uint16_t reg_data;
+	SUBGHZ_MSG msg;
+	do {			
+		i++;
+	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
+
+	reg_data = (uint16_t)strtol(pparam[1],&en,0);
+    phy_regwrite(0, 0x0b,(uint8_t *)&reg_data, 1);
+
+#ifdef DEBUG_SERIAL
+	Serial.print("sgtrx, 0x");
+	Serial.println_long(reg_data,HEX);	
+#endif
 }
 
 static void sgc(uint8_t** pparam)
@@ -1876,19 +1900,20 @@ void command_decoder(uint8_t* pcmd,uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_MY_ADDRESS,16)== 0) sgsma(pparam,mac);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_STATUS,16)== 0) sggs(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_ED_VAL,16)== 0) sged(pparam);
+	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_TRX_STATE,16)== 0) sgtrx(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_CONFIG,16)== 0) sgsc(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_READ,16)== 0) sgr(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_READ_BINARY,16)== 0) sgrb(pparam);
 	else if(strncmp(pparam[0],CMD_SET_BAUD,16)== 0) sb(pparam,mac);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_REMOTE,16)== 0) sgremote(pparam,mac);
 	else if(strncmp(pparam[0],CMD_RESET,16)== 0) rst(pparam,mac);
-	else if(strncmp(pparam[0],CMD_WIRE_BEGIN,16)== 0) wireb(pparam,mac);
+	     if(strncmp(pparam[0],CMD_WIRE_BEGIN,16)== 0) wireb(pparam,mac);
 	else if(strncmp(pparam[0],CMD_WIRE_BEGIN_TRANSMITTION,16)== 0) wirebt(pparam,mac);
 	else if(strncmp(pparam[0],CMD_WIRE_END_TRANSMITTION,16)== 0) wireet(pparam,mac);
 	else if(strncmp(pparam[0],CMD_WIRE_WRITE,16)== 0) wirew(pparam,mac);
 	else if(strncmp(pparam[0],CMD_WIRE_AVAILABLE,16)== 0) wirea(pparam,mac);
 	else if(strncmp(pparam[0],CMD_WIRE_REQUEST_FROM,16)== 0) wirerf(pparam,mac);
-	      if(strncmp(pparam[0],CMD_WIRE_READ,16)== 0) wirer(pparam,mac);
+    else if(strncmp(pparam[0],CMD_WIRE_READ,16)== 0) wirer(pparam,mac);
 	else if(strncmp(pparam[0],CMD_SPI_BEGIN,16)== 0) spib(pparam,mac);
 	else if(strncmp(pparam[0],CMD_SPI_TRANSFER,16)== 0) spit(pparam,mac);
 	else if(strncmp(pparam[0],CMD_SPI_BIT_ORDER,16)== 0) spibo(pparam,mac);
