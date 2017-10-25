@@ -81,6 +81,7 @@ static bool sgRxAuto = false;
 #define CMD_SUBGHZ_GET_MY_ADDR64 "sggma64"
 #define CMD_SUBGHZ_SET_MY_ADDRESS "sgsma"
 #define CMD_SUBGHZ_GET_STATUS "sggs"
+#define CMD_SUBGHZ_GET_ED_VAL "sged"
 #define CMD_SUBGHZ_SET_CONFIG "sgsc"
 #define CMD_WRITE_DATA "w"
 #define CMD_WRITE_BINARY "wb"
@@ -773,6 +774,24 @@ static void sggsm(uint8_t** pparam)
 	Serial.println_long(sgParam.ccaWait,HEX);
 }
 
+static void sged(uint8_t** pparam)
+{
+	uint8_t rssi;
+
+	Serial.println("sged");
+
+//SubGHz.rxEnable(NULL);
+
+    while(1){
+    	SubGHz.getEdValue(&rssi);
+	    Serial.print("RSSI:");
+    	if (rssi < 16)  Serial.print("0x0");
+    	else            Serial.print("0x");
+    	Serial.println_long(rssi,HEX);
+   	    delay(500);
+    }
+}
+
 static void sgc(uint8_t** pparam)
 {
 	int i=0;
@@ -941,6 +960,9 @@ static void sgout()
 		Serial.print(",");
   		Serial.write(mac.payload,result);
   		Serial.println("");
+		Serial.print_long((long)rx.rssi,DEC);
+		Serial.print("\t");
+
 		for(index=0;index<result;index++)
 		{
 	        Serial.print_long(rbuf[index],HEX);
@@ -1853,6 +1875,7 @@ void command_decoder(uint8_t* pcmd,uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_MY_ADDR64,16)== 0) sggma64(pparam,mac);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_MY_ADDRESS,16)== 0) sgsma(pparam,mac);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_STATUS,16)== 0) sggs(pparam);
+	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_ED_VAL,16)== 0) sged(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_CONFIG,16)== 0) sgsc(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_READ,16)== 0) sgr(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_READ_BINARY,16)== 0) sgrb(pparam);
