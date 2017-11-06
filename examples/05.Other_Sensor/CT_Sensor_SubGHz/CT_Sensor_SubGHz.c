@@ -141,7 +141,7 @@ void loop() {
 	Print.ln();
 
 	digitalWrite(TX_LED,LOW);
-	SubGHz.begin(36,MY_PANID,BAUD,PWR);
+	SubGHz.begin(SUBGHZ_CH,MY_PANID,BAUD,PWR);
 	SubGHz.send(RX_PANID,RX_ADDR,txbuf,Print.len(),NULL);
 	SubGHz.close();
 	digitalWrite(TX_LED,HIGH);
