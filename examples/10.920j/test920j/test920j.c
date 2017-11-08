@@ -779,21 +779,49 @@ static void sged(uint8_t** pparam)
 {
 	uint8_t rssi;
 	uint8_t data;
+    uint8_t i=0;
+	char* en;
+    uint16_t channel_filter,ed_counter;
 
-	Serial.println("sged");
+	// command sprit
+	do {			
+		i++;
+	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
 
-    //�@SubGHz.rxEnable(NULL);
+	// command process
+    // 0: 200kHz, 1: 400kHz
+	channel_filter = (uint16_t)strtol(pparam[1],&en,0);
+	ed_counter = (uint16_t)strtol(pparam[2],&en,0);
 
+	Serial.print("sged");
+	Serial.print(",");
+	Serial.print_long(channel_filter,DEC);
+	Serial.print(",");
+	Serial.println_long(ed_counter,DEC);
+
+    //SubGHz.rxEnable(NULL); 
     data = 0x06;
     phy_regwrite(0, 0x0b,(uint8_t *)&data, 1);
 
-    while(1){
+    if (channel_filter){
+        data = 0x30;
+        phy_regwrite(0, 0x39,(uint8_t *)&data, 1);
+    }
+
+    for(i=0; i < ed_counter; i++){
     	SubGHz.getEdValue(&rssi);
 	    Serial.print("RSSI:");
     	if (rssi < 16)  Serial.print("0x0");
     	else            Serial.print("0x");
     	Serial.println_long(rssi,HEX);
    	    delay(500);
+    }
+
+    if (channel_filter){
+        data = 0x80;
+        phy_regwrite(0, 0x39,(uint8_t *)&data, 1);
+        data = 0x00;
+        phy_regwrite(0, 0x39,(uint8_t *)&data, 1);
     }
 }
 
