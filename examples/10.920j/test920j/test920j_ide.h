@@ -1,4 +1,5 @@
 #include "lazurite.h"
+#include "BM1423.h"
 #include "MsTimer2.h"
 #include "SPI.h"
 #include "Wire.h"
