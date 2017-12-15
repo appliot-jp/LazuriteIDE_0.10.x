@@ -554,8 +554,10 @@ static void sgcs(uint8_t** pparam){
 		i++;
 	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
 
+	// command process
 	len = (int)strtol(pparam[1],&en,0);
-	stimer = (int)strtol(pparam[2],&en,0);
+	distAddr = (uint16_t)strtol(pparam[2],&en,0);
+	stimer = (int)strtol(pparam[3],&en,0);
 
     for(i=0; i < len; i++){
         wbuf[i]=0x30 + i;
