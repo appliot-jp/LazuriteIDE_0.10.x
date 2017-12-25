@@ -1,4 +1,4 @@
-/* FILE NAME: WindHack_SubGHz_master.c
+/* FILE NAME: PumpMonitor.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2017  LAPIS Semiconductor Co.,Ltd.
