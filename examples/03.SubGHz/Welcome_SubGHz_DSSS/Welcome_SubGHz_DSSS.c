@@ -26,26 +26,32 @@
  * THE SOFTWARE.
 */
 
-// #include "C:\LazuriteIDE_0.10.x_develop_rev2_new\hardware\lazurite_subghz\sub_ghz\phy.h"
-
 #define LED 26						// pin number of Blue LED
-#define SUBGHZ_CH		28			// channel number (frequency)
+#define SUBGHZ_CH		24			// channel number (frequency)
 #define SUBGHZ_PANID	0xabcd		// panid
-#define HOST_ADDRESS	0xffff	// distination address
+#define HOST_ADDRESS	0x1234		// distination address
 
-unsigned char send_data[] = {"Welcome to Lazurite Sub-GHz\r\n"};
+unsigned char send_data[] = {"Welco"};//me to Lazurite Sub-GHz\r\n"};
+
+//unsigned char send_data[] = {"\
+//012345689ABCDEF012345689ABCDEF\
+//012345689ABCDEF012345689ABCDEF\
+//012345689ABCDEF012345689ABCDEF\
+//012345689ABCDEF012345689ABCDEF\
+//012345689ABCDEF012345689ABCDEF\
+//012345689ABCDEF012345689ABCDEF\
+//012345689ABCDEF012345689ABCDEF\r\n"};
 
 void setup(void)
 {
 	SUBGHZ_PARAM a;
-	    
+
 	SubGHz.init();					// initializing Sub-GHz
 
     SubGHz.getSendMode(&a);
-    a.modulation = 0x13;
-    a.dsssSize = 27;
+    a.modulation = 0x12;
+    a.dsssSize = sizeof(send_data);
     SubGHz.setSendMode(&a);
-
 	Serial.begin(115200);
 	pinMode(LED,OUTPUT);			// setting of LED
 	digitalWrite(LED,HIGH);			// setting of LED
@@ -55,21 +61,22 @@ void loop(void)
 {
 	SUBGHZ_MSG msg;
 	// Initializing
-		
 	SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_200KBPS, SUBGHZ_PWR_20MW);		// start Sub-GHz
 
 	// preparing data
 	digitalWrite(LED,LOW);														// LED ON
 	msg=SubGHz.send(SUBGHZ_PANID, HOST_ADDRESS, &send_data, sizeof(send_data),NULL);// send data
+	digitalWrite(LED,HIGH);	
 
-	digitalWrite(LED,HIGH);														// LED off
 	SubGHz.msgOut(msg);
-
-	// close
-	SubGHz.close();																// Sub-GHz module sets into power down mode.
 	
-    sleep(200);																// sleep
+	// close
+  	SubGHz.close();																// Sub-GHz module sets into power down mode.
+
+    Serial.print("USER LEN:");
+    Serial.println_long((long)sizeof(send_data),DEC);
+    
+	sleep(500);																// sleep
 
 	return;
 }
-
