@@ -25,7 +25,7 @@
  * THE SOFTWARE.
 */
 
-#define SUBGHZ_CH	28
+#define SUBGHZ_CH	24
 #define SUBGHZ_PANID	0xABCD
 uint8_t rx_data[256];
 uint32_t last_recv_time = 0;
@@ -50,10 +50,10 @@ void setup(void)
 	}
 
     SubGHz.getSendMode(&a);
-    a.modulation = 0x13;
-    a.dsssSize = 27;
+    a.modulation = 0x12; // DSSS + SF=64;
+    a.dsssSize = 5;      // SG PER=length 5
     SubGHz.setSendMode(&a);
-    
+    /*
 	myAddress = SubGHz.getMyAddress();
 	SubGHz.getMyAddr64(myAddr64);
 	Serial.print("myAddress = ");
@@ -73,6 +73,7 @@ void setup(void)
 	Serial.print_long(myAddr64[6],HEX);
 	Serial.print(" ");
 	Serial.println_long(myAddr64[7],HEX);
+	*/
 	msg = SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_200KBPS, SUBGHZ_PWR_20MW);
 	if(msg != SUBGHZ_OK)
 	{
@@ -109,17 +110,18 @@ void loop(void)
 
 		digitalWrite(BLUE_LED, LOW);
 		SubGHz.getStatus(NULL,&rx);
+/*		
 		// print time
 		Serial.print_long((long)millis(),DEC);
 		Serial.print("\t");
 		
-	    	
+
 		// print header
 		data16 = rx_data[index], index++;
 		data16 = data16 + ((uint16_t)rx_data[index] << 8), index++;
 		Serial.print_long((long)data16,HEX);
 		Serial.print("\t");
-		
+		/*
 		// print sequence number
 		Serial.print_long((long)rx_data[index],HEX), index++;
 		Serial.print("\t");
@@ -141,7 +143,7 @@ void loop(void)
 		data16 = data16 + ((uint16_t)rx_data[index] << 8), index++;
 		Serial.print_long((long)data16,HEX);
 		Serial.print("\t");
-		
+
 		// print RSSI
 		Serial.print_long((long)rx.rssi,DEC);
 		Serial.print("\t");
@@ -153,9 +155,13 @@ void loop(void)
 			Serial.print(" ");
 		}
 		
-		
+
 		// print ln
+		Serial.print(",");
+		Serial.print_long(rx_len,HEX);
 		Serial.println("");
+*/
+		sleep(10);
 		digitalWrite(BLUE_LED, HIGH);
 	}
 	
