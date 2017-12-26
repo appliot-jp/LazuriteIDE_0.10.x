@@ -563,7 +563,7 @@ static void sgcs(uint8_t** pparam){
         wbuf[i]=0x30 + i;
     }
 
-	if((len<16)||(len>230)) {
+	if((len<5)||(len>230)) {
 		goto error;
 	}
 
@@ -665,6 +665,7 @@ static void rxCallback(uint8_t *data, uint8_t rssi, int status)
 static void sgra(uint8_t** pparam)
 {
 	SubGHz.rxEnable(rxCallback);
+    SubGHz.setPromiscuous(true);
 	sgRxAuto = true;
 	Serial.println("sgra");
 
