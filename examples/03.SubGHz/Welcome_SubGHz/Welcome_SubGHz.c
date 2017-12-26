@@ -34,6 +34,20 @@
 
 unsigned char send_data[] = {"Welcome to Lazurite Sub-GHz\r\n"};
 
+//unsigned char send_data[] = {"\
+//012345689ABCDEF012345689ABCDEF\
+//012345689ABCDEF012345689ABCDEF\
+//012345689ABCDEF012345689ABCDEF\
+//012345689ABCDEF012345689ABCDEF\
+//012345689ABCDEF012345689ABCDEF\
+//012345689ABCDEF012345689ABCDEF\
+//012345689ABCDEF012345689ABCDEF\r\n"};
+
+//unsigned char send_data[] = {"\
+//test program for Wireless communication on Lazurite system. \
+//It's including new technology but easy and low cost. \
+//wireless technology supports Subghz and LPWA. And it can use IOT system.\r\n"};
+
 void setup(void)
 {
 	
