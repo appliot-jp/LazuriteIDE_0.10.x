@@ -28,9 +28,9 @@
 
 
 #define LED 26						// pin number of Blue LED
-#define SUBGHZ_CH		36			// channel number (frequency)
+#define SUBGHZ_CH		24			// channel number (frequency)
 #define SUBGHZ_PANID	0xabcd		// panid
-#define HOST_ADDRESS	0x600c		// distination address
+#define HOST_ADDRESS	0xffff		// distination address
 
 unsigned char send_data[] = {"Welcome to Lazurite Sub-GHz\r\n"};
 
