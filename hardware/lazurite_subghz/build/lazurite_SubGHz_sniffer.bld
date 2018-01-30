@@ -29,6 +29,7 @@ PRJSRC=hardware\\lazurite_subghz\\lazurite\\analogio.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\print.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\digitalio.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\lazurite_system.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\random.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\serial.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\tone.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\WInterrupts.c
