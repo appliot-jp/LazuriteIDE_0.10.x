@@ -18,9 +18,15 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#pragma SEGCODE "OTA_SEGCODE2"
+#pragma SEGINIT "OTA_SETUP_LOOP"
+
 /* --- Common Header --- */
 #include <mcu.h>
 #include "lazurite_system.h"
+
+static void (*fn_p[2])(void) = {setup, loop};
+
 /*******************************************************************************
 *
 * Function  :   Main
@@ -36,9 +42,12 @@ void main( void )
 {
 	/* --- Platform Initial Setting --- */
 	init();
-	setup();
+#ifdef SUBGHZ_OTA
+	OTA.boot();
+#endif
+	fn_p[0]();			// setup()
 	for(;;)
 	{
-		loop();
+		fn_p[1]();		// loop()
 	}
 }

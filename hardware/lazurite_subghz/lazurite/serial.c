@@ -18,6 +18,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#ifdef SUBGHZ_OTA_DEBUG
+	#pragma SEGCODE "OTA_SEGCODE2"
+	#pragma SEGCONST "OTA_SEGCONST"
+#endif
 
 #include "common.h"
 #include "rdwr_reg.h"

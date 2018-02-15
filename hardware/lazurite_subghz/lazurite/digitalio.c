@@ -18,6 +18,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#pragma SEGCODE "OTA_SEGCODE1"
+#pragma SEGCONST "OTA_SEGCONST"
 
 #include "common.h"
 #include "lazurite.h"

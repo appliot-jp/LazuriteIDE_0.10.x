@@ -130,7 +130,11 @@ void drv_analogWrite(unsigned char pwmnum,unsigned char ftm,unsigned char val)
 	adr16 += (ftm_ch << 4);
 	adr8 = (CHAR *)adr16;					// seting address of FTM
 	adr8_out = &FTO0SL;						// setting pointer of FTM output setting
+#ifdef SUBGHZ_OTA
+	port = ml620504f_pin_to_port(ml620504f_tmout_to_pin[pwmnum]);		// setting pointer of GPIO
+#else
 	port = ml620504f_pin_to_port[ml620504f_tmout_to_pin[pwmnum]];		// setting pointer of GPIO
+#endif
 	bit = ml620504f_pin_to_bit[ml620504f_tmout_to_pin[pwmnum]];			// setting bit of GPIO
 
 	

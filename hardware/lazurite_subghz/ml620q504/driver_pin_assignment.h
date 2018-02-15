@@ -23,7 +23,11 @@
 
 #include "mcu.h"
 
-extern const unsigned char *ml620504f_pin_to_port[];
+#ifdef SUBGHZ_OTA
+	extern unsigned char *ml620504f_pin_to_port();
+#else
+	extern const unsigned char *ml620504f_pin_to_port[];
+#endif
 extern const unsigned char ml620504f_pin_to_bit[];
 extern const unsigned char ml620504f_ain_to_pin[];
 extern const unsigned char ml620504f_tmout_to_pin[];

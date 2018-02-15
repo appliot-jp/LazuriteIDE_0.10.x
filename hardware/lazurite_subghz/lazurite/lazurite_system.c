@@ -18,6 +18,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#pragma SEGCODE "OTA_SEGCODE2"
+#pragma SEGINIT "OTA_SEGINIT"
+#pragma SEGNOINIT "OTA_SEGNOINIT"
+
 #include "common.h"
 #include "mcu.h"
 #include "lazurite.h"
@@ -48,7 +52,6 @@
 //********************************************************************************
 static unsigned long sys_timer_count=0;
 
-static unsigned long delay_current_time_h;
 static struct {
 	unsigned long target_h;
 	unsigned short target_l;
@@ -323,7 +326,9 @@ void sleep_long(unsigned long ms)
 	
 	while(delay_flag == false)
 	{
-#ifdef SUBGHZ
+#if defined(SUBGHZ_OTA) && !defined(SUBGHZ_OTA_DEBUG)
+		if(subghz_api_status != 0)
+#elif SUBGHZ
 		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
 #else
 		if((uart_tx_sending == true) || (uartf_tx_sending == true))
@@ -342,28 +347,6 @@ void sleep_long(unsigned long ms)
 	#ifdef PWR_LED
 	drv_digitalWrite(11,LOW);		// PWR LED ON
 	#endif
-	return;
-}
-
-
-// for quick access, API is not in use.
-// delay interval is trimmed by NOP operation
-volatile void delay_microseconds(unsigned long us)
-{
-	if(us >= 2)
-	{
-		us -= 1;
-		while(us > 0)
-		{
-			__asm("nop\n");
-			__asm("nop\n");
-			__asm("nop\n");
-			__asm("nop\n");
-			__asm("nop\n");
-			us--;
-		}
-	}
-	
 	return;
 }
 
@@ -389,34 +372,6 @@ volatile unsigned long millis(void)
 	
 	timer_l = (timer_l * 1000) >> 15;
 	timer_h = timer_h * 2000;
-	
-	result = timer_h + timer_l;
-	
-	return result;
-}
-
-volatile unsigned long micros(void)
-{
-	unsigned long timer_l;
-	unsigned long timer_h;
-	unsigned long result;
-	
-//	__DI();
-	dis_interrupts(DI_MILLIS);
-	timer_l = read_reg16(TM01C);
-	timer_h = sys_timer_count;
-	
-	if(QTM1 == 1)
-	{
-		timer_h++;
-		timer_l=0;
-	}
-	
-//	__EI();
-	enb_interrupts(DI_MILLIS);
-	
-	timer_l = (timer_l * 15625) >> 9;
-	timer_h = timer_h * 2000000;
 	
 	result = timer_h + timer_l;
 	
@@ -454,18 +409,11 @@ void set_timer0_function(void (*func)(uint32_t sys_timer_count))
 	return;
 }
 
-
 static void clk_block_ctrl_init(void)
 {
 	write_reg16(BLKCON01,0x0FFF);
 	write_reg16(BLKCON23,0xC1DF);
 	write_reg16(BLKCON45,0x0603);
-	
-}
-
-static void wait_timeout_isr(void)
-{
-    *event_flag = 2;
 }
 
 void watch_dog_isr(void)
@@ -473,6 +421,96 @@ void watch_dog_isr(void)
 #ifndef	_WDT
 	wdt_clear();
 #endif
+}
+
+void wait_event(bool *flag)
+{	
+	#ifdef PWR_LED
+	drv_digitalWrite(11,HIGH);		// PWR LED OFF
+	#endif
+    event_flag = flag;
+
+	while(*flag == false)
+	{
+#if defined(SUBGHZ_OTA) && !defined(SUBGHZ_OTA_DEBUG)
+		if(subghz_api_status != 0)
+#elif SUBGHZ
+		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
+#else
+		if((uart_tx_sending == true) || (uartf_tx_sending == true))
+#endif
+		{
+			lp_setHaltMode();
+			wdt_clear();
+		}
+		else
+		{
+			lp_setDeepHaltMode();
+			wdt_clear();
+		}
+	}
+	*flag = false;
+	#ifdef PWR_LED
+	drv_digitalWrite(11,LOW);		// PWR LED ON
+	#endif
+}
+
+volatile unsigned long micros(void)
+{
+	unsigned long timer_l;
+	unsigned long timer_h;
+	unsigned long result;
+	
+//	__DI();
+	dis_interrupts(DI_MILLIS);
+	timer_l = read_reg16(TM01C);
+	timer_h = sys_timer_count;
+	
+	if(QTM1 == 1)
+	{
+		timer_h++;
+		timer_l=0;
+	}
+	
+//	__EI();
+	enb_interrupts(DI_MILLIS);
+	
+	timer_l = (timer_l * 15625) >> 9;
+	timer_h = timer_h * 2000000;
+	
+	result = timer_h + timer_l;
+	
+	return result;
+}
+
+// for quick access, API is not in use.
+// delay interval is trimmed by NOP operation
+volatile void delay_microseconds(unsigned long us)
+{
+	if(us >= 2)
+	{
+		us -= 1;
+		while(us > 0)
+		{
+			__asm("nop\n");
+			__asm("nop\n");
+			__asm("nop\n");
+			__asm("nop\n");
+			__asm("nop\n");
+			us--;
+		}
+	}
+	
+	return;
+}
+
+#pragma SEGCODE
+#pragma SEGINIT
+#pragma SEGNOINIT
+
+static void wait_timeout_isr(void)
+{
+    *event_flag = 2;
 }
 
 void interrupts()
@@ -529,36 +567,6 @@ static bool wait_timeout(uint32_t time)
 	timer_16bit_set(6,0xE8,(unsigned long)time,wait_timeout_isr);
 	timer_16bit_start(6);
 	return result;
-}
-
-void wait_event(bool *flag)
-{	
-	#ifdef PWR_LED
-	drv_digitalWrite(11,HIGH);		// PWR LED OFF
-	#endif
-    event_flag = flag;
-
-	while(*flag == false)
-	{
-#ifdef SUBGHZ
-		if((uart_tx_sending == true) || (uartf_tx_sending == true) ||(subghz_api_status != 0))
-#else
-		if((uart_tx_sending == true) || (uartf_tx_sending == true))
-#endif
-		{
-			lp_setHaltMode();
-			wdt_clear();
-		}
-		else
-		{
-			lp_setDeepHaltMode();
-			wdt_clear();
-		}
-	}
-	*flag = false;
-	#ifdef PWR_LED
-	drv_digitalWrite(11,LOW);		// PWR LED ON
-	#endif
 }
 
 static boolean vls_oneshot_check(uint8_t level)

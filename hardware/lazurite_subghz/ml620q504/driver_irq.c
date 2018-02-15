@@ -18,6 +18,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#pragma SEGCODE "OTA_SEGCODE2"
+#pragma SEGINIT "OTA_SEGINIT"
+#pragma SEGNOINIT "OTA_SEGNOINIT"
+#pragma SEGINTR "OTA_SEGCODE2"
+
 #include "mcu.h"
 #include "rdwr_reg.h"
 #include "driver_irq.h"

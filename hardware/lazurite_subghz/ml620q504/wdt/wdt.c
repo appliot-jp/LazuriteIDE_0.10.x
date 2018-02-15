@@ -18,6 +18,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#pragma SEGCODE "OTA_SEGCODE1"
+
 #include "mcu.h"
 #include "rdwr_reg.h"
 #include "wdt.h"

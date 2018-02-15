@@ -18,6 +18,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#pragma SEGCODE "OTA_SEGCODE2"
+#pragma SEGNOINIT "OTA_SEGNOINIT"
+#pragma SEGCONST "OTA_SEGCONST"
+
 #include "common.h"
 #include "lazurite.h"
 #include "driver_pin_assignment.h"

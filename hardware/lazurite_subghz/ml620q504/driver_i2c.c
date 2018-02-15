@@ -18,6 +18,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#pragma SEGCODE "OTA_SEGCODE2"
+#pragma SEGNOINIT "OTA_SEGNOINIT"
+
 #include <stdlib.h>
 #include <stddef.h>
 #include "common.h"
@@ -95,33 +98,6 @@ void i2c_init(UCHAR ch)
 	}
 	return;
 }
-
-void i2c_close(UCHAR ch)
-{
-	switch(ch)
-	{
-	case 0:
-		P40MD1 = 0; P40MD0 = 0; P40C1 = 0; P40C0 = 0;	// port setting
-		P41MD1 = 0; P41MD0 = 0; P41C1 = 0; P41C0 = 0;	// port setting
-		I2C0MODL &= ~0x01;							// b1:400kbps,b0:I2C enable
-		EI2C0 = 0;		QI2C0 = 0;					// disenable I2C interrupt
-		I2C[ch].status = I2C_MODE_DIS;
-		set_bit(DI2C0);								// disenable I2C0
-		break;
-	case 1:
-		P35MD1 = 0;	P35MD0 = 0;P35C1 = 0; P35C0 = 0;	// port setting
-		P34MD1 = 0;	P34MD0 = 0;P34C1 = 0; P34C0 = 0;	// port setting
-		I2C1MODL &= ~0x01;								// I2C stop
-		EI2C1 = 0;		QI2C1 = 0;					// disenable I2C interrupt
-		I2C[ch].status = I2C_MODE_DIS;
-		set_bit(DI2C1);								// disenable I2C1
-		break;
-	default:
-		break;
-	}
-	return;
-}
-
 
 // reset parameter
 void i2c_begin(UCHAR ch)
@@ -408,18 +384,46 @@ UINT16 i2c_read_amount(UCHAR ch)
 	return(I2C[ch].rx_index);
 }
 
-UINT16 i2c_write_amount(UCHAR ch)
-{
-	return(I2C[ch].tx_index);
-}
-
 UINT8 i2c_get_err_status(UCHAR ch)
 {
 	return I2C[ch].err_code;
 }
+
 void i2c_force_stop(UCHAR ch)
 {
 	i2c_send_stopbit(ch);
 	I2C[ch].status = I2C_MODE_STOPBIT;
 }
 
+#pragma SEGCODE
+
+void i2c_close(UCHAR ch)
+{
+	switch(ch)
+	{
+	case 0:
+		P40MD1 = 0; P40MD0 = 0; P40C1 = 0; P40C0 = 0;	// port setting
+		P41MD1 = 0; P41MD0 = 0; P41C1 = 0; P41C0 = 0;	// port setting
+		I2C0MODL &= ~0x01;							// b1:400kbps,b0:I2C enable
+		EI2C0 = 0;		QI2C0 = 0;					// disenable I2C interrupt
+		I2C[ch].status = I2C_MODE_DIS;
+		set_bit(DI2C0);								// disenable I2C0
+		break;
+	case 1:
+		P35MD1 = 0;	P35MD0 = 0;P35C1 = 0; P35C0 = 0;	// port setting
+		P34MD1 = 0;	P34MD0 = 0;P34C1 = 0; P34C0 = 0;	// port setting
+		I2C1MODL &= ~0x01;								// I2C stop
+		EI2C1 = 0;		QI2C1 = 0;					// disenable I2C interrupt
+		I2C[ch].status = I2C_MODE_DIS;
+		set_bit(DI2C1);								// disenable I2C1
+		break;
+	default:
+		break;
+	}
+	return;
+}
+
+UINT16 i2c_write_amount(UCHAR ch)
+{
+	return(I2C[ch].tx_index);
+}

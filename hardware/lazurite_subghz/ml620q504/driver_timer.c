@@ -18,6 +18,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#pragma SEGCONST "OTA_SEGCONST"
 
 /* --- Common Header --- */
 #include "common.h"
@@ -99,6 +100,8 @@ void timer_8bit_stop(unsigned char ch)
 	BLKCON0 |= num_to_bit[ch];					// power down timer0, timer1
 	
 }
+
+#pragma SEGCODE "OTA_SEGCODE2"
 
 void timer_16bit_set(unsigned char ch, unsigned char TMnCON, unsigned short TMnnD, void (*func)(void))
 {

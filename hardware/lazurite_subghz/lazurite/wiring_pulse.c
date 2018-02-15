@@ -33,7 +33,11 @@
 //********************************************************************************
 extern const unsigned char digital_pin_to_port[];
 extern const unsigned char ml620504f_pin_to_bit[];
-extern const unsigned char *ml620504f_pin_to_port[];
+#ifdef SUBGHZ_OTA
+	extern unsigned char *ml620504f_pin_to_port();
+#else
+	extern const unsigned char *ml620504f_pin_to_port[];
+#endif
 
 //********************************************************************************
 //   local definitions
@@ -61,7 +65,11 @@ unsigned long pulseIn(UCHAR pin, UCHAR value, UINT32 timeout)
 	volatile uint8_t raw_val;
 	
 	raw_bit = ml620504f_pin_to_bit[digital_pin_to_port[pin]];
+#ifdef SUBGHZ_OTA
+	raw_pin = ml620504f_pin_to_port(digital_pin_to_port[pin]);
+#else
 	raw_pin = ml620504f_pin_to_port[digital_pin_to_port[pin]];
+#endif
 	st=micros();
 #if 0
 	do
