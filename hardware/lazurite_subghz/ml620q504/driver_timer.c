@@ -18,8 +18,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#pragma SEGCONST "OTA_SEGCONST"
-
+#ifdef SUBGHZ_OTA
+	#pragma SEGCONST "OTA_SEGCONST"
+#endif
 /* --- Common Header --- */
 #include "common.h"
 
@@ -101,7 +102,9 @@ void timer_8bit_stop(unsigned char ch)
 	
 }
 
-#pragma SEGCODE "OTA_SEGCODE2"
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE "OTA_SEGCODE2"
+#endif
 
 void timer_16bit_set(unsigned char ch, unsigned char TMnCON, unsigned short TMnnD, void (*func)(void))
 {

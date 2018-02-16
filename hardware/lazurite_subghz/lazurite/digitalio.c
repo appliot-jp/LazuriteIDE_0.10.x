@@ -18,9 +18,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#pragma SEGCODE "OTA_SEGCODE1"
-#pragma SEGCONST "OTA_SEGCONST"
-
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE "OTA_SEGCODE1"
+	#pragma SEGCONST "OTA_SEGCONST"
+#endif
 #include "common.h"
 #include "lazurite.h"
 #include "driver_gpio.h"

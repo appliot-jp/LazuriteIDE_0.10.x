@@ -59,7 +59,9 @@ void lp_setHaltHMode( void )
 	__asm("nop\n");
 }
 
-#pragma SEGCODE "OTA_SEGCODE1"
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE "OTA_SEGCODE1"
+#endif
 
 /**
  * Setting HALT mode

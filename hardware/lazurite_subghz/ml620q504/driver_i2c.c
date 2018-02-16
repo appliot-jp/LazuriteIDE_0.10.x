@@ -18,9 +18,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#pragma SEGCODE "OTA_SEGCODE2"
-#pragma SEGNOINIT "OTA_SEGNOINIT"
-
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE "OTA_SEGCODE2"
+	#pragma SEGNOINIT "OTA_SEGNOINIT"
+#endif
 #include <stdlib.h>
 #include <stddef.h>
 #include "common.h"
