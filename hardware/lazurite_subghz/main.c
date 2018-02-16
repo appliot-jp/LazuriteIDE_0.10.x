@@ -18,9 +18,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#pragma SEGCODE "OTA_SEGCODE2"
-#pragma SEGINIT "OTA_SETUP_LOOP"
-
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE "OTA_SEGCODE2"
+	#pragma SEGINIT "OTA_SETUP_LOOP"
+#endif
 /* --- Common Header --- */
 #include <mcu.h>
 #include "lazurite_system.h"
