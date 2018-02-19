@@ -19,7 +19,7 @@
  */
 
 #ifdef SUBGHZ_OTA
-	#pragma SEGCODE "OTA_SEGCODE2"
+	#pragma SEGCODE "OTA_SEGCODE"
 	#pragma SEGINIT "OTA_SEGINIT"
 	#pragma SEGNOINIT "OTA_SEGNOINIT"
 #endif
@@ -327,9 +327,7 @@ void sleep_long(unsigned long ms)
 	
 	while(delay_flag == false)
 	{
-#if defined(SUBGHZ_OTA) && !defined(SUBGHZ_OTA_DEBUG)
-		if(subghz_api_status != 0)
-#elif SUBGHZ
+#ifdef SUBGHZ
 		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
 #else
 		if((uart_tx_sending == true) || (uartf_tx_sending == true))
@@ -433,9 +431,7 @@ void wait_event(bool *flag)
 
 	while(*flag == false)
 	{
-#if defined(SUBGHZ_OTA) && !defined(SUBGHZ_OTA_DEBUG)
-		if(subghz_api_status != 0)
-#elif SUBGHZ
+#if SUBGHZ
 		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
 #else
 		if((uart_tx_sending == true) || (uartf_tx_sending == true))
@@ -505,9 +501,11 @@ volatile void delay_microseconds(unsigned long us)
 	return;
 }
 
-#pragma SEGCODE
-#pragma SEGINIT
-#pragma SEGNOINIT
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE
+	#pragma SEGINIT
+	#pragma SEGNOINIT
+#endif
 
 static void wait_timeout_isr(void)
 {

@@ -19,7 +19,7 @@
  */
 
 #ifdef SUBGHZ_OTA
-	#pragma SEGCODE "OTA_SEGCODE2"
+	#pragma SEGCODE "OTA_SEGCODE"
 	#pragma SEGCONST "OTA_SEGCONST"
 #endif
 #include "common.h"
@@ -32,7 +32,6 @@
 //********************************************************************************
 //   global parameters
 //********************************************************************************
-#ifdef SUBGHZ_OTA
 unsigned char *ml620504f_pin_to_port(unsigned char pin)
 {
 	unsigned char *port;
@@ -92,7 +91,7 @@ unsigned char *ml620504f_pin_to_port(unsigned char pin)
 	}
 	return port;
 }
-#else // SUBGHZ_OTA
+/*
 const unsigned char *ml620504f_pin_to_port[] =
 {
 	&P0D,	//	0	P00
@@ -132,7 +131,7 @@ const unsigned char *ml620504f_pin_to_port[] =
 	&P5D,	//	34	P56
 	&P5D,	//	35	P57
 };
-#endif // SUBGHZ_OTA
+*/
 
 const unsigned char ml620504f_pin_to_bit[] =
 {
@@ -196,11 +195,7 @@ volatile void drv_pinMode(unsigned char pin, unsigned char mode)
 	dis_interrupts(DI_GPIO);
 	
 	bit = ml620504f_pin_to_bit[pin];
-#ifdef SUBGHZ_OTA
 	port = ml620504f_pin_to_port(pin);
-#else
-	port = ml620504f_pin_to_port[pin];
-#endif
 	switch(mode)
 	{
 	case INPUT_PULLUP:
@@ -261,11 +256,7 @@ int drv_digitalRead(unsigned char pin)
 //	dis_interrupts(DI_GPIO);
 	
 	bit = ml620504f_pin_to_bit[pin];
-#ifdef SUBGHZ_OTA
 	port = ml620504f_pin_to_port(pin);
-#else
-	port = ml620504f_pin_to_port[pin];
-#endif
 	res = ((*port)&bit)!=0 ? HIGH : LOW;
 	
 //	enb_interrupts(DI_GPIO);
@@ -284,11 +275,7 @@ void drv_digitalWrite(unsigned char pin, unsigned char val)
 //	dis_interrupts(DI_GPIO);
 	
 	bit = ml620504f_pin_to_bit[pin];
-#ifdef SUBGHZ_OTA
 	port = ml620504f_pin_to_port(pin);
-#else
-	port = ml620504f_pin_to_port[pin];
-#endif
 	if(val == LOW)
 	{
 		*(port) &= ~bit;		

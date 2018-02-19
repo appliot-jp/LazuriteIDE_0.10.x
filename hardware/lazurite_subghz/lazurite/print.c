@@ -18,8 +18,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifdef SUBGHZ_OTA_DEBUG
-	#pragma SEGCODE "OTA_SEGCODE2"
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE "OTA_SEGCODE"
+	#pragma SEGINIT "OTA_SEGINIT"
 	#pragma SEGCONST "OTA_SEGCONST"
 #endif
 
@@ -66,6 +67,8 @@ void print_init(char* x, size_t size)
 
 int printBuf_ln(void)
 {
+	static unsigned char s[] = "\n";
+
 	if((print_buf_size == 0) || (print_buf == NULL)) return;
 	
 	if(print_buf_size <= print_buf_len)
@@ -73,7 +76,7 @@ int printBuf_ln(void)
 		*(print_buf + print_buf_size - 1) = NULL;
 		print_buf_len--;
 	}
-	return printBuf("\n");
+	return printBuf(s);
 }
 
 int printBuf(char* data)
@@ -169,12 +172,13 @@ size_t printFloat(char* x, double data, unsigned char digit)
 	double round;
 	size_t n = 0;
 	unsigned char i;
-	
+	static unsigned char s[] = "ovf";
+
 	// check overflow
 	if((data > 2147483647.5)||(data < -2147483647.5))
 	{
-		strcpy(x,"ovf");
-		return sizeof("ovf");
+		strcpy(x,s);
+		return sizeof(s);
 	}
 	
 	// convert to absolute value

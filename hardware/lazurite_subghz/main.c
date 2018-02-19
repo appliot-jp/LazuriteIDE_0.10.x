@@ -19,7 +19,7 @@
  */
 
 #ifdef SUBGHZ_OTA
-	#pragma SEGCODE "OTA_SEGCODE2"
+	#pragma SEGCODE "OTA_SEGCODE"
 	#pragma SEGINIT "OTA_SETUP_LOOP"
 #endif
 /* --- Common Header --- */

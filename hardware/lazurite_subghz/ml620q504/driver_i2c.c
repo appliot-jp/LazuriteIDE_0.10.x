@@ -19,7 +19,7 @@
  */
 
 #ifdef SUBGHZ_OTA
-	#pragma SEGCODE "OTA_SEGCODE2"
+	#pragma SEGCODE "OTA_SEGCODE"
 	#pragma SEGNOINIT "OTA_SEGNOINIT"
 #endif
 #include <stdlib.h>
@@ -396,7 +396,9 @@ void i2c_force_stop(UCHAR ch)
 	I2C[ch].status = I2C_MODE_STOPBIT;
 }
 
-#pragma SEGCODE
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE
+#endif
 
 void i2c_close(UCHAR ch)
 {

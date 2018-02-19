@@ -103,7 +103,7 @@ void timer_8bit_stop(unsigned char ch)
 }
 
 #ifdef SUBGHZ_OTA
-	#pragma SEGCODE "OTA_SEGCODE2"
+	#pragma SEGCODE "OTA_SEGCODE"
 #endif
 
 void timer_16bit_set(unsigned char ch, unsigned char TMnCON, unsigned short TMnnD, void (*func)(void))

@@ -19,7 +19,7 @@
  */
 
 #ifdef SUBGHZ_OTA
-	#pragma SEGCODE "OTA_SEGCODE1"
+	#pragma SEGCODE "OTA_SEGCODE"
 #endif
 #include "mcu.h"
 #include "rdwr_reg.h"

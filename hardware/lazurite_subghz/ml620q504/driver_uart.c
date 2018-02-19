@@ -18,8 +18,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifdef SUBGHZ_OTA_DEBUG
-	#pragma SEGCODE "OTA_SEGCODE2"
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE "OTA_SEGCODE"
 	#pragma SEGNOINIT "OTA_SEGNOINIT"
 	#pragma SEGCONST "OTA_SEGCONST"
 #endif
