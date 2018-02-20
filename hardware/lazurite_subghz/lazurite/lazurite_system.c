@@ -431,7 +431,7 @@ void wait_event(bool *flag)
 
 	while(*flag == false)
 	{
-#if SUBGHZ
+#ifdef SUBGHZ
 		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
 #else
 		if((uart_tx_sending == true) || (uartf_tx_sending == true))
