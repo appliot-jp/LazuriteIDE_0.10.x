@@ -35,6 +35,8 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 };
 #pragma SEGCONST
 
+#define DEBUG	// uncomment, if using debug message
+
 #define CHB						( 2 )
 #define MEAS 					( 3 )
 #define MEAS_LED				( 25 )
@@ -50,14 +52,18 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define PARAM_UPD_MODE			( 3 )
 #define FW_UPD_MODE				( 4 )
 #define DEFAULT_SLEEP_INTERVAL	( 5 * 1000ul )
-#define MAX_SLEEP_INTERVAL		( 3599 * 1000ul )
+#define KEEP_ALIVE_INTERVAL		( 3599 * 1000ul )
 #define GW_SEARCH_TIMEOUT		( 10 * 1000ul )
 #define PARAM_UPD_TIMEOUT		( 1 * 1000ul )
 #define PARAM_UPD_RETRY_TIMES	( 5 )
 #define PARAM_UPD_SLEEP_INTVAL	( 10 * 1000ul )
 #define FW_UPD_MODE_TIMEOUT		( 300 * 1000ul )
+#define KEEP_ALIVE_NONE			( 0 )
+#define KEEP_ALIVE_LOW			( 1 )
+#define KEEP_ALIVE_HIGH			( 2 )
 
 uint8_t txbuf[MAX_BUF_SIZE], mode;
+uint8_t keep_alive = KEEP_ALIVE_NONE;
 double current_amps;				// unit mA
 double thrs_on_amp=0.03;
 double thrs_off_amp=0.03;
@@ -69,7 +75,7 @@ uint32_t sleep_interval=DEFAULT_SLEEP_INTERVAL;
 uint32_t prev_send_time, current_time;
 uint16_t gateway_addr=0xffff;
 uint16_t gateway_panid=0xffff;
-uint16_t my_short_addr=0;
+uint16_t my_short_addr=0xffff;
 bool send_data_flag=false;
 bool debug_flag=false;
 
@@ -180,6 +186,9 @@ static void gw_search(void)
 		SubGHz.send(0xffff,0xffff,tx_str,sizeof(tx_str),NULL);				// broadcast
 		digitalWrite(TX_LED,HIGH);
 		prev_send_time = millis();
+#ifdef DEBUG
+		Serial.println("Searching GW...");
+#endif
 		while (1) {
 			rx_len = SubGHz.readData(txbuf,MAX_BUF_SIZE);
 			if (rx_len > 0) {
@@ -227,21 +236,10 @@ static void param_update(void)
 		sleep(PARAM_UPD_SLEEP_INTVAL);
 	}
 	SubGHz.close();
-	if (!setting_done) mode = GW_SEARCH_MODE;
-}
-
-static void check_enhance_ack(void)
-{
-	EACK_DATA *eack_data;
-	uint8_t *p;
-	int eack_size;
-
-	SubGHz.getEnhanceAck(&p,&eack_size);
-	eack_data = (EACK_DATA *)p;
-	if (eack_size == sizeof(EACK_DATA)) {
-		if (eack_data->param_upd) mode = PARAM_UPD_MODE;
-		if (eack_data->fw_update) mode = FW_UPD_MODE;		// higher priority
-		sleep_interval = eack_data->sleep_interval_sec * 1000ul;
+	if (setting_done) {
+		mode = NORMAL_MODE;
+	} else {
+		mode = GW_SEARCH_MODE;
 	}
 }
 
@@ -339,7 +337,114 @@ double ct_meas() {
 	return amps;
 }
 
-static CT_STATE fix_current_level(void)
+static void ct_sensor_main(void)
+{
+	uint8_t level;
+	SUBGHZ_MSG msg;
+	EACK_DATA *eack_data;
+	uint8_t *p;
+	int eack_size,i;
+	bool immediate_flag = false;
+
+	prev_send_time = 0;
+	while(1) {
+		level = voltage_check(VLS_4_667);	
+		if (level >= 10) {
+			current_amps = ct_meas();				// start measuring
+			current_time = millis();
+			if (debug_flag || ((prev_send_time != 0) && ((current_time - prev_send_time) >= KEEP_ALIVE_INTERVAL))) {
+				immediate_flag = true;
+				send_data_flag = true;
+#ifdef DEBUG
+				Serial.println("KEEP ALIVE");
+#endif
+			}
+#ifdef DEBUG
+			Serial.print("ct state: ");
+			Serial.print_long(state_func,DEC);
+			Serial.print(" -> ");
+#endif
+			state_func = ct_funcs[state_func]();	// state machine
+#ifdef DEBUG
+			Serial.println_long(state_func,DEC);
+#endif
+			keep_alive = KEEP_ALIVE_NONE;
+
+			if (send_data_flag) {
+				send_data_flag = false;
+				Print.init(txbuf,sizeof(txbuf));
+				if (immediate_flag) {
+					immediate_flag = false;
+					if (current_amps > thrs_off_amp) {
+						keep_alive = KEEP_ALIVE_HIGH;
+						Print.p("on,");
+					} else {
+						keep_alive = KEEP_ALIVE_LOW;
+						Print.p("off,");
+					}
+				} else {
+					if ((state_func == CT_STATE_ON_STABLE) || (state_func == CT_STATE_ON_UNSTABLE)) {
+						Print.p("on,");
+					} else {
+						Print.p("off,");
+					}
+				}
+				Print.d(current_amps,2);
+				Print.p(",");
+				Print.p(vls_val[level]);
+				Print.ln();
+
+				digitalWrite(TX_LED,LOW);
+				SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
+				msg = SubGHz.send(gateway_panid,gateway_addr,txbuf,Print.len(),NULL);
+				SubGHz.close();
+				digitalWrite(TX_LED,HIGH);
+#ifdef DEBUG
+				SubGHz.msgOut(msg);
+#endif
+				if (msg == SUBGHZ_OK) {
+					prev_send_time = millis();
+					SubGHz.getEnhanceAck(&p,&eack_size);
+					eack_data = (EACK_DATA *)p;
+#ifdef DEBUG
+					Serial.print("eack size: ");
+					Serial.println_long((long)eack_size,DEC);
+#endif
+					if (eack_size == sizeof(EACK_DATA)) {
+#ifdef DEBUG
+						Serial.print("eack data: ");
+						for (i=0;i<sizeof(EACK_DATA);i++,p++) {
+							Serial.print_long((long)*p,HEX);
+							Serial.print(" ");
+						}
+						Serial.println("");
+#endif
+						if (eack_data->param_upd) mode = PARAM_UPD_MODE;
+						if (eack_data->fw_update) mode = FW_UPD_MODE;		// higher priority
+						if (debug_flag) {
+							sleep_interval = DEFAULT_SLEEP_INTERVAL;
+						} else if (eack_data->sleep_interval_sec <= KEEP_ALIVE_INTERVAL) {
+							sleep_interval = eack_data->sleep_interval_sec * 1000ul;
+						} else {
+							// do nothing
+						}
+					}
+				} else {
+					mode = GW_SEARCH_MODE;
+					break;
+				}
+			}
+		}
+#ifdef DEBUG
+		Serial.print("go to sleep: ");
+		Serial.println_long(sleep_interval,DEC);
+#endif
+		sleep(sleep_interval);
+		if (mode != NORMAL_MODE) break;
+	}
+}
+
+static CT_STATE init_current_level(void)
 {
 	current_amps = ct_meas();
 	thrs_on_start = 0;
@@ -348,57 +453,6 @@ static CT_STATE fix_current_level(void)
 		return CT_STATE_ON_STABLE;
 	} else {
 		return CT_STATE_OFF_STABLE;
-	}
-}
-
-static void ct_sensor_main(void)
-{
-	uint8_t level;
-	SUBGHZ_MSG msg;
-
-	level = voltage_check(VLS_4_667);	
-	if (level >= 10) {
-		current_amps = ct_meas();				// start measuring
-		current_time = millis();
-		state_func = ct_funcs[state_func]();	// state machine
-
-		if (debug_flag || ((prev_send_time != 0) && ((current_time - prev_send_time) >= MAX_SLEEP_INTERVAL))) {
-			send_data_flag = true;
-		}
-		if (send_data_flag) {
-			send_data_flag = false;
-			Print.init(txbuf,sizeof(txbuf));
-			if (debug_flag) {
-				if (current_amps > thrs_off_amp) {
-					Print.p("on,");
-				} else {
-					Print.p("off,");
-				}
-			} else {
-				if ((state_func == CT_STATE_ON_STABLE) || (state_func == CT_STATE_ON_UNSTABLE)) {
-					Print.p("on,");
-				} else {
-					Print.p("off,");
-				}
-			}
-			Print.d(current_amps,2);
-			Print.p(",");
-			Print.p(vls_val[level]);
-			Print.ln();
-
-			digitalWrite(TX_LED,LOW);
-			SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
-			msg = SubGHz.send(gateway_panid,gateway_addr,txbuf,Print.len(),NULL);
-			SubGHz.close();
-			digitalWrite(TX_LED,HIGH);
-			SubGHz.msgOut(msg);
-			if (msg == SUBGHZ_OK) {
-				prev_send_time = millis();
-				check_enhance_ack();
-			} else {
-				mode = GW_SEARCH_MODE;
-			}
-		}
 	}
 }
 
@@ -461,8 +515,10 @@ void setup() {
 	pinMode(MEAS_LED,OUTPUT);
 	digitalWrite(TX_LED,HIGH);
 	pinMode(TX_LED,OUTPUT);
-  
+
+#ifdef DEBUG
 	Serial.begin(115200);
+#endif
 	SubGHz.init();
 	ct_init();
 	mode = GW_SEARCH_MODE;
@@ -472,34 +528,37 @@ void loop() {
 	// put your main code here, to run repeatedly:
 	switch (mode) {
 	case GW_SEARCH_MODE:			// search gateway
+#ifdef DEBUG
 		Serial.println("GW SEARCH MODE");
+#endif
 		gw_search();
-		if (my_short_addr) SubGHz.setMyAddress(my_short_addr);
-		state_func = fix_current_level();
+		if (my_short_addr != 0xffff) SubGHz.setMyAddress(my_short_addr);
+		state_func = init_current_level();
+		sleep_interval = DEFAULT_SLEEP_INTERVAL;
 		mode = NORMAL_MODE;
 		break;
 	case NORMAL_MODE:
+#ifdef DEBUG
 		Serial.println("NORMAL MODE");
+#endif
 		ct_sensor_main();
-		if (debug_flag) sleep_interval = DEFAULT_SLEEP_INTERVAL;
-		if (mode != GW_SEARCH_MODE) {
-			Serial.print("go to sleep : ");
-			Serial.println_long(sleep_interval,DEC);
-			sleep(sleep_interval);
-		}
 		break;
 	case PARAM_UPD_MODE:			// update paramter
+#ifdef DEBUG
 		Serial.println("PARAM UPDATE MODE");
+#endif
 		param_update();
-		if (my_short_addr) SubGHz.setMyAddress(my_short_addr);
-		state_func = fix_current_level();
-		mode = NORMAL_MODE;
+		if (my_short_addr != 0xffff) SubGHz.setMyAddress(my_short_addr);
+		state_func = init_current_level();
 		break;
 	case FW_UPD_MODE:
+#ifdef DEBUG
 		Serial.println("FW UPDATE MODE");
+#endif
 		fw_update();
 		mode = NORMAL_MODE;			// return to normal mode, because fw update failed
-		state_func = fix_current_level();
+		state_func = init_current_level();
+		sleep_interval = DEFAULT_SLEEP_INTERVAL;
 		break;
 	default:
 		break;
