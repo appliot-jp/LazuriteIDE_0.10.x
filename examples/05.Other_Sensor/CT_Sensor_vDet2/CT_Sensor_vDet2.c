@@ -44,9 +44,10 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define SUBGHZ_CH				( 36 )
 #define BAUD					( 100 )
 #define PWR						( 20 )
-
-#define OTA_PANID				( 0xCDEF )
-#define MAX_BUF_SIZE			( 250 )
+#define EACK_DEBUG_FLAG			( 0x01 )
+#define EACK_PARAM_UPD			( 0x02 )
+#define EACK_GW_SEARCH			( 0x03 )
+#define EACK_FW_UPD				( 0xF0 )
 #define GW_SEARCH_MODE			( 1 )
 #define NORMAL_MODE				( 2 )
 #define PARAM_UPD_MODE			( 3 )
@@ -57,13 +58,10 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define PARAM_UPD_TIMEOUT		( 1 * 1000ul )
 #define PARAM_UPD_RETRY_TIMES	( 5 )
 #define PARAM_UPD_SLEEP_INTVAL	( 10 * 1000ul )
-#define FW_UPD_MODE_TIMEOUT		( 300 * 1000ul )
-#define KEEP_ALIVE_NONE			( 0 )
-#define KEEP_ALIVE_LOW			( 1 )
-#define KEEP_ALIVE_HIGH			( 2 )
+#define FW_UPD_MODE_TIMEOUT		( 120 * 1000ul )
+#define MAX_BUF_SIZE			( 250 )
 
-uint8_t txbuf[MAX_BUF_SIZE], mode;
-uint8_t keep_alive = KEEP_ALIVE_NONE;
+uint8_t mode;
 double current_amps;				// unit mA
 double thrs_on_amp=0.03;
 double thrs_off_amp=0.03;
@@ -80,8 +78,7 @@ bool send_data_flag=false;
 bool debug_flag=false;
 
 __packed typedef struct {
-	uint8_t param_upd:1;
-	uint8_t fw_update:1;
+	uint8_t eack_flag;
 	uint16_t sleep_interval_sec;	// unit sec
 } EACK_DATA;
 
@@ -111,7 +108,7 @@ OTA_PARAM ota_param = {
 	0,						// version
 	"CT_Sensor_vDet2",		// must match with file name
 	SUBGHZ_CH,
-	OTA_PANID,
+	0xffff,
 	BAUD,
 	PWR,
 	0xffff
@@ -174,6 +171,7 @@ static int parse_payload(uint8_t *payload)
 
 static void gw_search(void)
 {
+	uint8_t rx_buf[MAX_BUF_SIZE]={0};
 	int rx_len;
 	SUBGHZ_MAC_PARAM mac;
 	uint8_t tx_str[] = "factory-iot";
@@ -190,13 +188,14 @@ static void gw_search(void)
 		Serial.println("Searching GW...");
 #endif
 		while (1) {
-			rx_len = SubGHz.readData(txbuf,MAX_BUF_SIZE);
+			rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
 			if (rx_len > 0) {
-				SubGHz.decMac(&mac,txbuf,rx_len);
+				SubGHz.decMac(&mac,rx_buf,rx_len);
 				if (parse_payload(mac.payload) == 0) {						// parse ok
 					setting_done = true;
 					break;
 				}
+				memset(rx_buf,0,sizeof(rx_buf));							// clear memory
 			}
 			if ((millis() - prev_send_time) > GW_SEARCH_TIMEOUT ) break;	// timed out
 		}
@@ -206,6 +205,7 @@ static void gw_search(void)
 
 static void param_update(void)
 {
+	uint8_t rx_buf[MAX_BUF_SIZE]={0};
 	int rx_len,i;
 	SUBGHZ_MAC_PARAM mac;
 	SUBGHZ_MSG msg;
@@ -221,13 +221,14 @@ static void param_update(void)
 		if (msg == SUBGHZ_OK) {
 			prev_send_time = millis();
 			while (1) {
-				rx_len = SubGHz.readData(txbuf,MAX_BUF_SIZE);
+				rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
 				if (rx_len > 0) {
-					SubGHz.decMac(&mac,txbuf,rx_len);
+					SubGHz.decMac(&mac,rx_buf,rx_len);
 					if (parse_payload(mac.payload) == 0) {						// parse ok
 						setting_done = true;
 						break;
 					}
+					memset(rx_buf,0,sizeof(rx_buf));							// clear memory
 				}
 				if ((millis() - prev_send_time) > PARAM_UPD_TIMEOUT ) break;	// timed out
 			}
@@ -339,12 +340,12 @@ double ct_meas() {
 
 static void ct_sensor_main(void)
 {
+	uint8_t tx_buf[20]={0};
 	uint8_t level;
 	SUBGHZ_MSG msg;
 	EACK_DATA *eack_data;
 	uint8_t *p;
 	int eack_size,i;
-	bool immediate_flag = false;
 
 	prev_send_time = 0;
 	while(1) {
@@ -352,42 +353,28 @@ static void ct_sensor_main(void)
 		if (level >= 10) {
 			current_amps = ct_meas();				// start measuring
 			current_time = millis();
-			if (debug_flag || ((prev_send_time != 0) && ((current_time - prev_send_time) >= KEEP_ALIVE_INTERVAL))) {
-				immediate_flag = true;
+			if (debug_flag || (prev_send_time == 0) || ((current_time - prev_send_time) >= KEEP_ALIVE_INTERVAL)) {
 				send_data_flag = true;
 #ifdef DEBUG
-				Serial.println("KEEP ALIVE");
+				if (!debug_flag && (prev_send_time != 0)) Serial.println("keep alive");
 #endif
 			}
 #ifdef DEBUG
-			Serial.print("ct state: ");
-			Serial.print_long(state_func,DEC);
+			Serial.print("ct_state: ");
+			Serial.print_long((long)state_func,DEC);
 			Serial.print(" -> ");
 #endif
 			state_func = ct_funcs[state_func]();	// state machine
 #ifdef DEBUG
-			Serial.println_long(state_func,DEC);
+			Serial.println_long((long)state_func,DEC);
 #endif
-			keep_alive = KEEP_ALIVE_NONE;
-
 			if (send_data_flag) {
 				send_data_flag = false;
-				Print.init(txbuf,sizeof(txbuf));
-				if (immediate_flag) {
-					immediate_flag = false;
-					if (current_amps > thrs_off_amp) {
-						keep_alive = KEEP_ALIVE_HIGH;
-						Print.p("on,");
-					} else {
-						keep_alive = KEEP_ALIVE_LOW;
-						Print.p("off,");
-					}
+				Print.init(tx_buf,sizeof(tx_buf));
+				if ((state_func == CT_STATE_ON_STABLE) || (state_func == CT_STATE_ON_UNSTABLE)) {
+					Print.p("on,");
 				} else {
-					if ((state_func == CT_STATE_ON_STABLE) || (state_func == CT_STATE_ON_UNSTABLE)) {
-						Print.p("on,");
-					} else {
-						Print.p("off,");
-					}
+					Print.p("off,");
 				}
 				Print.d(current_amps,2);
 				Print.p(",");
@@ -396,7 +383,7 @@ static void ct_sensor_main(void)
 
 				digitalWrite(TX_LED,LOW);
 				SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
-				msg = SubGHz.send(gateway_panid,gateway_addr,txbuf,Print.len(),NULL);
+				msg = SubGHz.send(gateway_panid,gateway_addr,tx_buf,Print.len(),NULL);
 				SubGHz.close();
 				digitalWrite(TX_LED,HIGH);
 #ifdef DEBUG
@@ -407,20 +394,38 @@ static void ct_sensor_main(void)
 					SubGHz.getEnhanceAck(&p,&eack_size);
 					eack_data = (EACK_DATA *)p;
 #ifdef DEBUG
-					Serial.print("eack size: ");
+					Serial.print("eack_size: ");
 					Serial.println_long((long)eack_size,DEC);
 #endif
 					if (eack_size == sizeof(EACK_DATA)) {
 #ifdef DEBUG
-						Serial.print("eack data: ");
+						Serial.print("eack_data: ");
 						for (i=0;i<sizeof(EACK_DATA);i++,p++) {
 							Serial.print_long((long)*p,HEX);
 							Serial.print(" ");
 						}
 						Serial.println("");
 #endif
-						if (eack_data->param_upd) mode = PARAM_UPD_MODE;
-						if (eack_data->fw_update) mode = FW_UPD_MODE;		// higher priority
+						switch (eack_data->eack_flag) {
+						case EACK_DEBUG_FLAG:
+							debug_flag = true;
+							break;
+						case EACK_PARAM_UPD:
+							debug_flag = false;
+							mode = PARAM_UPD_MODE;
+							break;
+						case EACK_GW_SEARCH:
+							debug_flag = false;
+							mode = GW_SEARCH_MODE;
+							break;
+						case EACK_FW_UPD:
+							debug_flag = false;
+							mode = FW_UPD_MODE;
+							break;
+						default:
+							debug_flag = false;
+							break;
+						}
 						if (debug_flag) {
 							sleep_interval = DEFAULT_SLEEP_INTERVAL;
 						} else if (eack_data->sleep_interval_sec <= KEEP_ALIVE_INTERVAL) {
@@ -444,7 +449,7 @@ static void ct_sensor_main(void)
 	}
 }
 
-static CT_STATE init_current_level(void)
+static CT_STATE func_init_state(void)
 {
 	current_amps = ct_meas();
 	thrs_on_start = 0;
@@ -458,13 +463,14 @@ static CT_STATE init_current_level(void)
 
 static void fw_update(void)
 {
+	uint8_t rx_buf[MAX_BUF_SIZE]={0};
+	int rx_len;
 	uint16_t src_addr;
 	uint8_t hw_type;
 	uint8_t *s,*d;
 	uint8_t tx_str[] = "ota-ready";
 	SUBGHZ_MAC_PARAM mac;
 	SUBGHZ_MSG msg;
-	int rx_len;
 
 	digitalWrite(TX_LED,LOW);
 	SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
@@ -474,33 +480,35 @@ static void fw_update(void)
 
 	if (msg == SUBGHZ_OK) {
 		SubGHz.setKey(ota_aes_key);
-		SubGHz.begin(SUBGHZ_CH,OTA_PANID,BAUD,PWR);
+		SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
 		SubGHz.rxEnable(NULL);
 		prev_send_time = millis();
 
 		while (1) {
-			rx_len = SubGHz.readData(txbuf,MAX_BUF_SIZE);
+			rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
 			if (rx_len > 0) {
-				SubGHz.decMac(&mac,txbuf,rx_len);
+				SubGHz.decMac(&mac,rx_buf,rx_len);
 				src_addr = *(uint16_t *)mac.src_addr;
 				if (src_addr == gateway_addr) {
-					// payload : "FW_UPD_START,(hw_type),(name),(ver)", encrypted
+					// payload : "ota-start,(hw_type),(name),(ver)", encrypted
 					s = strtok(mac.payload, ",");
 					if (strncmp(s,"ota-start",9) == 0) {
 						d = strtok(NULL,",");	// hw_type
 						s = strtok(NULL,",");	// name
 						hw_type = (uint8_t)strtol(d,NULL,0);
-
 						if ((OTA.getHwType() == hw_type) && \
 							(strncmp(s,ota_param.name,OTA_PRGM_NAME_SIZE) == 0)) {
 							d = strtok(NULL,",");
+							ota_param.hw_type = hw_type;
 							ota_param.ver = (uint8_t)strtol(d,NULL,0);
+							ota_param.panid = gateway_panid;
 							ota_param.hostAddr = gateway_addr;
 							OTA.start(&ota_param);
 							break;
 						}
 					}
 				}
+				memset(rx_buf,0,sizeof(rx_buf));	// clear memory
 			}
 			if ((millis() - prev_send_time) > FW_UPD_MODE_TIMEOUT) break;
 		}
@@ -533,7 +541,7 @@ void loop() {
 #endif
 		gw_search();
 		if (my_short_addr != 0xffff) SubGHz.setMyAddress(my_short_addr);
-		state_func = init_current_level();
+		state_func = func_init_state();
 		sleep_interval = DEFAULT_SLEEP_INTERVAL;
 		mode = NORMAL_MODE;
 		break;
@@ -549,7 +557,7 @@ void loop() {
 #endif
 		param_update();
 		if (my_short_addr != 0xffff) SubGHz.setMyAddress(my_short_addr);
-		state_func = init_current_level();
+		state_func = func_init_state();
 		break;
 	case FW_UPD_MODE:
 #ifdef DEBUG
@@ -557,7 +565,7 @@ void loop() {
 #endif
 		fw_update();
 		mode = NORMAL_MODE;			// return to normal mode, because fw update failed
-		state_func = init_current_level();
+		state_func = func_init_state();
 		sleep_interval = DEFAULT_SLEEP_INTERVAL;
 		break;
 	default:
