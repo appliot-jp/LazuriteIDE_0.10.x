@@ -526,6 +526,8 @@ void setup() {
 
 #ifdef DEBUG
 	Serial.begin(115200);
+	Serial.print("Program version: ");
+	Serial.println_long((long)OTA.getVersion(),DEC);
 #endif
 	SubGHz.init();
 	ct_init();
