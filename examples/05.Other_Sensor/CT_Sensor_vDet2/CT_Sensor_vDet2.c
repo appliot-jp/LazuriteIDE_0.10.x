@@ -35,7 +35,7 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 };
 #pragma SEGCONST
 
-#define DEBUG	// uncomment, if using debug message
+//#define DEBUG	// uncomment, if using debug message
 
 #define CHB						( 2 )
 #define MEAS 					( 3 )
@@ -405,6 +405,7 @@ static void ct_sensor_main(void)
 				SubGHz.close();
 				digitalWrite(TX_LED,HIGH);
 #ifdef DEBUG
+				Serial.print(tx_buf);
 				SubGHz.msgOut(msg);
 #endif
 				if (msg == SUBGHZ_OK) {
