@@ -65,8 +65,8 @@ uint8_t mode;
 double current_amps;				// unit mA
 double thrs_on_amp=0.03;
 double thrs_off_amp=0.03;
-uint16_t thrs_on_interval_sec=0;
-uint16_t thrs_off_interval_sec=15;
+uint32_t thrs_on_interval=0;
+uint32_t thrs_off_interval=15*1000ul;
 uint32_t thrs_on_start=0;
 uint32_t thrs_off_start=0;
 uint32_t sleep_interval=DEFAULT_SLEEP_INTERVAL;
@@ -139,7 +139,7 @@ static int parse_payload(uint8_t *payload)
 	uint8_t *p[10];
 
 // payload : "'activate'/'debug',(panid),(shortaddr),(id),(thrs_on_amp),
-//				(thrs_on_interval_sec),(thrs_off_amp),(thrs_off_interval_sec)"
+//				(thrs_on_interval[sec]),(thrs_off_amp),(thrs_off_interval[sec])"
 	for (i=0;;i++) {
 		if (i == 0) {
 			p[i] = strtok(payload, ",");
@@ -159,9 +159,9 @@ static int parse_payload(uint8_t *payload)
 		gateway_addr = (uint16_t)strtoul(p[2],NULL,0);
 		my_short_addr = (uint16_t)strtoul(p[3],NULL,0);
 		thrs_on_amp = strtod(p[4],NULL);
-		thrs_on_interval_sec = (uint16_t)strtoul(p[5],NULL,0);
+		thrs_on_interval = strtoul(p[5],NULL,0) * 1000ul;
 		thrs_off_amp = strtod(p[6],NULL);
-		thrs_off_interval_sec = (uint16_t)strtoul(p[7],NULL,0);
+		thrs_off_interval = strtoul(p[7],NULL,0) * 1000ul;
 		send_data_flag = true;		// forcibly send data, because parameter might be changed
 		return 0;
 	} else {
@@ -249,7 +249,7 @@ static CT_STATE func_off_stable(void)
 	CT_STATE state = CT_STATE_OFF_STABLE;
 
 	if (current_amps > thrs_on_amp) {
-		if (thrs_on_interval_sec != 0) {
+		if (thrs_on_interval != 0) {
 			thrs_on_start = current_time;
 			state = CT_STATE_OFF_UNSTABLE;
 		} else {
@@ -267,7 +267,7 @@ static CT_STATE func_off_unstable(void)
 	if (current_amps <= thrs_on_amp) {
 		state = CT_STATE_OFF_STABLE;
 	}
-	if ((current_time - thrs_on_start) > (thrs_on_interval_sec * 1000ul)) {
+	if ((current_time - thrs_on_start) > thrs_on_interval) {
 		send_data_flag = true;
 		state = CT_STATE_ON_STABLE;
 	}
@@ -279,7 +279,7 @@ static CT_STATE func_on_stable(void)
 	CT_STATE state = CT_STATE_ON_STABLE;
 
 	if (current_amps < thrs_off_amp) {
-		if (thrs_off_interval_sec != 0) {
+		if (thrs_off_interval != 0) {
 			thrs_off_start = current_time;
 			state = CT_STATE_ON_UNSTABLE;
 		} else {
@@ -297,7 +297,7 @@ static CT_STATE func_on_unstable(void)
 	if (current_amps >= thrs_off_amp) {
 		state = CT_STATE_ON_STABLE;
 	}
-	if ((current_time - thrs_off_start) > (thrs_off_interval_sec * 1000ul)) {
+	if ((current_time - thrs_off_start) > thrs_off_interval) {
 		send_data_flag = true;
 		state = CT_STATE_OFF_STABLE;
 	}
@@ -346,6 +346,7 @@ static void ct_sensor_main(void)
 	EACK_DATA *eack_data;
 	uint8_t *p;
 	int eack_size,i;
+	uint32_t tmp;
 
 	prev_send_time = 0;
 	while(1) {
@@ -428,10 +429,9 @@ static void ct_sensor_main(void)
 						}
 						if (debug_flag) {
 							sleep_interval = DEFAULT_SLEEP_INTERVAL;
-						} else if (eack_data->sleep_interval_sec <= KEEP_ALIVE_INTERVAL) {
-							sleep_interval = eack_data->sleep_interval_sec * 1000ul;
 						} else {
-							// do nothing
+							tmp = eack_data->sleep_interval_sec * 1000ul;
+							if (tmp <= KEEP_ALIVE_INTERVAL) sleep_interval = tmp;
 						}
 					}
 				} else {
@@ -531,6 +531,7 @@ void setup() {
 #endif
 	SubGHz.init();
 	ct_init();
+
 	mode = GW_SEARCH_MODE;
 }
 
