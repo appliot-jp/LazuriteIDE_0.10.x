@@ -44,7 +44,7 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define SUBGHZ_CH				( 36 )
 #define BAUD					( 100 )
 #define PWR						( 20 )
-#define EACK_DEBUG_FLAG			( 0x01 )
+#define EACK_FORCIBLE_FLAG		( 0x01 )
 #define EACK_PARAM_UPD			( 0x02 )
 #define EACK_GW_SEARCH			( 0x03 )
 #define EACK_FW_UPD				( 0xF0 )
@@ -75,7 +75,7 @@ uint16_t gateway_addr=0xffff;
 uint16_t gateway_panid=0xffff;
 uint16_t my_short_addr=0xffff;
 bool send_data_flag=false;
-bool debug_flag=false;
+bool forcible_flag=false;
 
 __packed typedef struct {
 	uint8_t eack_flag;
@@ -150,11 +150,11 @@ static int parse_payload(uint8_t *payload)
 	}
 	if (i != 8) return -1;					// number of parameter unmatched
 	if (strncmp(p[0],"debug",5) == 0) {
-		debug_flag = true;
+		forcible_flag = true;
 	} else {
-		debug_flag = false;
+		forcible_flag = false;
 	}
-	if ((strncmp(p[0],"activate",8) == 0) || debug_flag) {
+	if ((strncmp(p[0],"activate",8) == 0) || forcible_flag) {
 		gateway_panid = (uint16_t)strtoul(p[1],NULL,0);
 		gateway_addr = (uint16_t)strtoul(p[2],NULL,0);
 		my_short_addr = (uint16_t)strtoul(p[3],NULL,0);
@@ -163,6 +163,23 @@ static int parse_payload(uint8_t *payload)
 		thrs_off_amp = strtod(p[6],NULL);
 		thrs_off_interval = strtoul(p[7],NULL,0) * 1000ul;
 		send_data_flag = true;		// forcibly send data, because parameter might be changed
+#ifdef DEBUG
+		Serial.println(p[0]);
+		Serial.print("gateway_panid: ");
+		Serial.println_long((long)gateway_panid,HEX);
+		Serial.print("gateway_addr: ");
+		Serial.println_long((long)gateway_addr,HEX);
+		Serial.print("my_short_addr: ");
+		Serial.println_long((long)my_short_addr,HEX);
+		Serial.print("thrs_on_amp: ");
+		Serial.println_double(thrs_on_amp,2);
+		Serial.print("thrs_on_interval: ");
+		Serial.println_long(thrs_on_interval,DEC);
+		Serial.print("thrs_off_amp: ");
+		Serial.println_double(thrs_off_amp,2);
+		Serial.print("thrs_off_interval: ");
+		Serial.println_long(thrs_off_interval,DEC);
+#endif
 		return 0;
 	} else {
 		return -2;	// string pattern unmatched
@@ -354,10 +371,10 @@ static void ct_sensor_main(void)
 		if (level >= 10) {
 			current_amps = ct_meas();				// start measuring
 			current_time = millis();
-			if (debug_flag || (prev_send_time == 0) || ((current_time - prev_send_time) >= KEEP_ALIVE_INTERVAL)) {
+			if (forcible_flag || (prev_send_time == 0) || ((current_time - prev_send_time) >= KEEP_ALIVE_INTERVAL)) {
 				send_data_flag = true;
 #ifdef DEBUG
-				if (!debug_flag && (prev_send_time != 0)) Serial.println("keep alive");
+				if (!forcible_flag && (prev_send_time != 0)) Serial.println("keep alive");
 #endif
 			}
 #ifdef DEBUG
@@ -408,31 +425,27 @@ static void ct_sensor_main(void)
 						Serial.println("");
 #endif
 						switch (eack_data->eack_flag) {
-						case EACK_DEBUG_FLAG:
-							debug_flag = true;
+						case EACK_FORCIBLE_FLAG:
+							forcible_flag = true;
 							break;
 						case EACK_PARAM_UPD:
-							debug_flag = false;
+							forcible_flag = false;
 							mode = PARAM_UPD_MODE;
 							break;
 						case EACK_GW_SEARCH:
-							debug_flag = false;
+							forcible_flag = false;
 							mode = GW_SEARCH_MODE;
 							break;
 						case EACK_FW_UPD:
-							debug_flag = false;
+							forcible_flag = false;
 							mode = FW_UPD_MODE;
 							break;
 						default:
-							debug_flag = false;
+							forcible_flag = false;
 							break;
 						}
-						if (debug_flag) {
-							sleep_interval = DEFAULT_SLEEP_INTERVAL;
-						} else {
-							tmp = eack_data->sleep_interval_sec * 1000ul;
-							if (tmp <= KEEP_ALIVE_INTERVAL) sleep_interval = tmp;
-						}
+						tmp = eack_data->sleep_interval_sec * 1000ul;
+						if (tmp <= KEEP_ALIVE_INTERVAL) sleep_interval = tmp;
 					}
 				} else {
 					mode = GW_SEARCH_MODE;
