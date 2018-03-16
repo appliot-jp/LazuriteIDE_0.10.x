@@ -2,9 +2,13 @@
 _prn/
 obj/
 /java
-/bin
+/bin/*
+!/bin/U8Dev
+/bin/U8Dev/*
+!/bin/U8Dev/Inc
+/bin/U8Dev/Inc/*
+!/bin/U8Dev/Inc/stdlib.h
 /theme
-/bin
 LICENSE.txt
 /readme.txt
 /hardware/lazurite_subghz/sub_ghz/
