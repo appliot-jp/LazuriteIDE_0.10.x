@@ -440,10 +440,9 @@ static void sgi(uint8_t** pparam){
 
 	SubGHz.init();
 
-    SubGHz.getSendMode(&a);
-    a.modulation = modulation;
-    a.dsssSize = dsssSize;
-    SubGHz.setSendMode(&a);
+	SubGHz.setModulation(modulation);
+	SubGHz.setDsssSize(dsssSize,0);
+	SubGHz.setDsssSpreadFactor(64);
 
 	Serial.print("sgi");
 	Serial.print(",0x");
