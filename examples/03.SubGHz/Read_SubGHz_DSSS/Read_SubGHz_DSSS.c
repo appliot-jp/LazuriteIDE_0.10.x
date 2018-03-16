@@ -78,7 +78,7 @@ void setup(void)
 	*/
 
 	SubGHz.setModulation(0x10);
-	SubGHz.setDsssSize(16,0);
+	SubGHz.setDsssSize(5,0);
 	SubGHz.setDsssSpreadFactor(64);
 	
 	msg = SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_200KBPS, SUBGHZ_PWR_20MW);
@@ -93,7 +93,7 @@ void setup(void)
 		SubGHz.msgOut(msg);
 		while(1){ }
 	}
-	
+
 	pinMode(BLUE_LED,OUTPUT);
 	digitalWrite(BLUE_LED,HIGH);
 	
@@ -156,6 +156,7 @@ void loop(void)
 		Serial.print("\t");
 */
 
+/* When is PER, comment out.
 		// print payload
 		for(;index<rx_len;index++)
 		{
@@ -168,7 +169,7 @@ void loop(void)
 		Serial.print(",");
 		Serial.print_long(rx_len,HEX);
 		Serial.println("");
-		
+*/		
 		sleep(10);
 		digitalWrite(BLUE_LED, HIGH);
 	}
