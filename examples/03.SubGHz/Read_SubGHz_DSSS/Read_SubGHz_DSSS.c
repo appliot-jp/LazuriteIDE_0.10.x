@@ -48,13 +48,8 @@ void setup(void)
 		SubGHz.msgOut(msg);
 		while(1){ }
 	}
-/*
-    SubGHz.getSendMode(&a);
-    a.modulation = 0x10; // DSSS
-    a.dsssSize = 16;      // SG PER=length 5
-    a.dsssSF = 64;
-    SubGHz.setSendMode(&a);
-*/
+
+
     /*
 	myAddress = SubGHz.getMyAddress();
 	SubGHz.getMyAddr64(myAddr64);
@@ -78,7 +73,7 @@ void setup(void)
 	*/
 
 	SubGHz.setModulation(0x10);
-	SubGHz.setDsssSize(5,0);
+	SubGHz.setDsssSize(16,0);
 	SubGHz.setDsssSpreadFactor(64);
 	
 	msg = SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_200KBPS, SUBGHZ_PWR_20MW);
@@ -156,7 +151,7 @@ void loop(void)
 		Serial.print("\t");
 */
 
-/* When is PER, comment out.
+/* When is PER, comment out.*/
 		// print payload
 		for(;index<rx_len;index++)
 		{
@@ -169,7 +164,7 @@ void loop(void)
 		Serial.print(",");
 		Serial.print_long(rx_len,HEX);
 		Serial.println("");
-*/		
+		
 		sleep(10);
 		digitalWrite(BLUE_LED, HIGH);
 	}

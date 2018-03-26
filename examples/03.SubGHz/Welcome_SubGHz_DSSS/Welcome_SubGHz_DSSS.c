@@ -41,6 +41,7 @@ unsigned char send_data[] = {"LazuriteLazurite"};
 //012345689ABCDEF012345689ABCDEF\
 //012345689ABCDEF012345689ABCDEF\
 //012345689ABCDEF012345689ABCDEF\r\n"};
+unsigned char data_len = sizeof(send_data) - 1;
 
 void setup(void)
 {
@@ -48,14 +49,8 @@ void setup(void)
 
 	SubGHz.init();					// initializing Sub-GHz
 
-/*
-    SubGHz.getSendMode(&a);
-    a.modulation = 0x10;
-    a.dsssSize = sizeof(send_data) - 1;
-    SubGHz.setSendMode(&a);
-*/	
 	SubGHz.setModulation(0x10);
-	SubGHz.setDsssSize(sizeof(send_data) - 1,0);
+	SubGHz.setDsssSize(data_len,0);
 	SubGHz.setDsssSpreadFactor(64);
 	
 	Serial.begin(115200);
@@ -80,7 +75,7 @@ void loop(void)
   	SubGHz.close();																// Sub-GHz module sets into power down mode.
 
     Serial.print("USER LEN:");
-    Serial.println_long((long)sizeof(send_data),DEC);
+    Serial.println_long((long)data_len,DEC);
     
 	sleep(500);																// sleep
 
