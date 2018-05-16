@@ -195,11 +195,13 @@ void __far * realloc_f(void __far *, size_t);
 #define atol_f(s)	(long)strtol_f(s, 0, 10)
 #endif
 
+#ifndef LAZURITE_IDE
 #define srand(seed)				\
 	{					\
 	extern	unsigned long _Randseed;	\
 	_Randseed = (seed);			\
 	}
+#endif
 
 #define strtod_n(s, endptr)	_Stod_n(s, endptr)
 #ifndef __NOFAR__
