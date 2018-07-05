@@ -18,6 +18,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE "OTA_SEGCODE"
+	#pragma SEGINIT "OTA_SEGINIT"
+	#pragma SEGCONST "OTA_SEGCONST"
+#endif
 
 #include "common.h"
 #include "rdwr_reg.h"
@@ -355,12 +360,14 @@ void _hardware_serial2_print(char* data)
 // print data with CR and LF.
 void _hardware_serial_println(char* data)
 {
+	static unsigned char s[] = "\r\n";
 	_hardware_serial_print(data);
-	_hardware_serial_print("\r\n");
+	_hardware_serial_print(s);
 }
 void _hardware_serial2_println(char* data)
 {
+	static unsigned char s[] = "\r\n";
 	_hardware_serial2_print(data);
-	_hardware_serial2_print("\r\n");
+	_hardware_serial2_print(s);
 }
 

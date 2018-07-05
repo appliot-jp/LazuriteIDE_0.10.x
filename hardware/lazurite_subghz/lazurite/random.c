@@ -1,6 +1,6 @@
-/* FILE NAME: main.c
+/* FILE NAME: random.c
  *
- * Copyright (c) 2015  Lapis Semiconductor Co.,Ltd.
+ * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
  * All rights reserved.
  *
  * This program is free software: you can redistribute it and/or
@@ -20,35 +20,20 @@
 
 #ifdef SUBGHZ_OTA
 	#pragma SEGCODE "OTA_SEGCODE"
-	#pragma SEGINIT "OTA_SETUP_LOOP"
+	#pragma SEGINIT "OTA_SEGINIT"
 #endif
-/* --- Common Header --- */
-#include <mcu.h>
-#include "lazurite_system.h"
 
-static void (*fn_p[2])(void) = {setup, loop};
+#define RAND_MAX ( 32767 )
 
-/*******************************************************************************
-*
-* Function  :   Main
-*
-* Input     :   None
-*
-* Output    :   None
-*
-* Return    :   None
-*
-*******************************************************************************/
-void main( void )
-{
-	/* --- Platform Initial Setting --- */
-	init();
-#ifdef SUBGHZ_OTA
-	OTA.boot();
-#endif
-	fn_p[0]();			// setup()
-	for(;;)
-	{
-		fn_p[1]();		// loop()
-	}
+unsigned long seeds = 1;
+
+int rand(void)
+{	/* compute pseudo-random value */
+	seeds = seeds * 1103515245 + 12345;
+	return ((unsigned int)(seeds >> 16) & RAND_MAX);
+}
+
+void srand(unsigned int data)
+{	/* alter the seeds */
+	seeds = data;
 }

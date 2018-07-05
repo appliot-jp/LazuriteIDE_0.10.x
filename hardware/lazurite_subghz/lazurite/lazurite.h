@@ -53,6 +53,9 @@ extern void loop(void);					// Arduino loop function
 #ifdef LAZURITE_BLE
 	#include "mk71251.h"
 #endif
+#ifdef SUBGHZ_OTA
+	#include "ota.h"
+#endif
 
 #endif /* _LAZURITE_H_ */
 

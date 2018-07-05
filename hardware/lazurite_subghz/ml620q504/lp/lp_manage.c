@@ -43,20 +43,6 @@ void lp_setStopMode( void )
 }
 
 /**
- * Setting HALT mode
- *
- * @param       -
- * @return      None
- */
-void lp_setHaltMode( void )
-{
-	/* The CPU mode is changed to the HALT mode. */
-	set_bit( HLT );
-	__asm("nop\n");
-	__asm("nop\n");
-}
-
-/**
  * Setting HALT-H mode
  *
  * @param       -
@@ -69,6 +55,24 @@ void lp_setHaltHMode( void )
 	 * is used, Frequency Status Register (FSTAT) HOSCS bit must be
 	 * "0". */
 	set_bit( HLTH );
+	__asm("nop\n");
+	__asm("nop\n");
+}
+
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE "OTA_SEGCODE"
+#endif
+
+/**
+ * Setting HALT mode
+ *
+ * @param       -
+ * @return      None
+ */
+void lp_setHaltMode( void )
+{
+	/* The CPU mode is changed to the HALT mode. */
+	set_bit( HLT );
 	__asm("nop\n");
 	__asm("nop\n");
 }

@@ -18,6 +18,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE "OTA_SEGCODE"
+	#pragma SEGCONST "OTA_SEGCONST"
+#endif
 #include "common.h"
 #include "driver_gpio.h"
 #include "driver_pin_assignment.h"
@@ -28,6 +32,66 @@
 //********************************************************************************
 //   global parameters
 //********************************************************************************
+unsigned char *ml620504f_pin_to_port(unsigned char pin)
+{
+	unsigned char *port;
+
+	switch (pin) {
+	case 0:
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+		port = &P0D; 
+		break;
+	case 6:
+	case 7:
+		port = &P1D; 
+		break;
+	case 8:
+	case 9:
+	case 10:
+	case 11:
+		port = &P2D; 
+		break;
+	case 12:
+	case 13:
+	case 14:
+	case 15:
+	case 16:
+	case 17:
+	case 18:
+	case 19:
+		port = &P3D; 
+		break;
+	case 20:
+	case 21:
+	case 22:
+	case 23:
+	case 24:
+	case 25:
+	case 26:
+	case 27:
+		port = &P4D; 
+		break;
+	case 28:
+	case 29:
+	case 30:
+	case 31:
+	case 32:
+	case 33:
+	case 34:
+	case 35:
+		port = &P5D; 
+		break;
+	default:
+		port = NULL;
+		break;
+	}
+	return port;
+}
+/*
 const unsigned char *ml620504f_pin_to_port[] =
 {
 	&P0D,	//	0	P00
@@ -67,6 +131,7 @@ const unsigned char *ml620504f_pin_to_port[] =
 	&P5D,	//	34	P56
 	&P5D,	//	35	P57
 };
+*/
 
 const unsigned char ml620504f_pin_to_bit[] =
 {
@@ -130,7 +195,7 @@ volatile void drv_pinMode(unsigned char pin, unsigned char mode)
 	dis_interrupts(DI_GPIO);
 	
 	bit = ml620504f_pin_to_bit[pin];
-	port = ml620504f_pin_to_port[pin];
+	port = ml620504f_pin_to_port(pin);
 	switch(mode)
 	{
 	case INPUT_PULLUP:
@@ -191,7 +256,7 @@ int drv_digitalRead(unsigned char pin)
 //	dis_interrupts(DI_GPIO);
 	
 	bit = ml620504f_pin_to_bit[pin];
-	port = ml620504f_pin_to_port[pin];
+	port = ml620504f_pin_to_port(pin);
 	res = ((*port)&bit)!=0 ? HIGH : LOW;
 	
 //	enb_interrupts(DI_GPIO);
@@ -210,7 +275,7 @@ void drv_digitalWrite(unsigned char pin, unsigned char val)
 //	dis_interrupts(DI_GPIO);
 	
 	bit = ml620504f_pin_to_bit[pin];
-	port = ml620504f_pin_to_port[pin];
+	port = ml620504f_pin_to_port(pin);
 	if(val == LOW)
 	{
 		*(port) &= ~bit;		

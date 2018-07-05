@@ -41,7 +41,7 @@ typedef struct {
 	
 } DATAFLASH;
 
-extern DATAFLASH Flash;
+extern const DATAFLASH Flash;
 
 
 #endif  // _ANALOGIO_H_

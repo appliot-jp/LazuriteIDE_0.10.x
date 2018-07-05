@@ -18,6 +18,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE "OTA_SEGCODE"
+#endif
 #include "mcu.h"
 #include "rdwr_reg.h"
 #include "wdt.h"

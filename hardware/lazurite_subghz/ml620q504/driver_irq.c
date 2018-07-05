@@ -18,6 +18,12 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE "OTA_SEGCODE"
+	#pragma SEGINIT "OTA_SEGINIT"
+	#pragma SEGNOINIT "OTA_SEGNOINIT"
+	#pragma SEGINTR "OTA_SEGCODE"
+#endif
 #include "mcu.h"
 #include "rdwr_reg.h"
 #include "driver_irq.h"

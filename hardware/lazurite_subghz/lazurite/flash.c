@@ -38,7 +38,7 @@ short flash_read_word(unsigned char sector, unsigned short address)
 }
 
 
-DATAFLASH Flash =
+const DATAFLASH Flash =
 {
 	flash_write_word,
 	flash_read_word,
