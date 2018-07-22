@@ -25,7 +25,7 @@
 
 extern const unsigned char pin_to_pwm[];
 extern const unsigned char ml620504f_tmout_to_pin[];
-extern const unsigned char *ml620504f_pin_to_port[];
+extern unsigned char *ml620504f_pin_to_port();
 extern const unsigned char ml620504f_pin_to_bit[];
 
 #define OVF16BIT(a) ((a > 65535)? 0xffff : ((a < -65535) ? -65535 : a))
@@ -67,7 +67,7 @@ static bool hhb_attach(unsigned char ch,unsigned char pin1,unsigned char pin2)
 	{
 		ftm = pin_to_pwm[pin[i]];
 		port_num = ml620504f_tmout_to_pin[ftm];
-		port = ml620504f_pin_to_port[port_num];
+		port = ml620504f_pin_to_port(port_num);
 		bit = ml620504f_pin_to_bit[port_num];
 		
 		*(port+1) &= ~bit;		// PnDIR  = 0
@@ -102,7 +102,7 @@ static bool hhb_detach(unsigned char pin1,unsigned char pin2,unsigned char level
 	{
 		ftm = pin_to_pwm[pin[i]];
 		port_num = ml620504f_tmout_to_pin[ftm];
-		port = ml620504f_pin_to_port[port_num];
+		port = ml620504f_pin_to_port(port_num);
 		bit = ml620504f_pin_to_bit[port_num];
 		if(level[i] == 0)
 			*(port+0) &= ~bit;		// PnD    = 0

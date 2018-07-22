@@ -41,7 +41,7 @@ static void led_ctrl_write(unsigned char *data)
 	unsigned char bit;
 	unsigned char port_data0,port_data1;
 	
-	port = ml620504f_pin_to_port[digital_pin_to_port[led_pin]];
+	port = ml620504f_pin_to_port(digital_pin_to_port[led_pin]);
 	bit = ml620504f_pin_to_bit[digital_pin_to_port[led_pin]];
 	
 	port_data0 = *port&~bit;			// prepare port data = 0
