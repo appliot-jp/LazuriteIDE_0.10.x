@@ -63,12 +63,12 @@ static struct {
 void isr_sys_timer(void);
 static void clk_block_ctrl_init(void);
 void watch_dog_isr(void);
-static void wait_timeout_isr(void);
 static void lazurite_gpio_init(void);
 static void init_timer(void);
 static void delay_isr(void);
 static volatile bool delay_flag;
-static uint8_t *event_flag;
+static void start_long_timer(unsigned long ms);
+static void stop_long_timer(void);
 
 #ifdef LAZURITE_BLE
 	extern void ble_timer_func();
@@ -251,10 +251,8 @@ void delay_isr(void)
 	return;
 }
 
-void delay_long(unsigned long ms)
+static void start_long_timer(unsigned long ms)
 {
-//	float f_tm_count;						// temporary to calcurate timer count
-	
 	unsigned long tmp_target_l;
 	
 	delay_flag = false;
@@ -280,47 +278,31 @@ void delay_long(unsigned long ms)
 	
 	// setup timer
 	timer_16bit_start(6);
-	
+}
+
+static void stop_long_timer(void)
+{
+	timer_16bit_stop(6);
+}
+
+void delay_long(unsigned long ms)
+{
+	start_long_timer(ms);
+
 	while(delay_flag == false)
 	{
 		lp_setHaltMode();
 		wdt_clear();
 	}
-	timer_16bit_stop(6);
+
+	stop_long_timer();
 	return;
 }
 
 void sleep_long(unsigned long ms)
 {
-//	float f_tm_count;						// temporary to calcurate timer count
-	unsigned long tmp_target_l;
-	
-	delay_flag = false;
-	
-	
-	tmp_target_l = ((ms % 64000)<<8)/250;
-	delay_time.target_l = (unsigned short)tmp_target_l;
-	delay_time.target_h = ms / 64000;
-	
-#ifdef _DEBUG
-	Serial.print_long(delay_time.target_h,HEX);
-	Serial.print("\t");
-	Serial.println_long(delay_time.target_l,HEX);
-#endif
-	
-	if(delay_time.target_h==0)
-	{
-		timer_16bit_set(6,0xE8,(unsigned short)tmp_target_l,delay_isr);
-		delay_time.target_l = 0;
-	}
-	else
-	{
-		timer_16bit_set(6,0x68,0xFFFF,delay_isr);
-	}
-	
-	// setup timer
-	timer_16bit_start(6);
-	
+	start_long_timer(ms);
+
 	#ifdef PWR_LED
 	drv_digitalWrite(11,HIGH);		// PWR LED OFF
 	#endif
@@ -342,7 +324,8 @@ void sleep_long(unsigned long ms)
 			wdt_clear();
 		}
 	}
-	timer_16bit_stop(6);
+	stop_long_timer();
+
 	#ifdef PWR_LED
 	drv_digitalWrite(11,LOW);		// PWR LED ON
 	#endif
@@ -427,7 +410,6 @@ void wait_event(bool *flag)
 	#ifdef PWR_LED
 	drv_digitalWrite(11,HIGH);		// PWR LED OFF
 	#endif
-    event_flag = flag;
 
 	while(*flag == false)
 	{
@@ -507,11 +489,6 @@ volatile void delay_microseconds(unsigned long us)
 	#pragma SEGNOINIT
 #endif
 
-static void wait_timeout_isr(void)
-{
-    *event_flag = 2;
-}
-
 void interrupts()
 {
 	enb_interrupts(DI_USER);
@@ -522,16 +499,17 @@ void noInterrupts()
 	dis_interrupts(DI_USER);
 }
 
-uint8_t wait_event_timeout(uint8_t *flag,uint32_t time)
+uint32_t wait_event_timeout(uint8_t *flag,uint32_t time)
 {	
-	uint8_t result;
-    event_flag = flag;
-	wait_timeout(time);
-	
+	uint32_t result;
+
+	start_long_timer(time);
+
 	#ifdef PWR_LED
 	drv_digitalWrite(11,HIGH);		// PWR LED OFF
 	#endif
-	while(*flag == false)
+	result = millis();
+	while((*flag == false) && (delay_flag == false))
 	{
 #ifdef SUBGHZ
 		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
@@ -548,23 +526,20 @@ uint8_t wait_event_timeout(uint8_t *flag,uint32_t time)
 			wdt_clear();
 		}
 	}
-	result = *event_flag;
-    timer_16bit_stop(6);
-	
+	stop_long_timer();
+
+	if (*flag == false) {			// timeout
+		result = 0;
+	} else {						// remaining time
+		result = time - (millis() - result);
+	}
+
 	*flag = false;
 	
 	#ifdef PWR_LED
 	drv_digitalWrite(11,LOW);		// PWR LED ON
 	#endif
 	
-	return *event_flag;
-}
-
-static bool wait_timeout(uint32_t time)
-{	
-	int result = true;
-	timer_16bit_set(6,0xE8,(unsigned long)time,wait_timeout_isr);
-	timer_16bit_start(6);
 	return result;
 }
 
@@ -589,7 +564,7 @@ uint8_t voltage_check(uint8_t level)
 {
 	uint8_t ret = 0;
 
-	if ((level >= VLS_1_898) || (level <= VLS_4_667))	// check the range of level
+	if ((level >= VLS_1_898) && (level <= VLS_4_667))	// check the range of level
 	{
 		clear_bit(DVLS);			// enable VLS
 		while (vls_oneshot_check(level))

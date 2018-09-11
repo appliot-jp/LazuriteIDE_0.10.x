@@ -2,20 +2,20 @@
 
 /* FILE NAME: CT_Sensor_vDet2.c
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
  * All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -39,8 +39,8 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 
 #define CHB						( 2 )
 #define MEAS 					( 3 )
-#define MEAS_LED				( 25 )
-#define TX_LED					( 26 )
+#define ORANGE_LED				( 25 )
+#define BLUE_LED				( 26 )
 #define SUBGHZ_CH				( 36 )
 #define BAUD					( 100 )
 #define PWR						( 20 )
@@ -54,28 +54,31 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define FW_UPD_MODE				( 4 )
 #define DEFAULT_SLEEP_INTERVAL	( 5 * 1000ul )
 #define KEEP_ALIVE_INTERVAL		( 3599 * 1000ul )
-#define GW_SEARCH_TIMEOUT		( 10 * 1000ul )
-#define PARAM_UPD_TIMEOUT		( 1 * 1000ul )
+#define WAIT_RX_TIMEOUT			( 2 * 1000ul )
+#define TX_RETRY_INTERVAL		( 10 * 1000ul )
+#define LOW_VOLTAGE_SLEEP_INTVAL	( 60 * 1000ul )
 #define PARAM_UPD_RETRY_TIMES	( 5 )
-#define PARAM_UPD_SLEEP_INTVAL	( 10 * 1000ul )
-#define FW_UPD_MODE_TIMEOUT		( 120 * 1000ul )
 #define MAX_BUF_SIZE			( 250 )
 
 uint8_t mode;
-double current_amps;				// unit mA
-double thrs_on_amp=0.03;
-double thrs_off_amp=0.03;
+double current_val;
+double thrs_on_val=0.03;
+double thrs_off_val=0.03;
 uint32_t thrs_on_interval=0;
 uint32_t thrs_off_interval=15*1000ul;
 uint32_t thrs_on_start=0;
 uint32_t thrs_off_start=0;
 uint32_t sleep_interval=DEFAULT_SLEEP_INTERVAL;
-uint32_t prev_send_time, current_time;
+uint32_t prev_send_time=0;
+uint32_t current_time;
 uint16_t gateway_addr=0xffff;
 uint16_t gateway_panid=0xffff;
 uint16_t my_short_addr=0xffff;
 bool send_data_flag=false;
 bool forcible_flag=false;
+uint8_t rx_buf[MAX_BUF_SIZE];
+uint8_t level;
+bool low_voltage=false;
 
 __packed typedef struct {
 	uint8_t eack_flag;
@@ -83,20 +86,20 @@ __packed typedef struct {
 } EACK_DATA;
 
 typedef enum {
-	CT_STATE_OFF_STABLE = 0,
-	CT_STATE_OFF_UNSTABLE,
-	CT_STATE_ON_STABLE,
-	CT_STATE_ON_UNSTABLE
-} CT_STATE;
+	SENSOR_STATE_OFF_STABLE = 0,
+	SENSOR_STATE_OFF_UNSTABLE,
+	SENSOR_STATE_ON_STABLE,
+	SENSOR_STATE_ON_UNSTABLE
+} SENSOR_STATE;
 
-CT_STATE state_func;
+SENSOR_STATE state_func;
 
-static CT_STATE func_off_stable(void);
-static CT_STATE func_off_unstable(void);
-static CT_STATE func_on_stable(void);
-static CT_STATE func_on_unstable(void);
+static SENSOR_STATE func_off_stable(void);
+static SENSOR_STATE func_off_unstable(void);
+static SENSOR_STATE func_on_stable(void);
+static SENSOR_STATE func_on_unstable(void);
 
-CT_STATE (*ct_funcs[4])(void) = {
+SENSOR_STATE (*_funcs[4])(void) = {
 	func_off_stable,
 	func_off_unstable,
 	func_on_stable,
@@ -138,8 +141,8 @@ static int parse_payload(uint8_t *payload)
 	int i;
 	uint8_t *p[10];
 
-// payload : "'activate'/'debug',(panid),(shortaddr),(id),(thrs_on_amp),
-//				(thrs_on_interval[sec]),(thrs_off_amp),(thrs_off_interval[sec])"
+// payload : "'activate'/'debug',(panid),(shortaddr),(id),(thrs_on_val),
+//				(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec])"
 	for (i=0;;i++) {
 		if (i == 0) {
 			p[i] = strtok(payload, ",");
@@ -158,9 +161,9 @@ static int parse_payload(uint8_t *payload)
 		gateway_panid = (uint16_t)strtoul(p[1],NULL,0);
 		gateway_addr = (uint16_t)strtoul(p[2],NULL,0);
 		my_short_addr = (uint16_t)strtoul(p[3],NULL,0);
-		thrs_on_amp = strtod(p[4],NULL);
+		thrs_on_val = strtod(p[4],NULL);
 		thrs_on_interval = strtoul(p[5],NULL,0) * 1000ul;
-		thrs_off_amp = strtod(p[6],NULL);
+		thrs_off_val = strtod(p[6],NULL);
 		thrs_off_interval = strtoul(p[7],NULL,0) * 1000ul;
 		send_data_flag = true;		// forcibly send data, because parameter might be changed
 #ifdef DEBUG
@@ -171,12 +174,12 @@ static int parse_payload(uint8_t *payload)
 		Serial.println_long((long)gateway_addr,HEX);
 		Serial.print("my_short_addr: ");
 		Serial.println_long((long)my_short_addr,HEX);
-		Serial.print("thrs_on_amp: ");
-		Serial.println_double(thrs_on_amp,2);
+		Serial.print("thrs_on_val: ");
+		Serial.println_double(thrs_on_val,2);
 		Serial.print("thrs_on_interval: ");
 		Serial.println_long(thrs_on_interval,DEC);
-		Serial.print("thrs_off_amp: ");
-		Serial.println_double(thrs_off_amp,2);
+		Serial.print("thrs_off_val: ");
+		Serial.println_double(thrs_off_val,2);
 		Serial.print("thrs_off_interval: ");
 		Serial.println_long(thrs_off_interval,DEC);
 #endif
@@ -186,9 +189,8 @@ static int parse_payload(uint8_t *payload)
 	}
 }
 
-static void gw_search(void)
+static bool gw_search(void)
 {
-	uint8_t rx_buf[MAX_BUF_SIZE]={0};
 	int rx_len;
 	SUBGHZ_MAC_PARAM mac;
 	uint8_t tx_str[] = "factory-iot";
@@ -196,33 +198,33 @@ static void gw_search(void)
 
 	SubGHz.begin(SUBGHZ_CH,0xffff,BAUD,PWR);
 	SubGHz.rxEnable(NULL);
-	do {
-		digitalWrite(TX_LED,LOW);
-		SubGHz.send(0xffff,0xffff,tx_str,sizeof(tx_str),NULL);				// broadcast
-		digitalWrite(TX_LED,HIGH);
-		prev_send_time = millis();
+	digitalWrite(BLUE_LED,LOW);
+	SubGHz.send(0xffff,0xffff,tx_str,sizeof(tx_str),NULL);				// broadcast
+	digitalWrite(BLUE_LED,HIGH);
+	prev_send_time = millis();
 #ifdef DEBUG
-		Serial.println("Searching GW...");
+	Serial.println("Searching GW...");
 #endif
-		while (1) {
-			rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
-			if (rx_len > 0) {
-				SubGHz.decMac(&mac,rx_buf,rx_len);
-				if (parse_payload(mac.payload) == 0) {						// parse ok
-					setting_done = true;
-					break;
-				}
-				memset(rx_buf,0,sizeof(rx_buf));							// clear memory
+	while (1) {
+		rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
+		if (rx_len > 0) {
+			SubGHz.decMac(&mac,rx_buf,rx_len);
+			if (parse_payload(mac.payload) == 0) {						// parse ok
+				setting_done = true;
+				break;
 			}
-			if ((millis() - prev_send_time) > GW_SEARCH_TIMEOUT ) break;	// timed out
+			memset(rx_buf,0,sizeof(rx_buf));							// clear memory
 		}
-	} while (!setting_done);
+		if ((millis() - prev_send_time) > WAIT_RX_TIMEOUT ) break;	// timed out
+	}
 	SubGHz.close();
+	sleep(TX_RETRY_INTERVAL);
+	prev_send_time = 0;
+	return setting_done;
 }
 
-static void param_update(void)
+static bool param_update(void)
 {
-	uint8_t rx_buf[MAX_BUF_SIZE]={0};
 	int rx_len,i;
 	SUBGHZ_MAC_PARAM mac;
 	SUBGHZ_MSG msg;
@@ -231,10 +233,10 @@ static void param_update(void)
 
 	SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
 	SubGHz.rxEnable(NULL);
-	for (i = 0; i < PARAM_UPD_RETRY_TIMES; i++) {
-		digitalWrite(TX_LED,LOW);
+	for (i=0; i<PARAM_UPD_RETRY_TIMES; i++) {
+		digitalWrite(BLUE_LED,LOW);
 		msg = SubGHz.send(gateway_panid,gateway_addr,tx_str,sizeof(tx_str),NULL);	// unicast
-		digitalWrite(TX_LED,HIGH);
+		digitalWrite(BLUE_LED,HIGH);
 		if (msg == SUBGHZ_OK) {
 			prev_send_time = millis();
 			while (1) {
@@ -247,76 +249,73 @@ static void param_update(void)
 					}
 					memset(rx_buf,0,sizeof(rx_buf));							// clear memory
 				}
-				if ((millis() - prev_send_time) > PARAM_UPD_TIMEOUT ) break;	// timed out
+				if ((millis() - prev_send_time) > WAIT_RX_TIMEOUT ) break;	// timed out
 			}
+			prev_send_time = 0;
 		}
 		if (setting_done) break;
-		sleep(PARAM_UPD_SLEEP_INTVAL);
+		sleep(TX_RETRY_INTERVAL);
 	}
 	SubGHz.close();
-	if (setting_done) {
-		mode = NORMAL_MODE;
-	} else {
-		mode = GW_SEARCH_MODE;
-	}
+	return setting_done;
 }
 
-static CT_STATE func_off_stable(void)
+static SENSOR_STATE func_off_stable(void)
 {
-	CT_STATE state = CT_STATE_OFF_STABLE;
+	SENSOR_STATE state = SENSOR_STATE_OFF_STABLE;
 
-	if (current_amps > thrs_on_amp) {
+	if (current_val > thrs_on_val) {
 		if (thrs_on_interval != 0) {
 			thrs_on_start = current_time;
-			state = CT_STATE_OFF_UNSTABLE;
+			state = SENSOR_STATE_OFF_UNSTABLE;
 		} else {
 			send_data_flag = true;
-			state = CT_STATE_ON_STABLE;
+			state = SENSOR_STATE_ON_STABLE;
 		}
 	}
 	return state;
 }
 
-static CT_STATE func_off_unstable(void)
+static SENSOR_STATE func_off_unstable(void)
 {
-	CT_STATE state = CT_STATE_OFF_UNSTABLE;
+	SENSOR_STATE state = SENSOR_STATE_OFF_UNSTABLE;
 
-	if (current_amps <= thrs_on_amp) {
-		state = CT_STATE_OFF_STABLE;
+	if (current_val <= thrs_on_val) {
+		state = SENSOR_STATE_OFF_STABLE;
 	}
 	if ((current_time - thrs_on_start) > thrs_on_interval) {
 		send_data_flag = true;
-		state = CT_STATE_ON_STABLE;
+		state = SENSOR_STATE_ON_STABLE;
 	}
 	return state;
 }
 
-static CT_STATE func_on_stable(void)
+static SENSOR_STATE func_on_stable(void)
 {
-	CT_STATE state = CT_STATE_ON_STABLE;
+	SENSOR_STATE state = SENSOR_STATE_ON_STABLE;
 
-	if (current_amps < thrs_off_amp) {
+	if (current_val < thrs_off_val) {
 		if (thrs_off_interval != 0) {
 			thrs_off_start = current_time;
-			state = CT_STATE_ON_UNSTABLE;
+			state = SENSOR_STATE_ON_UNSTABLE;
 		} else {
 			send_data_flag = true;
-			state = CT_STATE_OFF_STABLE;
+			state = SENSOR_STATE_OFF_STABLE;
 		}
 	}
 	return state;
 }
 
-static CT_STATE func_on_unstable(void)
+static SENSOR_STATE func_on_unstable(void)
 {
-	CT_STATE state = CT_STATE_ON_UNSTABLE;
+	SENSOR_STATE state = SENSOR_STATE_ON_UNSTABLE;
 
-	if (current_amps >= thrs_off_amp) {
-		state = CT_STATE_ON_STABLE;
+	if (current_val >= thrs_off_val) {
+		state = SENSOR_STATE_ON_STABLE;
 	}
 	if ((current_time - thrs_off_start) > thrs_off_interval) {
 		send_data_flag = true;
-		state = CT_STATE_OFF_STABLE;
+		state = SENSOR_STATE_OFF_STABLE;
 	}
 	return state;
 }
@@ -351,133 +350,124 @@ double ct_meas() {
 	amps = 3.3*1.1;
 	dif_vol = en_voltage-st_voltage;
 	dif_vol = (dif_vol < 0) ? 0 : dif_vol;
-	amps = amps * dif_vol /4.096/(en_time - st_time);  
+	amps = amps * dif_vol /4.096/(en_time - st_time);
 	return amps;
 }
 
-static void ct_sensor_main(void)
-{
+static void ct_sensor_main(void) {
 	uint8_t tx_buf[20]={0};
-	uint8_t level;
 	SUBGHZ_MSG msg;
 	EACK_DATA *eack_data;
 	uint8_t *p;
 	int eack_size,i;
 	uint32_t tmp;
 
-	prev_send_time = 0;
-	while(1) {
-		level = voltage_check(VLS_4_667);	
-		if (level >= 10) {
-			current_amps = ct_meas();				// start measuring
-			current_time = millis();
-			if (forcible_flag || (prev_send_time == 0) || ((current_time - prev_send_time) >= KEEP_ALIVE_INTERVAL)) {
-				send_data_flag = true;
+	current_val = ct_meas();				// start measuring
+	current_time = millis();
+	if (forcible_flag || (prev_send_time == 0) || ((current_time - prev_send_time) >= KEEP_ALIVE_INTERVAL)) {
+		send_data_flag = true;
 #ifdef DEBUG
-				if (!forcible_flag && (prev_send_time != 0)) Serial.println("keep alive");
+		if (!forcible_flag && (prev_send_time != 0)) Serial.println("keep alive");
 #endif
-			}
+	}
 #ifdef DEBUG
-			Serial.print("ct_state: ");
-			Serial.print_long((long)state_func,DEC);
-			Serial.print(" -> ");
+	Serial.print("sensor_state: ");
+	Serial.print_long((long)state_func,DEC);
+	Serial.print(" -> ");
 #endif
-			state_func = ct_funcs[state_func]();	// state machine
+	state_func = _funcs[state_func]();	// state machine
 #ifdef DEBUG
-			Serial.println_long((long)state_func,DEC);
+	Serial.println_long((long)state_func,DEC);
 #endif
-			if (send_data_flag) {
-				send_data_flag = false;
-				Print.init(tx_buf,sizeof(tx_buf));
-				if ((state_func == CT_STATE_ON_STABLE) || (state_func == CT_STATE_ON_UNSTABLE)) {
-					Print.p("on,");
-				} else {
-					Print.p("off,");
-				}
-				Print.d(current_amps,2);
-				Print.p(",");
-				Print.p(vls_val[level]);
-				Print.ln();
+	if (send_data_flag) {
+		send_data_flag = false;
+		Print.init(tx_buf,sizeof(tx_buf));
+		if ((state_func == SENSOR_STATE_ON_STABLE) || (state_func == SENSOR_STATE_ON_UNSTABLE)) {
+			Print.p("on,");
+		} else {
+			Print.p("off,");
+		}
+		Print.d(current_val,2);
+		Print.p(",");
+		Print.p(vls_val[level]);
+		Print.ln();
 
-				digitalWrite(TX_LED,LOW);
-				SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
-				msg = SubGHz.send(gateway_panid,gateway_addr,tx_buf,Print.len(),NULL);
-				SubGHz.close();
-				digitalWrite(TX_LED,HIGH);
+		digitalWrite(BLUE_LED,LOW);
+		SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
+		msg = SubGHz.send(gateway_panid,gateway_addr,tx_buf,Print.len(),NULL);
+		SubGHz.close();
+		digitalWrite(BLUE_LED,HIGH);
 #ifdef DEBUG
-				Serial.print(tx_buf);
-				SubGHz.msgOut(msg);
+		Serial.print(tx_buf);
+		SubGHz.msgOut(msg);
 #endif
-				if (msg == SUBGHZ_OK) {
-					prev_send_time = millis();
-					SubGHz.getEnhanceAck(&p,&eack_size);
-					eack_data = (EACK_DATA *)p;
+		if (msg == SUBGHZ_OK) {
+			prev_send_time = millis();
+			SubGHz.getEnhanceAck(&p,&eack_size);
+			eack_data = (EACK_DATA *)p;
+			/* no problem : Warning : W4027 : Cast operation may lead to odd boundary access */
 #ifdef DEBUG
-					Serial.print("eack_size: ");
-					Serial.println_long((long)eack_size,DEC);
+			Serial.print("eack_size: ");
+			Serial.println_long((long)eack_size,DEC);
 #endif
-					if (eack_size == sizeof(EACK_DATA)) {
+			if (eack_size == sizeof(EACK_DATA)) {
 #ifdef DEBUG
-						Serial.print("eack_data: ");
-						for (i=0;i<sizeof(EACK_DATA);i++,p++) {
-							Serial.print_long((long)*p,HEX);
-							Serial.print(" ");
-						}
-						Serial.println("");
+				Serial.print("eack_data: ");
+				for (i=0; i<sizeof(EACK_DATA); i++,p++) {
+					Serial.print_long((long)*p,HEX);
+					Serial.print(" ");
+				}
+				Serial.println("");
 #endif
-						switch (eack_data->eack_flag) {
-						case EACK_FORCIBLE_FLAG:
-							forcible_flag = true;
-							break;
-						case EACK_PARAM_UPD:
-							forcible_flag = false;
-							mode = PARAM_UPD_MODE;
-							break;
-						case EACK_GW_SEARCH:
-							forcible_flag = false;
-							mode = GW_SEARCH_MODE;
-							break;
-						case EACK_FW_UPD:
-							forcible_flag = false;
-							mode = FW_UPD_MODE;
-							break;
-						default:
-							forcible_flag = false;
-							break;
-						}
-						tmp = eack_data->sleep_interval_sec * 1000ul;
-						if (tmp <= KEEP_ALIVE_INTERVAL) sleep_interval = tmp;
-					}
-				} else {
+				switch (eack_data->eack_flag) {
+				case EACK_FORCIBLE_FLAG:
+					forcible_flag = true;
+					break;
+				case EACK_PARAM_UPD:
+					forcible_flag = false;
+					mode = PARAM_UPD_MODE;
+					break;
+				case EACK_GW_SEARCH:
+					forcible_flag = false;
 					mode = GW_SEARCH_MODE;
 					break;
+				case EACK_FW_UPD:
+					forcible_flag = false;
+					mode = FW_UPD_MODE;
+					break;
+				default:
+					forcible_flag = false;
+					break;
 				}
+				tmp = eack_data->sleep_interval_sec * 1000ul;
+				if (tmp <= KEEP_ALIVE_INTERVAL) sleep_interval = tmp;
 			}
+		} else {
+			mode = GW_SEARCH_MODE;
 		}
-#ifdef DEBUG
-		Serial.print("go to sleep: ");
-		Serial.println_long(sleep_interval,DEC);
-#endif
-		sleep(sleep_interval);
-		if (mode != NORMAL_MODE) break;
 	}
+
+#ifdef DEBUG
+	Serial.print("go to sleep: ");
+	Serial.println_long(sleep_interval,DEC);
+#endif
+	sleep(sleep_interval);
 }
 
-static CT_STATE func_init_state(void)
+static SENSOR_STATE func_init_state(void)
 {
-	current_amps = ct_meas();
+	current_val = ct_meas();
 	thrs_on_start = 0;
 	thrs_off_start = 0;
-	if (current_amps > thrs_off_amp) {
-		return CT_STATE_ON_STABLE;
+	if (current_val > thrs_off_val) {
+		return SENSOR_STATE_ON_STABLE;
 	} else {
-		return CT_STATE_OFF_STABLE;
+		return SENSOR_STATE_OFF_STABLE;
 	}
 }
 
 static void fw_update(void)
 {
-	uint8_t rx_buf[MAX_BUF_SIZE]={0};
 	int rx_len;
 	uint16_t src_addr;
 	uint8_t hw_type;
@@ -486,11 +476,11 @@ static void fw_update(void)
 	SUBGHZ_MAC_PARAM mac;
 	SUBGHZ_MSG msg;
 
-	digitalWrite(TX_LED,LOW);
+	digitalWrite(BLUE_LED,LOW);
 	SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
 	msg = SubGHz.send(gateway_panid,gateway_addr,tx_str,sizeof(tx_str),NULL);
 	SubGHz.close();
-	digitalWrite(TX_LED,HIGH);
+	digitalWrite(BLUE_LED,HIGH);
 
 	if (msg == SUBGHZ_OK) {
 		SubGHz.setKey(ota_aes_key);
@@ -524,8 +514,9 @@ static void fw_update(void)
 				}
 				memset(rx_buf,0,sizeof(rx_buf));	// clear memory
 			}
-			if ((millis() - prev_send_time) > FW_UPD_MODE_TIMEOUT) break;
+			if ((millis() - prev_send_time) > WAIT_RX_TIMEOUT) break;
 		}
+		prev_send_time = 0;
 		SubGHz.close();
 	}
 	SubGHz.setKey(NULL);	// timed out
@@ -533,34 +524,36 @@ static void fw_update(void)
 
 void setup() {
 	// put your setup code here, to run once:
-	digitalWrite(MEAS_LED,HIGH);
-	pinMode(MEAS_LED,OUTPUT);
-	digitalWrite(TX_LED,HIGH);
-	pinMode(TX_LED,OUTPUT);
+	digitalWrite(ORANGE_LED,HIGH);
+	pinMode(ORANGE_LED,OUTPUT);
+	digitalWrite(BLUE_LED,HIGH);
+	pinMode(BLUE_LED,OUTPUT);
 
 #ifdef DEBUG
 	Serial.begin(115200);
 	Serial.print("Program version: ");
 	Serial.println_long((long)OTA.getVersion(),DEC);
 #endif
+
 	SubGHz.init();
 	ct_init();
-
 	mode = GW_SEARCH_MODE;
 }
 
 void loop() {
 	// put your main code here, to run repeatedly:
+	level = voltage_check(VLS_3_068);
 	switch (mode) {
 	case GW_SEARCH_MODE:			// search gateway
 #ifdef DEBUG
 		Serial.println("GW SEARCH MODE");
 #endif
-		gw_search();
-		if (my_short_addr != 0xffff) SubGHz.setMyAddress(my_short_addr);
-		state_func = func_init_state();
-		sleep_interval = DEFAULT_SLEEP_INTERVAL;
-		mode = NORMAL_MODE;
+		if (gw_search()) {			// found gateway successfully
+			if (my_short_addr != 0xffff) SubGHz.setMyAddress(my_short_addr);
+			state_func = func_init_state();
+			sleep_interval = DEFAULT_SLEEP_INTERVAL;
+			mode = NORMAL_MODE;
+		}
 		break;
 	case NORMAL_MODE:
 #ifdef DEBUG
@@ -572,9 +565,13 @@ void loop() {
 #ifdef DEBUG
 		Serial.println("PARAM UPDATE MODE");
 #endif
-		param_update();
-		if (my_short_addr != 0xffff) SubGHz.setMyAddress(my_short_addr);
-		state_func = func_init_state();
+		if (param_update()) {
+			if (my_short_addr != 0xffff) SubGHz.setMyAddress(my_short_addr);
+			state_func = func_init_state();
+			mode = NORMAL_MODE;
+		} else {
+			mode = GW_SEARCH_MODE;
+		}
 		break;
 	case FW_UPD_MODE:
 #ifdef DEBUG

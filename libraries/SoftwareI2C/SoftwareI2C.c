@@ -16,7 +16,7 @@ static uint32_t  interval;
 static uint8_t transmit;
 
 extern const unsigned char digital_pin_to_port[];
-extern const unsigned char *ml620504f_pin_to_port[];
+extern unsigned char *ml620504f_pin_to_port();
 extern const unsigned char ml620504f_pin_to_bit[];
 
 #define ACK		0
@@ -100,9 +100,9 @@ static bool i2c_write(uint8_t data)
 // setting gpio
 static void begin(uint8_t sda,uint8_t scl)
 {
-	p_scl = ml620504f_pin_to_port[digital_pin_to_port[scl]];
+	p_scl = ml620504f_pin_to_port(digital_pin_to_port[scl]);
 	b_scl = ml620504f_pin_to_bit[digital_pin_to_port[scl]];
-	p_sda = ml620504f_pin_to_port[digital_pin_to_port[sda]];
+	p_sda = ml620504f_pin_to_port(digital_pin_to_port[sda]);
 	b_sda = ml620504f_pin_to_bit[digital_pin_to_port[sda]];
 	transmit = false;
 	pinMode(scl,OPEN_DRAIN);
