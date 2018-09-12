@@ -28,7 +28,7 @@
 
 extern const unsigned char pin_to_pwm[];
 extern const unsigned char ml620504f_tmout_to_pin[];
-extern unsigned char *ml620504f_pin_to_port();
+extern const int ml620504f_pin_to_port[];
 extern const unsigned char ml620504f_pin_to_bit[];
 
 
@@ -178,7 +178,7 @@ static bool hsv_attach(unsigned char ch, unsigned char pin)
 	// GPIO setting
 	ftm = pin_to_pwm[pin];
 	port_num = ml620504f_tmout_to_pin[ftm];
-	port = ml620504f_pin_to_port(port_num);
+	port = (unsigned char *)ml620504f_pin_to_port[port_num];
 	bit = ml620504f_pin_to_bit[port_num];
 	
 	*(port+1) &= ~bit;		// PnDIR  = 0
@@ -204,7 +204,7 @@ static bool hsv_detach(unsigned char pin,unsigned char level)
 	// GPIO setting
 	ftm = pin_to_pwm[pin];
 	port_num = ml620504f_tmout_to_pin[ftm];
-	port = ml620504f_pin_to_port(port_num);
+	port = (unsigned char *)ml620504f_pin_to_port[port_num];
 	bit = ml620504f_pin_to_bit[port_num];
 	if(level == 0)
 		*(port+0) &= ~bit;		// PnD    = 0

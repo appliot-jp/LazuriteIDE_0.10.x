@@ -32,106 +32,45 @@
 //********************************************************************************
 //   global parameters
 //********************************************************************************
-unsigned char *ml620504f_pin_to_port(unsigned char pin)
+const int ml620504f_pin_to_port[] =
 {
-	unsigned char *port;
-
-	switch (pin) {
-	case 0:
-	case 1:
-	case 2:
-	case 3:
-	case 4:
-	case 5:
-		port = &P0D; 
-		break;
-	case 6:
-	case 7:
-		port = &P1D; 
-		break;
-	case 8:
-	case 9:
-	case 10:
-	case 11:
-		port = &P2D; 
-		break;
-	case 12:
-	case 13:
-	case 14:
-	case 15:
-	case 16:
-	case 17:
-	case 18:
-	case 19:
-		port = &P3D; 
-		break;
-	case 20:
-	case 21:
-	case 22:
-	case 23:
-	case 24:
-	case 25:
-	case 26:
-	case 27:
-		port = &P4D; 
-		break;
-	case 28:
-	case 29:
-	case 30:
-	case 31:
-	case 32:
-	case 33:
-	case 34:
-	case 35:
-		port = &P5D; 
-		break;
-	default:
-		port = NULL;
-		break;
-	}
-	return port;
-}
-/*
-const unsigned char *ml620504f_pin_to_port[] =
-{
-	&P0D,	//	0	P00
-	&P0D,	//	1	P01
-	&P0D,	//	2	P02
-	&P0D,	//	3	P03
-	&P0D,	//	4	P04
-	&P0D,	//	5	P05
-	&P1D,	//	6	P10
-	&P1D,	//	7	P11
-	&P2D,	//	8	P20
-	&P2D,	//	9	P21
-	&P2D,	//	10	P22
-	&P2D,	//	11	P23
-	&P3D,	//	12	P30
-	&P3D,	//	13	P31
-	&P3D,	//	14	P32
-	&P3D,	//	15	P33
-	&P3D,	//	16	P34
-	&P3D,	//	17	P35
-	&P3D,	//	18	P36
-	&P3D,	//	19	P37
-	&P4D,	//	20	P40
-	&P4D,	//	21	P41
-	&P4D,	//	22	P42
-	&P4D,	//	23	P43
-	&P4D,	//	24	P44
-	&P4D,	//	25	P45
-	&P4D,	//	26	P46
-	&P4D,	//	27	P47
-	&P5D,	//	28	P50
-	&P5D,	//	29	P51
-	&P5D,	//	30	P52
-	&P5D,	//	31	P53
-	&P5D,	//	32	P54
-	&P5D,	//	33	P55
-	&P5D,	//	34	P56
-	&P5D,	//	35	P57
+	(int)&P0D,	//	0	P00
+	(int)&P0D,	//	1	P01
+	(int)&P0D,	//	2	P02
+	(int)&P0D,	//	3	P03
+	(int)&P0D,	//	4	P04
+	(int)&P0D,	//	5	P05
+	(int)&P1D,	//	6	P10
+	(int)&P1D,	//	7	P11
+	(int)&P2D,	//	8	P20
+	(int)&P2D,	//	9	P21
+	(int)&P2D,	//	10	P22
+	(int)&P2D,	//	11	P23
+	(int)&P3D,	//	12	P30
+	(int)&P3D,	//	13	P31
+	(int)&P3D,	//	14	P32
+	(int)&P3D,	//	15	P33
+	(int)&P3D,	//	16	P34
+	(int)&P3D,	//	17	P35
+	(int)&P3D,	//	18	P36
+	(int)&P3D,	//	19	P37
+	(int)&P4D,	//	20	P40
+	(int)&P4D,	//	21	P41
+	(int)&P4D,	//	22	P42
+	(int)&P4D,	//	23	P43
+	(int)&P4D,	//	24	P44
+	(int)&P4D,	//	25	P45
+	(int)&P4D,	//	26	P46
+	(int)&P4D,	//	27	P47
+	(int)&P5D,	//	28	P50
+	(int)&P5D,	//	29	P51
+	(int)&P5D,	//	30	P52
+	(int)&P5D,	//	31	P53
+	(int)&P5D,	//	32	P54
+	(int)&P5D,	//	33	P55
+	(int)&P5D,	//	34	P56
+	(int)&P5D,	//	35	P57
 };
-*/
 
 const unsigned char ml620504f_pin_to_bit[] =
 {
@@ -195,7 +134,7 @@ volatile void drv_pinMode(unsigned char pin, unsigned char mode)
 	dis_interrupts(DI_GPIO);
 	
 	bit = ml620504f_pin_to_bit[pin];
-	port = ml620504f_pin_to_port(pin);
+	port = (UCHAR *)ml620504f_pin_to_port[pin];
 	switch(mode)
 	{
 	case INPUT_PULLUP:
@@ -256,7 +195,7 @@ int drv_digitalRead(unsigned char pin)
 //	dis_interrupts(DI_GPIO);
 	
 	bit = ml620504f_pin_to_bit[pin];
-	port = ml620504f_pin_to_port(pin);
+	port = (UCHAR *)ml620504f_pin_to_port[pin];
 	res = ((*port)&bit)!=0 ? HIGH : LOW;
 	
 //	enb_interrupts(DI_GPIO);
@@ -275,7 +214,7 @@ void drv_digitalWrite(unsigned char pin, unsigned char val)
 //	dis_interrupts(DI_GPIO);
 	
 	bit = ml620504f_pin_to_bit[pin];
-	port = ml620504f_pin_to_port(pin);
+	port = (UCHAR *)ml620504f_pin_to_port[pin];
 	if(val == LOW)
 	{
 		*(port) &= ~bit;		

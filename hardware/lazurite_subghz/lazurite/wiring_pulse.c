@@ -33,7 +33,7 @@
 //********************************************************************************
 extern const unsigned char digital_pin_to_port[];
 extern const unsigned char ml620504f_pin_to_bit[];
-extern unsigned char *ml620504f_pin_to_port();
+extern const int ml620504f_pin_to_port[];
 
 //********************************************************************************
 //   local definitions
@@ -61,7 +61,7 @@ unsigned long pulseIn(UCHAR pin, UCHAR value, UINT32 timeout)
 	volatile uint8_t raw_val;
 	
 	raw_bit = ml620504f_pin_to_bit[digital_pin_to_port[pin]];
-	raw_pin = ml620504f_pin_to_port(digital_pin_to_port[pin]);
+	raw_pin = (uint8_t*)ml620504f_pin_to_port[digital_pin_to_port[pin]];
 	st=micros();
 #if 0
 	do
