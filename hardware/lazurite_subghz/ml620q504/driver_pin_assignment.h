@@ -23,13 +23,11 @@
 
 #include "mcu.h"
 
-extern unsigned char *ml620504f_pin_to_port();
+extern const int ml620504f_pin_to_port[];
 extern const unsigned char ml620504f_pin_to_bit[];
 extern const unsigned char ml620504f_ain_to_pin[];
 extern const unsigned char ml620504f_tmout_to_pin[];
 extern const char num_to_bit[];
-
-
 
 #define	ML620504F_MAX_PIN_NO	35
 #define ML620504F_MAX_AIN_NO	11
