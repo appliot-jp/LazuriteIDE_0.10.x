@@ -53,11 +53,12 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define PARAM_UPD_MODE			( 3 )
 #define FW_UPD_MODE				( 4 )
 #define DEFAULT_SLEEP_INTERVAL	( 5 * 1000ul )
-#define KEEP_ALIVE_INTERVAL		( 3599 * 1000ul )
+#define KEEP_ALIVE_INTERVAL		( 3480 * 1000ul )
 #define WAIT_RX_TIMEOUT			( 2 * 1000ul )
 #define TX_RETRY_INTERVAL		( 10 * 1000ul )
 #define LOW_VOLTAGE_SLEEP_INTVAL	( 60 * 1000ul )
 #define PARAM_UPD_RETRY_TIMES	( 5 )
+#define SEND_DATA_RETRY_TIMES	( 1 )
 #define MAX_BUF_SIZE			( 250 )
 
 uint8_t mode;
@@ -196,8 +197,8 @@ static bool gw_search(void)
 	uint8_t tx_str[] = "factory-iot";
 	bool setting_done = false;
 
-	SubGHz.begin(SUBGHZ_CH,0xffff,BAUD,PWR);
 	SubGHz.rxEnable(NULL);
+	SubGHz.begin(SUBGHZ_CH,0xffff,BAUD,PWR);
 	digitalWrite(BLUE_LED,LOW);
 	SubGHz.send(0xffff,0xffff,tx_str,sizeof(tx_str),NULL);				// broadcast
 	digitalWrite(BLUE_LED,HIGH);
@@ -207,6 +208,7 @@ static bool gw_search(void)
 #endif
 	while (1) {
 		rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
+		rx_buf[rx_len] = 0;												// null terminate
 		if (rx_len > 0) {
 			SubGHz.decMac(&mac,rx_buf,rx_len);
 			if (parse_payload(mac.payload) == 0) {						// parse ok
@@ -218,6 +220,7 @@ static bool gw_search(void)
 		if ((millis() - prev_send_time) > WAIT_RX_TIMEOUT ) break;	// timed out
 	}
 	SubGHz.close();
+	SubGHz.rxDisable();
 	sleep(TX_RETRY_INTERVAL);
 	prev_send_time = 0;
 	return setting_done;
@@ -231,8 +234,8 @@ static bool param_update(void)
 	uint8_t tx_str[] = "update";
 	bool setting_done = false;
 
-	SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
 	SubGHz.rxEnable(NULL);
+	SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
 	for (i=0; i<PARAM_UPD_RETRY_TIMES; i++) {
 		digitalWrite(BLUE_LED,LOW);
 		msg = SubGHz.send(gateway_panid,gateway_addr,tx_str,sizeof(tx_str),NULL);	// unicast
@@ -241,6 +244,7 @@ static bool param_update(void)
 			prev_send_time = millis();
 			while (1) {
 				rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
+				rx_buf[rx_len] = 0;												// null terminate
 				if (rx_len > 0) {
 					SubGHz.decMac(&mac,rx_buf,rx_len);
 					if (parse_payload(mac.payload) == 0) {						// parse ok
@@ -257,6 +261,7 @@ static bool param_update(void)
 		sleep(TX_RETRY_INTERVAL);
 	}
 	SubGHz.close();
+	SubGHz.rxDisable();
 	return setting_done;
 }
 
@@ -391,16 +396,25 @@ static void ct_sensor_main(void) {
 		Print.p(",");
 		Print.p(vls_val[level]);
 		Print.ln();
-
-		digitalWrite(BLUE_LED,LOW);
-		SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
-		msg = SubGHz.send(gateway_panid,gateway_addr,tx_buf,Print.len(),NULL);
-		SubGHz.close();
-		digitalWrite(BLUE_LED,HIGH);
 #ifdef DEBUG
 		Serial.print(tx_buf);
-		SubGHz.msgOut(msg);
 #endif
+		digitalWrite(BLUE_LED,LOW);
+		SubGHz.rxDisable();
+		SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
+		for (i=0; i<=SEND_DATA_RETRY_TIMES; i++) {
+#ifdef DEBUG
+			if (i != 0) Serial.println("retry occured.");
+#endif
+			msg = SubGHz.send(gateway_panid,gateway_addr,tx_buf,Print.len(),NULL);
+#ifdef DEBUG
+			SubGHz.msgOut(msg);
+#endif
+			if (msg == SUBGHZ_OK) break;
+			sleep(rand()%1000);
+		}
+		SubGHz.close();
+		digitalWrite(BLUE_LED,HIGH);
 		if (msg == SUBGHZ_OK) {
 			prev_send_time = millis();
 			SubGHz.getEnhanceAck(&p,&eack_size);
@@ -477,6 +491,7 @@ static void fw_update(void)
 	SUBGHZ_MSG msg;
 
 	digitalWrite(BLUE_LED,LOW);
+	SubGHz.rxDisable();
 	SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
 	msg = SubGHz.send(gateway_panid,gateway_addr,tx_str,sizeof(tx_str),NULL);
 	SubGHz.close();
@@ -484,12 +499,13 @@ static void fw_update(void)
 
 	if (msg == SUBGHZ_OK) {
 		SubGHz.setKey(ota_aes_key);
-		SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
 		SubGHz.rxEnable(NULL);
+		SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
 		prev_send_time = millis();
 
 		while (1) {
 			rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
+			rx_buf[rx_len] = 0;												// null terminate
 			if (rx_len > 0) {
 				SubGHz.decMac(&mac,rx_buf,rx_len);
 				src_addr = *(uint16_t *)mac.src_addr;
@@ -518,6 +534,7 @@ static void fw_update(void)
 		}
 		prev_send_time = 0;
 		SubGHz.close();
+		SubGHz.rxDisable();
 	}
 	SubGHz.setKey(NULL);	// timed out
 }
