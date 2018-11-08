@@ -95,15 +95,19 @@ void setup()
 	ArduCAM.InitCAM();
 
 	ArduCAM.write_reg(ARDUCHIP_TIM, VSYNC_LEVEL_MASK);   //VSYNC is active HIGH
-	ArduCAM.OV5642_set_JPEG_size(OV5642_320x240);
+	ArduCAM.OV5642_set_JPEG_size(OV5642_640x480);
 	delay(1000);
 	ArduCAM.clear_fifo_flag();
 	ArduCAM.write_reg(ARDUCHIP_FRAMES,0x00);
+
+	start_capture = 1;
+	Serial.println("ACK CMD CAM start single shoot. END");
 }
 
 void loop()
 {
 	// put your main code here, to run repeatedly:
+/*
 	uint8_t temp = 0xff, temp_last = 0;
 	if (Serial.available()) {
 		temp = (uint8_t)Serial.read();
@@ -962,6 +966,27 @@ void loop()
 			mode = 0;
 		}
 	}
+*/
+//	if (mode == 1) {
+		if (start_capture == 1) {
+			//Flush the FIFO
+			ArduCAM.flush_fifo();
+			ArduCAM.clear_fifo_flag();
+			//Start capture
+			ArduCAM.start_capture();
+			start_capture = 0;
+		}
+		if (ArduCAM.get_bit(ARDUCHIP_TRIG, CAP_DONE_MASK)) {
+			Serial.println("ACK CMD CAM Capture Done. END");
+			delay(50);
+			read_fifo_burst();
+			//Clear the capture done flag
+			ArduCAM.clear_fifo_flag();
+			sleep(10000);
+			start_capture = 1;
+			Serial.println("ACK CMD CAM start single shoot. END");
+		}
+//	}
 }
 
 uint8_t read_fifo_burst(void)
