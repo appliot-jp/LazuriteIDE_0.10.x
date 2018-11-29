@@ -53,16 +53,15 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define PARAM_UPD_MODE			( 3 )
 #define FW_UPD_MODE				( 4 )
 #define DEFAULT_SLEEP_INTERVAL	( 5 * 1000ul )
-#define KEEP_ALIVE_INTERVAL		( 3480 * 1000ul )
+#define KEEP_ALIVE_INTERVAL		( 1800 * 1000ul )
 #define WAIT_RX_TIMEOUT			( 2 * 1000ul )
 #define TX_RETRY_INTERVAL		( 10 * 1000ul )
-#define LOW_VOLTAGE_SLEEP_INTVAL	( 60 * 1000ul )
 #define PARAM_UPD_RETRY_TIMES	( 5 )
 #define SEND_DATA_RETRY_TIMES	( 1 )
 #define MAX_BUF_SIZE			( 250 )
 
 uint8_t mode;
-double current_val;
+double sensor_val;
 double thrs_on_val=0.03;
 double thrs_off_val=0.03;
 uint32_t thrs_on_interval=0;
@@ -79,7 +78,7 @@ bool send_data_flag=false;
 bool forcible_flag=false;
 uint8_t rx_buf[MAX_BUF_SIZE];
 uint8_t level;
-bool low_voltage=false;
+uint8_t version;
 
 __packed typedef struct {
 	uint8_t eack_flag;
@@ -194,13 +193,16 @@ static bool gw_search(void)
 {
 	int rx_len;
 	SUBGHZ_MAC_PARAM mac;
-	uint8_t tx_str[] = "factory-iot";
+	uint8_t tx_str[20];
 	bool setting_done = false;
 
+	Print.init(tx_str,20);
+	Print.p("factory-iot,");
+	Print.l(version,DEC);
 	SubGHz.rxEnable(NULL);
 	SubGHz.begin(SUBGHZ_CH,0xffff,BAUD,PWR);
 	digitalWrite(BLUE_LED,LOW);
-	SubGHz.send(0xffff,0xffff,tx_str,sizeof(tx_str),NULL);				// broadcast
+	SubGHz.send(0xffff,0xffff,tx_str,strlen(tx_str),NULL);				// broadcast
 	digitalWrite(BLUE_LED,HIGH);
 	prev_send_time = millis();
 #ifdef DEBUG
@@ -238,7 +240,7 @@ static bool param_update(void)
 	SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
 	for (i=0; i<PARAM_UPD_RETRY_TIMES; i++) {
 		digitalWrite(BLUE_LED,LOW);
-		msg = SubGHz.send(gateway_panid,gateway_addr,tx_str,sizeof(tx_str),NULL);	// unicast
+		msg = SubGHz.send(gateway_panid,gateway_addr,tx_str,strlen(tx_str),NULL);	// unicast
 		digitalWrite(BLUE_LED,HIGH);
 		if (msg == SUBGHZ_OK) {
 			prev_send_time = millis();
@@ -269,7 +271,7 @@ static SENSOR_STATE func_off_stable(void)
 {
 	SENSOR_STATE state = SENSOR_STATE_OFF_STABLE;
 
-	if (current_val > thrs_on_val) {
+	if (sensor_val > thrs_on_val) {
 		if (thrs_on_interval != 0) {
 			thrs_on_start = current_time;
 			state = SENSOR_STATE_OFF_UNSTABLE;
@@ -285,12 +287,13 @@ static SENSOR_STATE func_off_unstable(void)
 {
 	SENSOR_STATE state = SENSOR_STATE_OFF_UNSTABLE;
 
-	if (current_val <= thrs_on_val) {
+	if (sensor_val <= thrs_on_val) {
 		state = SENSOR_STATE_OFF_STABLE;
-	}
-	if ((current_time - thrs_on_start) > thrs_on_interval) {
-		send_data_flag = true;
-		state = SENSOR_STATE_ON_STABLE;
+	} else {
+		if ((current_time - thrs_on_start) > thrs_on_interval) {
+			send_data_flag = true;
+			state = SENSOR_STATE_ON_STABLE;
+		}
 	}
 	return state;
 }
@@ -299,7 +302,7 @@ static SENSOR_STATE func_on_stable(void)
 {
 	SENSOR_STATE state = SENSOR_STATE_ON_STABLE;
 
-	if (current_val < thrs_off_val) {
+	if (sensor_val < thrs_off_val) {
 		if (thrs_off_interval != 0) {
 			thrs_off_start = current_time;
 			state = SENSOR_STATE_ON_UNSTABLE;
@@ -315,12 +318,13 @@ static SENSOR_STATE func_on_unstable(void)
 {
 	SENSOR_STATE state = SENSOR_STATE_ON_UNSTABLE;
 
-	if (current_val >= thrs_off_val) {
+	if (sensor_val >= thrs_off_val) {
 		state = SENSOR_STATE_ON_STABLE;
-	}
-	if ((current_time - thrs_off_start) > thrs_off_interval) {
-		send_data_flag = true;
-		state = SENSOR_STATE_OFF_STABLE;
+	} else {
+		if ((current_time - thrs_off_start) > thrs_off_interval) {
+			send_data_flag = true;
+			state = SENSOR_STATE_OFF_STABLE;
+		}
 	}
 	return state;
 }
@@ -367,7 +371,7 @@ static void ct_sensor_main(void) {
 	int eack_size,i;
 	uint32_t tmp;
 
-	current_val = ct_meas();				// start measuring
+	sensor_val = ct_meas();				// start measuring
 	current_time = millis();
 	if (forcible_flag || (prev_send_time == 0) || ((current_time - prev_send_time) >= KEEP_ALIVE_INTERVAL)) {
 		send_data_flag = true;
@@ -392,7 +396,7 @@ static void ct_sensor_main(void) {
 		} else {
 			Print.p("off,");
 		}
-		Print.d(current_val,2);
+		Print.d(sensor_val,2);
 		Print.p(",");
 		Print.p(vls_val[level]);
 		Print.ln();
@@ -470,10 +474,10 @@ static void ct_sensor_main(void) {
 
 static SENSOR_STATE func_init_state(void)
 {
-	current_val = ct_meas();
+	sensor_val = ct_meas();
 	thrs_on_start = 0;
 	thrs_off_start = 0;
-	if (current_val > thrs_off_val) {
+	if (sensor_val >= thrs_off_val) {
 		return SENSOR_STATE_ON_STABLE;
 	} else {
 		return SENSOR_STATE_OFF_STABLE;
@@ -493,7 +497,7 @@ static void fw_update(void)
 	digitalWrite(BLUE_LED,LOW);
 	SubGHz.rxDisable();
 	SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
-	msg = SubGHz.send(gateway_panid,gateway_addr,tx_str,sizeof(tx_str),NULL);
+	msg = SubGHz.send(gateway_panid,gateway_addr,tx_str,strlen(tx_str),NULL);
 	SubGHz.close();
 	digitalWrite(BLUE_LED,HIGH);
 
@@ -546,10 +550,11 @@ void setup() {
 	digitalWrite(BLUE_LED,HIGH);
 	pinMode(BLUE_LED,OUTPUT);
 
+	version = ota_param.ver;
 #ifdef DEBUG
 	Serial.begin(115200);
 	Serial.print("Program version: ");
-	Serial.println_long((long)OTA.getVersion(),DEC);
+	Serial.println_long((long)version,DEC);
 #endif
 
 	SubGHz.init();
