@@ -56,7 +56,9 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define KEEP_ALIVE_INTERVAL		( 1800 * 1000ul )
 #define WAIT_RX_TIMEOUT			( 2 * 1000ul )
 #define TX_RETRY_INTERVAL		( 10 * 1000ul )
-#define PARAM_UPD_RETRY_TIMES	( 5 )
+#define GW_SEARCH_INTERVAL		( 1800 * 1000ul )
+#define GW_SEARCH_RETRY_TIMES	( 4 )
+#define PARAM_UPD_RETRY_TIMES	( 4 )
 #define SEND_DATA_RETRY_TIMES	( 1 )
 #define MAX_BUF_SIZE			( 250 )
 
@@ -78,12 +80,18 @@ bool send_data_flag=false;
 bool forcible_flag=false;
 uint8_t rx_buf[MAX_BUF_SIZE];
 uint8_t level;
-uint8_t version;
 
 __packed typedef struct {
 	uint8_t eack_flag;
 	uint16_t sleep_interval_sec;	// unit sec
 } EACK_DATA;
+
+typedef struct {
+	uint16_t	gateway_panid;
+	uint16_t	gateway_addr;
+	uint8_t		tx_str[50];
+	uint8_t		retry;
+} TRX_RETRY;
 
 typedef enum {
 	SENSOR_STATE_OFF_STABLE = 0,
@@ -189,82 +197,77 @@ static int parse_payload(uint8_t *payload)
 	}
 }
 
-static bool gw_search(void)
+static bool activate_update(TRX_RETRY *p)
 {
 	int rx_len;
 	SUBGHZ_MAC_PARAM mac;
-	uint8_t tx_str[20];
 	bool setting_done = false;
+	int i = 0;
 
-	Print.init(tx_str,20);
-	Print.p("factory-iot,");
-	Print.l(version,DEC);
-	SubGHz.rxEnable(NULL);
-	SubGHz.begin(SUBGHZ_CH,0xffff,BAUD,PWR);
-	digitalWrite(BLUE_LED,LOW);
-	SubGHz.send(0xffff,0xffff,tx_str,strlen(tx_str),NULL);				// broadcast
-	digitalWrite(BLUE_LED,HIGH);
-	prev_send_time = millis();
-#ifdef DEBUG
-	Serial.println("Searching GW...");
-#endif
 	while (1) {
-		rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
-		rx_buf[rx_len] = 0;												// null terminate
-		if (rx_len > 0) {
-			SubGHz.decMac(&mac,rx_buf,rx_len);
-			if (parse_payload(mac.payload) == 0) {						// parse ok
-				setting_done = true;
-				break;
+		SubGHz.rxEnable(NULL);
+		SubGHz.begin(SUBGHZ_CH,p->gateway_panid,BAUD,PWR);
+		digitalWrite(BLUE_LED,LOW);
+		SubGHz.send(p->gateway_panid,p->gateway_addr,p->tx_str,strlen(p->tx_str),NULL);
+		digitalWrite(BLUE_LED,HIGH);
+		prev_send_time = millis();
+#ifdef DEBUG
+		Serial.println("Waiting for receiving data...");
+#endif
+		while (1) {
+			rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
+			rx_buf[rx_len] = 0;											// null terminate
+			if (rx_len > 0) {
+				SubGHz.decMac(&mac,rx_buf,rx_len);
+				if (parse_payload(mac.payload) == 0) {					// parse ok
+					setting_done = true;
+					break;
+				}
 			}
-			memset(rx_buf,0,sizeof(rx_buf));							// clear memory
+			if ((millis() - prev_send_time) > WAIT_RX_TIMEOUT ) break;	// timed out
 		}
-		if ((millis() - prev_send_time) > WAIT_RX_TIMEOUT ) break;	// timed out
+		SubGHz.close();
+		SubGHz.rxDisable();
+		if (setting_done) break;
+		if (i++ < p->retry) {
+			sleep(TX_RETRY_INTERVAL);
+		} else {
+#ifdef DEBUG
+			Serial.println("Retry count exceeds the specified value.");
+#endif
+			break;
+		}
 	}
-	SubGHz.close();
-	SubGHz.rxDisable();
-	sleep(TX_RETRY_INTERVAL);
-	prev_send_time = 0;
 	return setting_done;
+}
+
+static bool gw_search(void)
+{
+	TRX_RETRY d;
+
+	d.gateway_panid = 0xffff;
+	d.gateway_addr = 0xffff;
+	d.retry = GW_SEARCH_RETRY_TIMES;
+	Print.init(d.tx_str,50);
+	Print.p("factory-iot,");
+	Print.p(ota_param.name);
+	Print.p(",");
+	Print.l(ota_param.ver,DEC);
+
+	return activate_update(&d);
 }
 
 static bool param_update(void)
 {
-	int rx_len,i;
-	SUBGHZ_MAC_PARAM mac;
-	SUBGHZ_MSG msg;
-	uint8_t tx_str[] = "update";
-	bool setting_done = false;
+	TRX_RETRY d;
 
-	SubGHz.rxEnable(NULL);
-	SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
-	for (i=0; i<PARAM_UPD_RETRY_TIMES; i++) {
-		digitalWrite(BLUE_LED,LOW);
-		msg = SubGHz.send(gateway_panid,gateway_addr,tx_str,strlen(tx_str),NULL);	// unicast
-		digitalWrite(BLUE_LED,HIGH);
-		if (msg == SUBGHZ_OK) {
-			prev_send_time = millis();
-			while (1) {
-				rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
-				rx_buf[rx_len] = 0;												// null terminate
-				if (rx_len > 0) {
-					SubGHz.decMac(&mac,rx_buf,rx_len);
-					if (parse_payload(mac.payload) == 0) {						// parse ok
-						setting_done = true;
-						break;
-					}
-					memset(rx_buf,0,sizeof(rx_buf));							// clear memory
-				}
-				if ((millis() - prev_send_time) > WAIT_RX_TIMEOUT ) break;	// timed out
-			}
-			prev_send_time = 0;
-		}
-		if (setting_done) break;
-		sleep(TX_RETRY_INTERVAL);
-	}
-	SubGHz.close();
-	SubGHz.rxDisable();
-	return setting_done;
+	d.gateway_panid = gateway_panid;
+	d.gateway_addr = gateway_addr;
+	d.retry = PARAM_UPD_RETRY_TIMES;
+	Print.init(d.tx_str,50);
+	Print.p("update");
+
+	return activate_update(&d);
 }
 
 static SENSOR_STATE func_off_stable(void)
@@ -545,19 +548,31 @@ static void fw_update(void)
 
 void setup() {
 	// put your setup code here, to run once:
+	uint16_t addr16;
+
 	digitalWrite(ORANGE_LED,HIGH);
 	pinMode(ORANGE_LED,OUTPUT);
 	digitalWrite(BLUE_LED,HIGH);
 	pinMode(BLUE_LED,OUTPUT);
 
-	version = ota_param.ver;
-#ifdef DEBUG
 	Serial.begin(115200);
-	Serial.print("Program version: ");
-	Serial.println_long((long)version,DEC);
-#endif
-
 	SubGHz.init();
+	addr16 = SubGHz.getMyAddress();
+	delay(1000);
+	if (addr16 >= 0x1000) {
+		Serial.print("0x");
+	} else if (addr16 >= 0x0100) {
+		Serial.print("0x0");
+	} else if (addr16 >= 0x0010) {
+		Serial.print("0x00");
+	} else {
+		Serial.print("0x000");
+	}
+	Serial.println_long((long)addr16,HEX);
+	delay(1000);
+#ifndef DEBUG
+	Serial.end();
+#endif
 	ct_init();
 	mode = GW_SEARCH_MODE;
 }
@@ -575,6 +590,8 @@ void loop() {
 			state_func = func_init_state();
 			sleep_interval = DEFAULT_SLEEP_INTERVAL;
 			mode = NORMAL_MODE;
+		} else {
+			sleep(GW_SEARCH_INTERVAL);
 		}
 		break;
 	case NORMAL_MODE:
@@ -592,6 +609,7 @@ void loop() {
 			state_func = func_init_state();
 			mode = NORMAL_MODE;
 		} else {
+			sleep(GW_SEARCH_INTERVAL);
 			mode = GW_SEARCH_MODE;
 		}
 		break;
