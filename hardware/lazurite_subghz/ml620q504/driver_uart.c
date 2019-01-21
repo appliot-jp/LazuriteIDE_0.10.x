@@ -493,7 +493,7 @@ void uartf_isr(void)
 		}
 		break;
 	default:
-		while(1){}
+		//while(1){}
 		break;
 	}
 	/*
