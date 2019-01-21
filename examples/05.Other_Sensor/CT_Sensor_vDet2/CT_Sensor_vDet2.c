@@ -44,10 +44,14 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define SUBGHZ_CH				( 36 )
 #define BAUD					( 100 )
 #define PWR						( 20 )
+#define EACK_NORMAL				( 0x00 )
 #define EACK_FORCIBLE_FLAG		( 0x01 )
 #define EACK_PARAM_UPD			( 0x02 )
 #define EACK_GW_SEARCH			( 0x03 )
 #define EACK_FW_UPD				( 0xF0 )
+#define EACK_ERR_FLAG			( 0x01 )
+#define EACK_ERR_INTERVAL		( 0x02 )
+#define EACK_ERR_SIZE			( 0x04 )
 #define GW_SEARCH_MODE			( 1 )
 #define NORMAL_MODE				( 2 )
 #define PARAM_UPD_MODE			( 3 )
@@ -252,7 +256,7 @@ static bool gw_search(void)
 	Print.p("factory-iot,");
 	Print.p(ota_param.name);
 	Print.p(",");
-	Print.l(ota_param.ver,DEC);
+	Print.l((long)ota_param.ver,DEC);
 
 	return activate_update(&d);
 }
@@ -367,11 +371,11 @@ double ct_meas() {
 }
 
 static void ct_sensor_main(void) {
-	uint8_t tx_buf[20]={0};
+	uint8_t tx_buf[50];
 	SUBGHZ_MSG msg;
 	EACK_DATA *eack_data;
 	uint8_t *p;
-	int eack_size,i;
+	int eack_size, i, eack_error=0;
 	uint32_t tmp;
 
 	sensor_val = ct_meas();				// start measuring
@@ -402,9 +406,8 @@ static void ct_sensor_main(void) {
 		Print.d(sensor_val,2);
 		Print.p(",");
 		Print.p(vls_val[level]);
-		Print.ln();
 #ifdef DEBUG
-		Serial.print(tx_buf);
+		Serial.println(tx_buf);
 #endif
 		digitalWrite(BLUE_LED,LOW);
 		SubGHz.rxDisable();
@@ -441,6 +444,9 @@ static void ct_sensor_main(void) {
 				Serial.println("");
 #endif
 				switch (eack_data->eack_flag) {
+				case EACK_NORMAL:
+					forcible_flag = false;
+					break;
 				case EACK_FORCIBLE_FLAG:
 					forcible_flag = true;
 					break;
@@ -457,11 +463,38 @@ static void ct_sensor_main(void) {
 					mode = FW_UPD_MODE;
 					break;
 				default:
+					eack_error |= EACK_ERR_FLAG;
 					forcible_flag = false;
 					break;
 				}
 				tmp = eack_data->sleep_interval_sec * 1000ul;
-				if (tmp <= KEEP_ALIVE_INTERVAL) sleep_interval = tmp;
+				if (tmp <= KEEP_ALIVE_INTERVAL) {
+					sleep_interval = tmp;
+				} else {
+					eack_error |= EACK_ERR_INTERVAL;
+				}
+			} else {
+				eack_error |= EACK_ERR_SIZE;
+			}
+			if (eack_error) {
+				Print.init(tx_buf,sizeof(tx_buf));
+				Print.p("error, invalid EACK");
+				if (eack_error & EACK_ERR_FLAG) {
+					Print.p(" [flag]");
+				}
+				if (eack_error & EACK_ERR_INTERVAL) {
+					Print.p(" [interval]");
+				}
+				if (eack_error & EACK_ERR_SIZE) {
+					Print.p(" [size]");
+				}
+#ifdef DEBUG
+				Serial.println(tx_buf);
+#endif
+				SubGHz.rxDisable();
+				SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
+				SubGHz.send(gateway_panid,gateway_addr,tx_buf,Print.len(),NULL);
+				SubGHz.close();
 			}
 		} else {
 			mode = GW_SEARCH_MODE;
