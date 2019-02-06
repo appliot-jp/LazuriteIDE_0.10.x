@@ -172,6 +172,10 @@ static void _wire_setTimeout(uint16_t ms)
 {
 	timeout = ms;
 }
+static void _wire_end(void) {
+	i2c_close(1);
+	return;
+}
 
 const TwoWire Wire ={
 	_wire_begin,
@@ -182,6 +186,7 @@ const TwoWire Wire ={
 	_wire_write_byte,
 	_wire_write,
 	_wire_endTransmission,
-	_wire_setTimeout
+	_wire_setTimeout,
+	_wire_end
 };
 
