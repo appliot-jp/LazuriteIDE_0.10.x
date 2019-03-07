@@ -132,6 +132,8 @@ static const uint32_t baud_list[]={
 	0
 };
 
+static bool extEvent = false;
+
 static bool check_baud(uint32_t baud)
 {
 	int i=0;
@@ -774,7 +776,10 @@ static void sggma64(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	Serial.print("sggma64,");
 #endif
 	for(i=0;i<8;i++) {
-		Serial.println_long(adr,HEX);
+		if(adr[i] < 16) {
+			Serial.print("0");
+		}
+		Serial.print_long(adr[i],HEX);
 	}
 	Serial.println("");
 }
@@ -1508,19 +1513,7 @@ static void bindrcv(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 
 // *************************** TEST PROGRAM ********************************
 void deepHALT(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac) {
-	int ldo_stby;
-	
-	ldo_stby = (int)strtol(pparam[1],NULL,0);
-	if(ldo_stby) {
-		digitalWrite(32,HIGH);
-		pinMode(32,OUTPUT);
-		lp_setDeepHaltMode();
-		
-	} else {
-		digitalWrite(32,LOW);
-		pinMode(32,OUTPUT);		
-		lp_setDeepHaltMode();
-	}
+	sleep(60*1000);
 }
 
 void eeprom_wpb(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac) {
