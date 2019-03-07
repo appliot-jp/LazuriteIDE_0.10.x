@@ -34,6 +34,17 @@ SUBGHZ_STATUS rx;
 
 #define BLUE_LED	26
 
+void print_hex_func(uint8_t data)
+{
+	if(data == 0) Serial.print("00");
+	else if(data < 16) {
+		Serial.print("0");
+		Serial.print_long(data,HEX);
+	} else {
+		Serial.print_long(data,HEX);
+	}
+}
+
 void setup(void)
 {
 	SUBGHZ_MSG msg;
@@ -91,66 +102,65 @@ void setup(void)
 
 void loop(void)
 {
+	SUBGHZ_MAC_PARAM mac;
 	short rx_len;
 	short index=0;
 	uint16_t data16;
+	int i;
 	
 	rx_len = SubGHz.readData(rx_data,sizeof(rx_data));
-	
+	rx_data[rx_len]=0;
 	if(rx_len>0)
 	{
 		digitalWrite(BLUE_LED, LOW);
-		SubGHz.getStatus(NULL,&rx);
-		// print time
-		Serial.print_long((long)millis(),DEC);
+		SubGHz.getStatus(NULL,&rx);										// get status of rx
+		SubGHz.decMac(&mac,rx_data,rx_len);
+		Serial.print_long(millis(),DEC);
 		Serial.print("\t");
-		
-		
-		// print header
-		data16 = rx_data[index], index++;
-		data16 = data16 + ((uint16_t)rx_data[index] << 8), index++;
-		Serial.print_long((long)data16,HEX);
+
+		Serial.print_long(mac.mac_header.fc16,HEX);
 		Serial.print("\t");
-		
-		// print sequence number
-		Serial.print_long((long)rx_data[index],HEX), index++;
+
+		Serial.print_long(mac.seq_num,HEX);
 		Serial.print("\t");
-		
-		// print PANID
-		data16 = rx_data[index], index++;
-		data16 = data16 + ((uint16_t)rx_data[index] << 8), index++;
-		Serial.print_long((long)data16,HEX);
+
+		Serial.print_long(mac.dst_panid,HEX);
 		Serial.print("\t");
-		
-		// print RX_ADDR
-		data16 = rx_data[index], index++;
-		data16 = data16 + ((uint16_t)rx_data[index] << 8), index++;
-		Serial.print_long((long)data16,HEX);
+
+		print_hex_func(mac.dst_addr[7]);
+		print_hex_func(mac.dst_addr[6]);
+		print_hex_func(mac.dst_addr[5]);
+		print_hex_func(mac.dst_addr[4]);
+		print_hex_func(mac.dst_addr[3]);
+		print_hex_func(mac.dst_addr[2]);
+		print_hex_func(mac.dst_addr[1]);
+		print_hex_func(mac.dst_addr[0]);
 		Serial.print("\t");
-		
-		// print TX_ADDR
-		data16 = rx_data[index], index++;
-		data16 = data16 + ((uint16_t)rx_data[index] << 8), index++;
-		Serial.print_long((long)data16,HEX);
+
+		print_hex_func(mac.src_addr[7]);
+		print_hex_func(mac.src_addr[6]);
+		print_hex_func(mac.src_addr[5]);
+		print_hex_func(mac.src_addr[4]);
+		print_hex_func(mac.src_addr[3]);
+		print_hex_func(mac.src_addr[2]);
+		print_hex_func(mac.src_addr[1]);
+		print_hex_func(mac.src_addr[0]);
 		Serial.print("\t");
-		
-		// print RSSI
-		Serial.print_long((long)rx.rssi,DEC);
+
+		Serial.print_long(rx.rssi,DEC);
 		Serial.print("\t");
-		
-		// print payload
-		for(;index<rx_len;index++)
-		{
-			Serial.print_long(rx_data[index],HEX);
+
+		for(i=0;i<mac.payload_len;i++) {
+			print_hex_func(mac.payload[i]);
 			Serial.print(" ");
 		}
-		
 		// print ln
 		Serial.println("");
 		digitalWrite(BLUE_LED, HIGH);
+
 	}
-	
 	
 	return;
 }
+	
 
