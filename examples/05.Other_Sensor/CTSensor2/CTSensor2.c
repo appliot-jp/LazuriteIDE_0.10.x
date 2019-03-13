@@ -1,6 +1,6 @@
-#include "CT_Sensor_vDet2_ide.h"		// Additional Header
+#include "CTSensor2_ide.h"		// Additional Header
 
-/* FILE NAME: CT_Sensor_vDet2.c
+/* FILE NAME: CTSensor2.c
  * The MIT License (MIT)
  *
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
@@ -36,6 +36,7 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #pragma SEGCONST
 
 //#define DEBUG	// uncomment, if using debug message
+#define VERSION					( 5 )
 
 #define CHB						( 2 )
 #define MEAS 					( 3 )
@@ -120,8 +121,8 @@ SENSOR_STATE (*_funcs[4])(void) = {
 
 OTA_PARAM ota_param = {
 	0,						// hw type
-	0,						// version
-	"CT_Sensor_vDet2",		// must match with file name
+	VERSION,				// version
+	"CTSensor2",			// must match with file name
 	SUBGHZ_CH,
 	0xffff,
 	BAUD,
@@ -255,7 +256,7 @@ static bool gw_search(void)
 	Print.init(d.tx_str,50);
 	Print.p("factory-iot,");
 	Print.p(ota_param.name);
-	Print.p(",");
+	Print.p("_");
 	Print.l((long)ota_param.ver,DEC);
 
 	return activate_update(&d);
@@ -581,7 +582,7 @@ static void fw_update(void)
 
 void setup() {
 	// put your setup code here, to run once:
-	uint16_t addr16;
+	uint8_t addr[8], i;
 
 	digitalWrite(ORANGE_LED,HIGH);
 	pinMode(ORANGE_LED,OUTPUT);
@@ -590,18 +591,14 @@ void setup() {
 
 	Serial.begin(115200);
 	SubGHz.init();
-	addr16 = SubGHz.getMyAddress();
+	SubGHz.getMyAddr64(addr);
 	delay(1000);
-	if (addr16 >= 0x1000) {
-		Serial.print("0x");
-	} else if (addr16 >= 0x0100) {
-		Serial.print("0x0");
-	} else if (addr16 >= 0x0010) {
-		Serial.print("0x00");
-	} else {
-		Serial.print("0x000");
+	Serial.print("addr,");
+	for (i=0;i<8;i++) {
+		if (addr[i] < 0x10) Serial.print("0");
+		Serial.print_long((long)(addr[i]),HEX);
 	}
-	Serial.println_long((long)addr16,HEX);
+	Serial.println("");
 	delay(1000);
 #ifndef DEBUG
 	Serial.end();
