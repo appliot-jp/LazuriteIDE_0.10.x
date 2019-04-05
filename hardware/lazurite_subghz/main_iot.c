@@ -1,5 +1,5 @@
 
-/* FILE NAME: CT_Sensor_vDet2.c
+/* FILE NAME: main_iot.c
  * The MIT License (MIT)
  *
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
@@ -37,7 +37,7 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 };
 #pragma SEGCONST
 
-#define DEBUG	// uncomment, if using debug message
+//#define DEBUG	// uncomment, if using debug message
 
 #define ORANGE_LED				( 25 )
 #define BLUE_LED				( 26 )
