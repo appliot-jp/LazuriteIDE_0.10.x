@@ -57,5 +57,9 @@ extern void loop(void);					// Arduino loop function
 	#include "ota.h"
 #endif
 
+#ifdef IOT
+	#include "iot.h"
+#endif
+
 #endif /* _LAZURITE_H_ */
 

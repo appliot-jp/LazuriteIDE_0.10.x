@@ -322,17 +322,18 @@ void _hardware_serial2_print_double(double data, UCHAR digit)
 void _hardware_serial_print(char* data)
 {
 	int n = 0;
-
-	while(data[n] != NULL)
-	{
-		if(uart_tx_write(data[n]) == 1)
+	if(data != NULL) {
+		while(data[n] != NULL)
 		{
-			n++;
-		}
-		else
-		{
-			wdt_clear();
-			lp_setHaltMode();
+			if(uart_tx_write(data[n]) == 1)
+			{
+				n++;
+			}
+			else
+			{
+				wdt_clear();
+				lp_setHaltMode();
+			}
 		}
 	}
 	return;
@@ -342,16 +343,18 @@ void _hardware_serial2_print(char* data)
 {
 	int n = 0;
 
-	while(data[n] != NULL)
-	{
-		if(uartf_tx_write(data[n]) == 1)
+	if(data != NULL) {
+		while(data[n] != NULL)
 		{
-			n++;
-		}
-		else
-		{
-			wdt_clear();
-			lp_setHaltMode();
+			if(uartf_tx_write(data[n]) == 1)
+			{
+				n++;
+			}
+			else
+			{
+				wdt_clear();
+				lp_setHaltMode();
+			}
 		}
 	}
 	return;

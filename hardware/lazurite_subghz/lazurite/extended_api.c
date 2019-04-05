@@ -93,7 +93,7 @@ void waitPinCondition(unsigned char pin, int condition)
 	
 	while(flag_waitPinCondition == FALSE)
 	{
-		lp_setDeepHaltMode();
+		lp_setHaltHMode();
 	}
 	irq_ext5_clearIRQ();
 	irq_sethandler(IRQ_NO_EXI5INT,_intNullHdr);

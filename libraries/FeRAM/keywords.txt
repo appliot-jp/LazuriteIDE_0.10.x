@@ -1,0 +1,12 @@
+#######################################
+# Syntax Coloring Map (default)
+#######################################
+
+FeRAM			KEYWORD3
+begin			KEYWORD2
+write			KEYWORD2
+read			KEYWORD2
+burstWrite		KEYWORD2
+burstRead		KEYWORD2
+statusRegWrite	KEYWORD2
+statusRegRead	KEYWORD2

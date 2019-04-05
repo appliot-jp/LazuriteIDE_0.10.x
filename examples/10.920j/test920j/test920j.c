@@ -1,5 +1,5 @@
 #include "test920j_ide.h"		// Additional Header
-/* FILE NAME: test920j_ide.c
+/* FILE NAME: test920j.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2017  Lapis Semiconductor Co.,Ltd.
@@ -1803,6 +1803,7 @@ void setup() {
   Serial.println("Welcome"); 
   pinMode(TXLED,OUTPUT);
   pinMode(RXLED,OUTPUT);
+  SubGHz.init();
 }
 
 void loop() {

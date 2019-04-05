@@ -81,7 +81,7 @@ void init(void)
 {
     /* --- MIE Disable --- */
     __DI();
-	
+	write_reg8(BLKCON01,0x0373);
 	/* Set oscillation mode */
 	clk_setLsclk( CLK_XTM_CRYSTAL );    /* crystal/ceramic oscillation */
 	/* Wait stables crystal oscillation */
@@ -320,7 +320,7 @@ void sleep_long(unsigned long ms)
 		}
 		else
 		{
-			lp_setDeepHaltMode();
+			lp_setHaltHMode();
 			wdt_clear();
 		}
 	}
@@ -424,7 +424,7 @@ void wait_event(bool *flag)
 		}
 		else
 		{
-			lp_setDeepHaltMode();
+			lp_setHaltHMode();
 			wdt_clear();
 		}
 	}
@@ -522,7 +522,7 @@ uint32_t wait_event_timeout(uint8_t *flag,uint32_t time)
 		}
 		else
 		{
-			lp_setDeepHaltMode();
+			lp_setHaltHMode();
 			wdt_clear();
 		}
 	}
