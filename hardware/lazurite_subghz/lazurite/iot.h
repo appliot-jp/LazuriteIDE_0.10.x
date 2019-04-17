@@ -36,14 +36,16 @@
 //   extern function definitions
 //********************************************************************************
 
-#define INT8_VAL	( 1 )
-#define UINT8_VAL	( 2 )
-#define INT16_VAL	( 3 )
-#define UINT16_VAL	( 4 )
-#define INT32_VAL	( 5 )
-#define UINT32_VAL	( 6 )
-#define FLOAT_VAL	( 7 )
-#define DOUBLE_VAL	( 8 )
+#define INT8_VAL		( 1 )
+#define UINT8_VAL		( 2 )
+#define INT16_VAL		( 3 )
+#define UINT16_VAL		( 4 )
+#define INT32_VAL		( 5 )
+#define UINT32_VAL		( 6 )
+#define FLOAT_VAL		( 7 )
+#define DOUBLE_VAL		( 8 )
+#define STATE_TO_OFF	( 0 )
+#define STATE_TO_ON		( 1 )
 
 typedef struct {
 	union  {
@@ -66,5 +68,6 @@ extern void sensor_meas(SENSOR_VAL *sensor_val);
 extern bool sensor_activate(void);
 extern void sensor_deactivate(void);
 extern bool waitEventFlag;
-#endif //
+extern void sensor_set_state_change_callback(void (*f)(uint8_t state));
 
+#endif // _IOT_H_

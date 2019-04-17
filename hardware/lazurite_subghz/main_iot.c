@@ -70,7 +70,7 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define MAX_BUF_SIZE			( 250 )
 
 bool waitEventFlag = false;
-
+void (*sensor_state_change_callback)(uint8_t state);
 static uint8_t mode;
 
 static double thrs_on_val=0.03;
@@ -371,8 +371,12 @@ static SENSOR_STATE func_on_unstable(void)
 	return state;
 }
 
+void sensor_set_state_change_callback(void (*f)(uint8_t state)) {
+	sensor_state_change_callback = f;
+}
+
 static uint32_t sensor_main(void) {
-	uint8_t tx_buf[50];
+	uint8_t tx_buf[50], on_off_state;
 	SUBGHZ_MSG msg;
 	EACK_DATA *eack_data;
 	uint8_t *p;
@@ -380,6 +384,7 @@ static uint32_t sensor_main(void) {
 	uint32_t tmp;
 	SENSOR_VAL sensor_val;
 	
+	sensor_val.reason = 0;
 	sensor_meas(&sensor_val);				// start measuring
 	switch(sensor_val.type) {
 	case INT8_VAL:
@@ -429,8 +434,10 @@ static uint32_t sensor_main(void) {
 		Print.init(tx_buf,sizeof(tx_buf));
 		if ((state_func == SENSOR_STATE_ON_STABLE) || (state_func == SENSOR_STATE_ON_UNSTABLE)) {
 			Print.p("on,");
+			on_off_state = STATE_TO_ON;
 		} else {
 			Print.p("off,");
+			on_off_state = STATE_TO_OFF;
 		}
 		switch(sensor_val.type) {
 		case INT8_VAL:
@@ -460,6 +467,11 @@ static uint32_t sensor_main(void) {
 		}
 		Print.p(",");
 		Print.p(vls_val[level]);
+		if ((on_off_state != STATE_TO_OFF) && (sensor_val.reason != 0)) {
+			Print.p(",");
+			Print.l((long)sensor_val.reason,DEC);
+			sensor_val.reason = 0;				// clear stop reason
+		}
 #ifdef DEBUG
 		Serial.println(tx_buf);
 #endif
@@ -551,6 +563,8 @@ static uint32_t sensor_main(void) {
 				SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
 				SubGHz.send(gateway_panid,gateway_addr,tx_buf,Print.len(),NULL);
 				SubGHz.close();
+			} else {
+				if (sensor_state_change_callback != NULL) sensor_state_change_callback(on_off_state);
 			}
 		} else {
 			mode = GW_SEARCH_MODE;
@@ -665,6 +679,7 @@ void setup() {
 	}
 	Serial.println_long((long)addr16,HEX);
 	sleep(1000);
+	sensor_state_change_callback = NULL;
 	pathname = sensor_init();
 	filename = strtok(pathname,"\\");
 	do {
