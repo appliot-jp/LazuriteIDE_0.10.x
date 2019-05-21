@@ -1,6 +1,6 @@
-#include "CTSensor2_6_ide.h"		// Additional Header
+#include "CTSensor2_7_ide.h"		// Additional Header
 
-/* FILE NAME: CTSensor2_6.c
+/* FILE NAME: CTSensor2_7.c
  * The MIT License (MIT)
  *
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
