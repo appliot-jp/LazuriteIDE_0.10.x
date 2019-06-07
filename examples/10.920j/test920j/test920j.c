@@ -103,6 +103,9 @@ static bool sgRxAuto = false;
 #define CMD_FLASH_RD				"frd"
 #define CMD_FLASH_ERASE				"fer"
 
+
+#define CMD_MILLIS					"millis"
+
 // *************************** TEST PROGRAM ********************************
 #define CMD_DEEP_HALT "dh"
 #define CMD_EEPROM_WPB "ewp"
@@ -1720,6 +1723,11 @@ error:
 }
 // *************************** TEST PROGRAM ********************************
 
+void send_millis(uint8_t** pparam){
+	Serial.print("millis,");
+	Serial.println_long(millis(),DEC);
+}
+
 void command_decoder(uint8_t* pcmd,uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 {
 	int i=0;
@@ -1777,6 +1785,7 @@ void command_decoder(uint8_t* pcmd,uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	else if(strncmp(pparam[0],CMD_RF_WRITE,16)==0) ml7396_write(pparam);
 	else if(strncmp(pparam[0],CMD_RF_READ,16)==0) ml7396_read(pparam);
 // *************************** TEST PROGRAM ********************************
+	else if(strncmp(pparam[0],CMD_MILLIS,16)==0) send_millis(pparam);
 }
 static char* param[16];
 
