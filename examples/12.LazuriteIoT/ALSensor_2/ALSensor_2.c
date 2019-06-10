@@ -1,6 +1,6 @@
-#include "ALSensor_1_ide.h"		// Additional Header
+#include "ALSensor_2_ide.h"		// Additional Header
 
-/* FILE NAME: ALSensor_1.c
+/* FILE NAME: ALSensor_2.c
  * The MIT License (MIT)
  *
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
@@ -34,6 +34,7 @@ char* sensor_init() {
 	static char filename[] = __FILE__;
 	Wire.begin();
 	rpr0521rs.init();
+	return filename;
 }
 
 /*
