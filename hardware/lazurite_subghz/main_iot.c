@@ -63,7 +63,7 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define WAIT_RX_TIMEOUT			( 2 * 1000ul )
 #define TX_RETRY_INTERVAL		( 10 * 1000ul )
 #define GW_SEARCH_INTERVAL		( 1800 * 1000ul )
-#define GW_SEARCH_RETRT_INTERVAL ( 20 * 1000ul )
+#define GW_SEARCH_RETRY_INTERVAL ( 20 * 1000ul )
 #define GW_SEARCH_RETRY_TIMES	( 15 )
 #define PARAM_UPD_RETRY_TIMES	( 4 )
 #define SEND_DATA_RETRY_TIMES	( 1 )
@@ -269,7 +269,7 @@ static bool activate_update(TRX_RETRY *p)
 		SubGHz.rxDisable();
 		if (setting_done) break;
 		if (i++ < p->retry) {
-			sleep(GW_SEARCH_RETRT_INTERVAL);
+			sleep(GW_SEARCH_RETRY_INTERVAL);
 		} else {
 #ifdef DEBUG
 			Serial.println("Retry count exceeds the specified value.");
