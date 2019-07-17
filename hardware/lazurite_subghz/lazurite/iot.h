@@ -64,7 +64,7 @@ typedef struct {
 } SENSOR_VAL;
 
 extern char* sensor_init(void);
-extern void sensor_meas(SENSOR_VAL *sensor_val);
+extern void sensor_meas(int index, SENSOR_VAL *sensor_val);
 extern bool sensor_activate(void);
 extern void sensor_deactivate(void);
 extern bool waitEventFlag;

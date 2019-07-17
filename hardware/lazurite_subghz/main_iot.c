@@ -22,7 +22,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
-*/
+ */
 
 /* --------------------------------------------------------------------------------
  * Please note that this sample program needs OTA library and the below AES key
@@ -68,17 +68,14 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define PARAM_UPD_RETRY_TIMES	( 4 )
 #define SEND_DATA_RETRY_TIMES	( 1 )
 #define MAX_BUF_SIZE			( 250 )
+#define MAX_SENSOR_NUM				( 4 )
+#define INVALID_INDEX				( -1 )
+#define INVALID_REASON				( -1 )
+#define SENSOR_TYPE_SINGLE		( 1 )
+#define SENSOR_TYPE_MULTI		( 2 )
 
 bool waitEventFlag = false;
-void (*sensor_state_change_callback)(uint8_t state);
-static uint8_t mode;
-
-static double thrs_on_val=0.03;
-static double thrs_off_val=0.03;
-static uint32_t thrs_on_interval=0;
-static uint32_t thrs_off_interval=15*1000ul;
-static uint32_t thrs_on_start=0;
-static uint32_t thrs_off_start=0;
+static uint8_t mode,type;
 static uint32_t sleep_interval=DEFAULT_SLEEP_INTERVAL;
 static uint32_t prev_send_time=0;
 static uint32_t current_time;
@@ -89,8 +86,6 @@ static bool send_data_flag=false;
 static bool forcible_flag=false;
 static uint8_t rx_buf[MAX_BUF_SIZE];
 static uint8_t level;
-
-static double sensor_comp_val;
 
 __packed typedef struct {
 	uint8_t eack_flag;
@@ -111,19 +106,29 @@ typedef enum {
 	SENSOR_STATE_ON_UNSTABLE
 } SENSOR_STATE;
 
-SENSOR_STATE state_func;
+typedef struct {
+	int index;
+	double sensor_comp_val;
+	SENSOR_VAL sensor_val;
+	double thrs_on_val;
+	double thrs_off_val;
+	uint32_t thrs_on_interval;
+	uint32_t thrs_off_interval;
+	uint32_t thrs_on_start;
+	uint32_t thrs_off_start;
+	int reason;
+	SENSOR_STATE next_state;
+} SensorState;
 
-static SENSOR_STATE func_off_stable(void);
-static SENSOR_STATE func_off_unstable(void);
-static SENSOR_STATE func_on_stable(void);
-static SENSOR_STATE func_on_unstable(void);
+SensorState Sensor[MAX_SENSOR_NUM];
 
-SENSOR_STATE (*_funcs[4])(void) = {
-	func_off_stable,
-	func_off_unstable,
-	func_on_stable,
-	func_on_unstable
-};
+static void SensorState_construct(SensorState* p_this);
+static void SensorState_initState(SensorState* p_this);
+static void SensorState_offStable(SensorState* p_this);
+static void SensorState_offUnstable(SensorState* p_this);
+static void SensorState_onStable(SensorState* p_this);
+static void SensorState_onUnstable(SensorState* p_this);
+static void SensorState_validateNextState(SensorState* p_this);
 
 OTA_PARAM ota_param = {
 	0,						// hw type
@@ -136,7 +141,7 @@ OTA_PARAM ota_param = {
 	0xffff
 };
 
-const char vls_val[][8] ={
+const char vls_val[][8] = {
 	"0",		//	"invalid",
 	"0",		//	"invalid",
 	"1.8",		//	"< 1.898V"
@@ -154,42 +159,49 @@ const char vls_val[][8] ={
 	"4.4",		//	"4.226 ~ 4.667V",
 	"4.7"		//	"> 4.667V"
 };
+
 double getDoubleData(SENSOR_VAL *val) {
 	switch(val->type) {
-	case INT8_VAL:
-		return val->data.int8_val;
-		break;
-	case UINT8_VAL:
-		return val->data.uint8_val;
-		break;
-	case INT16_VAL:
-		return val->data.int16_val;
-		break;
-	case UINT16_VAL:
-		return val->data.uint16_val;
-		break;
-	case INT32_VAL:
-		return val->data.int32_val;
-		break;
-	case UINT32_VAL:
-		return val->data.uint32_val;
-		break;
-	case FLOAT_VAL:
-		return val->data.float_val;
-		break;
-	case DOUBLE_VAL:
-		return val->data.double_val;
-		break;
+		case INT8_VAL:
+			return val->data.int8_val;
+			break;
+		case UINT8_VAL:
+			return val->data.uint8_val;
+			break;
+		case INT16_VAL:
+			return val->data.int16_val;
+			break;
+		case UINT16_VAL:
+			return val->data.uint16_val;
+			break;
+		case INT32_VAL:
+			return val->data.int32_val;
+			break;
+		case UINT32_VAL:
+			return val->data.uint32_val;
+			break;
+		case FLOAT_VAL:
+			return val->data.float_val;
+			break;
+		case DOUBLE_VAL:
+			return val->data.double_val;
+			break;
+		default:
+			break;
 	}
 	return 0;
 }
-static int parse_payload(uint8_t *payload)
-{
-	int i;
-	uint8_t *p[10];
 
-// payload : "'activate'/'debug',(panid),(shortaddr),(id),(thrs_on_val),
-//				(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec])"
+static int parse_payload(uint8_t *payload) {
+	int i,num;
+	uint8_t *p[4+5*MAX_SENSOR_NUM+1];
+	SensorState *ssp;
+
+	// payload :
+	// "'activate' or 'debug',(panid),(shortaddr),(id),
+	//  (index),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec]),
+	//   ...
+	//  (index),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec])"
 	for (i=0;;i++) {
 		if (i == 0) {
 			p[i] = strtok(payload, ",");
@@ -198,7 +210,18 @@ static int parse_payload(uint8_t *payload)
 		}
 		if (p[i] == NULL) break;
 	}
-	if (i != 8) return -1;					// number of parameter unmatched
+	num = (i - 4) / 5;
+	if (i == 8) {
+		Serial.println("single sensor");
+		num = 1;
+		type = SENSOR_TYPE_SINGLE;
+	} else if (((i - 4) % 5 == 0) && (num <= MAX_SENSOR_NUM)) {
+		Serial.print("multi sensor: ");
+		Serial.println_long((long)num,DEC);
+		type = SENSOR_TYPE_MULTI;
+	} else {
+		return -1; // number of parameter unmatched
+	}
 	if (strncmp(p[0],"debug",5) == 0) {
 		forcible_flag = true;
 	} else {
@@ -208,10 +231,25 @@ static int parse_payload(uint8_t *payload)
 		gateway_panid = (uint16_t)strtoul(p[1],NULL,0);
 		gateway_addr = (uint16_t)strtoul(p[2],NULL,0);
 		my_short_addr = (uint16_t)strtoul(p[3],NULL,0);
-		thrs_on_val = strtod(p[4],NULL);
-		thrs_on_interval = strtoul(p[5],NULL,0) * 1000ul;
-		thrs_off_val = strtod(p[6],NULL);
-		thrs_off_interval = strtoul(p[7],NULL,0) * 1000ul;
+		if (type == SENSOR_TYPE_SINGLE) {
+			ssp = &Sensor[0];
+			ssp->index = 0;
+			ssp->thrs_on_val = strtod(p[4],NULL);
+			ssp->thrs_on_interval = strtoul(p[5],NULL,0) * 1000ul;
+			ssp->thrs_off_val = strtod(p[6],NULL);
+			ssp->thrs_off_interval = strtoul(p[7],NULL,0) * 1000ul;
+		} else if (type == SENSOR_TYPE_MULTI) {
+			for (i=0; i<num; i++) {
+				ssp = &Sensor[i];
+				ssp->index = (uint16_t)strtoul(p[4+i*5],NULL,0);
+				ssp->thrs_on_val = strtod(p[5+i*5],NULL);
+				ssp->thrs_on_interval = strtoul(p[6+i*5],NULL,0) * 1000ul;
+				ssp->thrs_off_val = strtod(p[7+i*5],NULL);
+				ssp->thrs_off_interval = strtoul(p[8+i*5],NULL,0) * 1000ul;
+			}
+		} else {
+			return -1; // undefined type
+		}
 		send_data_flag = true;		// forcibly send data, because parameter might be changed
 #ifdef DEBUG
 		Serial.println(p[0]);
@@ -221,14 +259,19 @@ static int parse_payload(uint8_t *payload)
 		Serial.println_long((long)gateway_addr,HEX);
 		Serial.print("my_short_addr: ");
 		Serial.println_long((long)my_short_addr,HEX);
-		Serial.print("thrs_on_val: ");
-		Serial.println_double(thrs_on_val,2);
-		Serial.print("thrs_on_interval: ");
-		Serial.println_long(thrs_on_interval,DEC);
-		Serial.print("thrs_off_val: ");
-		Serial.println_double(thrs_off_val,2);
-		Serial.print("thrs_off_interval: ");
-		Serial.println_long(thrs_off_interval,DEC);
+		for (i=0; i<MAX_SENSOR_NUM; i++) {
+			ssp = &Sensor[i];
+			Serial.print("index: ");
+			Serial.println_long((long)ssp->index,DEC);
+			Serial.print("thrs_on_val: ");
+			Serial.println_double(ssp->thrs_on_val,2);
+			Serial.print("thrs_on_interval: ");
+			Serial.println_long((long)ssp->thrs_on_interval,DEC);
+			Serial.print("thrs_off_val: ");
+			Serial.println_double(ssp->thrs_off_val,2);
+			Serial.print("thrs_off_interval: ");
+			Serial.println_long((long)ssp->thrs_off_interval,DEC);
+		}
 #endif
 		return 0;
 	} else {
@@ -236,8 +279,7 @@ static int parse_payload(uint8_t *payload)
 	}
 }
 
-static bool activate_update(TRX_RETRY *p)
-{
+static bool activate_update(TRX_RETRY *p) {
 	int rx_len;
 	SUBGHZ_MAC_PARAM mac;
 	bool setting_done = false;
@@ -280,8 +322,7 @@ static bool activate_update(TRX_RETRY *p)
 	return setting_done;
 }
 
-static bool gw_search(void)
-{
+static bool gw_search(void) {
 	TRX_RETRY d;
 
 	d.gateway_panid = 0xffff;
@@ -296,8 +337,7 @@ static bool gw_search(void)
 	return activate_update(&d);
 }
 
-static bool param_update(void)
-{
+static bool param_update(void) {
 	TRX_RETRY d;
 
 	d.gateway_panid = gateway_panid;
@@ -309,108 +349,133 @@ static bool param_update(void)
 	return activate_update(&d);
 }
 
-static SENSOR_STATE func_off_stable(void)
-{
-	SENSOR_STATE state = SENSOR_STATE_OFF_STABLE;
+static void SensorState_construct(SensorState* p_this) {
+	p_this->index = INVALID_INDEX;
+	p_this->thrs_on_val = 0.1;
+	p_this->thrs_off_val = 0.1;
+	p_this->thrs_on_interval = 0;
+	p_this->thrs_off_interval = 0;
+	p_this->thrs_on_start = 0;
+	p_this->thrs_off_start = 0;
+	p_this->reason = INVALID_REASON;
+	p_this->next_state = SENSOR_STATE_OFF_STABLE;
+}
 
-	if (sensor_comp_val > thrs_on_val) {
-		if (thrs_on_interval != 0) {
-			thrs_on_start = current_time;
-			state = SENSOR_STATE_OFF_UNSTABLE;
+static void SensorState_validateNextState(SensorState* p_this) {
+	switch (p_this->next_state) {
+		case SENSOR_STATE_OFF_STABLE:
+			SensorState_offStable(p_this);
+			break;
+		case SENSOR_STATE_OFF_UNSTABLE:
+			SensorState_offUnstable(p_this);
+			break;
+		case SENSOR_STATE_ON_STABLE:
+			SensorState_onStable(p_this);
+			break;
+		case SENSOR_STATE_ON_UNSTABLE:
+			SensorState_onUnstable(p_this);
+			break;
+		default:
+			break;
+	}
+}
+
+static void SensorState_offStable(SensorState* p_this) {
+	p_this->next_state = SENSOR_STATE_OFF_STABLE;
+
+	if (p_this->sensor_comp_val > p_this->thrs_on_val) {
+		if (p_this->thrs_on_interval != 0) {
+			p_this->thrs_on_start = current_time;
+			p_this->next_state = SENSOR_STATE_OFF_UNSTABLE;
 		} else {
 			send_data_flag = true;
-			state = SENSOR_STATE_ON_STABLE;
+			p_this->next_state = SENSOR_STATE_ON_STABLE;
 		}
 	}
-	return state;
 }
 
-static SENSOR_STATE func_off_unstable(void)
-{
-	SENSOR_STATE state = SENSOR_STATE_OFF_UNSTABLE;
+static void SensorState_offUnstable(SensorState* p_this) {
+	p_this->next_state = SENSOR_STATE_OFF_UNSTABLE;
 
-	if (sensor_comp_val <= thrs_on_val) {
-		state = SENSOR_STATE_OFF_STABLE;
+	if (p_this->sensor_comp_val <= p_this->thrs_on_val) {
+		p_this->next_state = SENSOR_STATE_OFF_STABLE;
 	} else {
-		if ((current_time - thrs_on_start) > thrs_on_interval) {
+		if ((current_time - p_this->thrs_on_start) > p_this->thrs_on_interval) {
 			send_data_flag = true;
-			state = SENSOR_STATE_ON_STABLE;
+			p_this->next_state = SENSOR_STATE_ON_STABLE;
 		}
 	}
-	return state;
 }
 
-static SENSOR_STATE func_on_stable(void)
-{
-	SENSOR_STATE state = SENSOR_STATE_ON_STABLE;
+static void SensorState_onStable(SensorState* p_this) {
+	p_this->next_state = SENSOR_STATE_ON_STABLE;
 
-	if (sensor_comp_val < thrs_off_val) {
-		if (thrs_off_interval != 0) {
-			thrs_off_start = current_time;
-			state = SENSOR_STATE_ON_UNSTABLE;
+	if (p_this->sensor_comp_val < p_this->thrs_off_val) {
+		if (p_this->thrs_off_interval != 0) {
+			p_this->thrs_off_start = current_time;
+			p_this->next_state = SENSOR_STATE_ON_UNSTABLE;
 		} else {
 			send_data_flag = true;
-			state = SENSOR_STATE_OFF_STABLE;
+			p_this->next_state = SENSOR_STATE_OFF_STABLE;
 		}
 	}
-	return state;
 }
 
-static SENSOR_STATE func_on_unstable(void)
-{
-	SENSOR_STATE state = SENSOR_STATE_ON_UNSTABLE;
+static void SensorState_onUnstable(SensorState* p_this) {
+	p_this->next_state = SENSOR_STATE_ON_UNSTABLE;
 
-	if (sensor_comp_val >= thrs_off_val) {
-		state = SENSOR_STATE_ON_STABLE;
+	if (p_this->sensor_comp_val >= p_this->thrs_off_val) {
+		p_this->next_state = SENSOR_STATE_ON_STABLE;
 	} else {
-		if ((current_time - thrs_off_start) > thrs_off_interval) {
+		if ((current_time - p_this->thrs_off_start) > p_this->thrs_off_interval) {
 			send_data_flag = true;
-			state = SENSOR_STATE_OFF_STABLE;
+			p_this->next_state = SENSOR_STATE_OFF_STABLE;
 		}
 	}
-	return state;
-}
-
-void sensor_set_state_change_callback(void (*f)(uint8_t state)) {
-	sensor_state_change_callback = f;
 }
 
 static uint32_t sensor_main(void) {
-	uint8_t tx_buf[50], on_off_state;
+	uint8_t tx_buf[200];
 	SUBGHZ_MSG msg;
 	EACK_DATA *eack_data;
 	uint8_t *p;
 	int eack_size, i, eack_error=0;
-	uint32_t tmp;
-	SENSOR_VAL sensor_val;
-	
-	sensor_val.reason = 0;
-	sensor_meas(&sensor_val);				// start measuring
-	switch(sensor_val.type) {
-	case INT8_VAL:
-		sensor_comp_val = sensor_val.data.int8_val;
-		break;
-	case UINT8_VAL:
-		sensor_comp_val = sensor_val.data.uint8_val;
-		break;
-	case INT16_VAL:
-		sensor_comp_val = sensor_val.data.int16_val;
-		break;
-	case UINT16_VAL:
-		sensor_comp_val = sensor_val.data.uint16_val;
-		break;
-	case INT32_VAL:
-		sensor_comp_val = sensor_val.data.int32_val;
-		break;
-	case UINT32_VAL:
-		sensor_comp_val = sensor_val.data.uint32_val;
-		break;
-	case FLOAT_VAL:
-		sensor_comp_val = sensor_val.data.float_val;
-		break;
-	case DOUBLE_VAL:
-		sensor_comp_val = sensor_val.data.double_val;
-		break;
+	uint32_t tmp,header=0;
+	SensorState *ssp;
+
+	for (i=0; i<MAX_SENSOR_NUM; i++) {
+		ssp = &Sensor[i];
+		if (ssp->index != INVALID_INDEX) {
+			sensor_meas(ssp->index,&ssp->sensor_val);				// start measuring
+			switch(ssp->sensor_val.type) {
+				case INT8_VAL:
+					ssp->sensor_comp_val = ssp->sensor_val.data.int8_val;
+					break;
+				case UINT8_VAL:
+					ssp->sensor_comp_val = ssp->sensor_val.data.uint8_val;
+					break;
+				case INT16_VAL:
+					ssp->sensor_comp_val = ssp->sensor_val.data.int16_val;
+					break;
+				case UINT16_VAL:
+					ssp->sensor_comp_val = ssp->sensor_val.data.uint16_val;
+					break;
+				case INT32_VAL:
+					ssp->sensor_comp_val = ssp->sensor_val.data.int32_val;
+					break;
+				case UINT32_VAL:
+					ssp->sensor_comp_val = ssp->sensor_val.data.uint32_val;
+					break;
+				case FLOAT_VAL:
+					ssp->sensor_comp_val = ssp->sensor_val.data.float_val;
+					break;
+				case DOUBLE_VAL:
+					ssp->sensor_comp_val = ssp->sensor_val.data.double_val;
+					break;
+				default:
+					break;
+			}
+		}
 	}
 	current_time = millis();
 	if (forcible_flag || (prev_send_time == 0) || ((current_time - prev_send_time) >= KEEP_ALIVE_INTERVAL)) {
@@ -419,58 +484,110 @@ static uint32_t sensor_main(void) {
 		if (!forcible_flag && (prev_send_time != 0)) Serial.println("keep alive");
 #endif
 	}
+	for (i=0; i<MAX_SENSOR_NUM; i++) {
+		ssp = &Sensor[i];
+		if (ssp->index != INVALID_INDEX) {
 #ifdef DEBUG
-	Serial.print("sensor_state: ");
-	Serial.print_long((long)state_func,DEC);
-	Serial.print(" -> ");
+			Serial.print("index: ");
+			Serial.print_long((long)ssp->index,DEC);
+			Serial.print(", state: ");
+			Serial.print_long((long)ssp->next_state,DEC);
+			Serial.print(" -> ");
 #endif
-	state_func = _funcs[state_func]();	// state machine
+			SensorState_validateNextState(ssp);
 #ifdef DEBUG
-	Serial.println_long((long)state_func,DEC);
+			Serial.println_long((long)ssp->next_state,DEC);
 #endif
+		}
+	}
 	if (send_data_flag) {
 		level = voltage_check(VLS_3_068);
 		send_data_flag = false;
 		Print.init(tx_buf,sizeof(tx_buf));
-		if ((state_func == SENSOR_STATE_ON_STABLE) || (state_func == SENSOR_STATE_ON_UNSTABLE)) {
-			Print.p("on,");
-			on_off_state = STATE_TO_ON;
-		} else {
-			Print.p("off,");
-			on_off_state = STATE_TO_OFF;
-		}
-		switch(sensor_val.type) {
-		case INT8_VAL:
-			Print.l(sensor_val.data.int8_val,DEC);
-			break;
-		case UINT8_VAL:
-			Print.l(sensor_val.data.uint8_val,DEC);
-			break;
-		case INT16_VAL:
-			Print.l(sensor_val.data.int16_val,DEC);
-			break;
-		case UINT16_VAL:
-			Print.l(sensor_val.data.uint16_val,DEC);
-			break;
-		case INT32_VAL:
-			Print.l(sensor_val.data.int32_val,DEC);
-			break;
-		case UINT32_VAL:
-			Print.l(sensor_val.data.uint32_val,DEC);
-			break;
-		case FLOAT_VAL:
-			Print.d(sensor_val.data.float_val,sensor_val.digit);
-			break;
-		case DOUBLE_VAL:
-			Print.d(sensor_val.data.double_val,sensor_val.digit);
-			break;
-		}
-		Print.p(",");
-		Print.p(vls_val[level]);
-		if ((on_off_state != STATE_TO_OFF) && (sensor_val.reason != 0)) {
+		if (type == SENSOR_TYPE_SINGLE) {
+			ssp = &Sensor[0];
+			if ((ssp->next_state == SENSOR_STATE_ON_STABLE) || (ssp->next_state == SENSOR_STATE_ON_UNSTABLE)) {
+				Print.p("on,");
+			} else {
+				Print.p("off,");
+			}
+			switch(ssp->sensor_val.type) {
+				case INT8_VAL:
+					Print.l((long)ssp->sensor_val.data.int8_val,DEC);
+					break;
+				case UINT8_VAL:
+					Print.l((long)ssp->sensor_val.data.uint8_val,DEC);
+					break;
+				case INT16_VAL:
+					Print.l((long)ssp->sensor_val.data.int16_val,DEC);
+					break;
+				case UINT16_VAL:
+					Print.l((long)ssp->sensor_val.data.uint16_val,DEC);
+					break;
+				case INT32_VAL:
+					Print.l((long)ssp->sensor_val.data.int32_val,DEC);
+					break;
+				case UINT32_VAL:
+					Print.l((long)ssp->sensor_val.data.uint32_val,DEC);
+					break;
+				case FLOAT_VAL:
+					Print.d((double)ssp->sensor_val.data.float_val,ssp->sensor_val.digit);
+					break;
+				case DOUBLE_VAL:
+					Print.d(ssp->sensor_val.data.double_val,ssp->sensor_val.digit);
+					break;
+				default:
+					break;
+			}
 			Print.p(",");
-			Print.l((long)sensor_val.reason,DEC);
-			sensor_val.reason = 0;				// clear stop reason
+			Print.p(vls_val[level]);
+		} else if (type == SENSOR_TYPE_MULTI) {
+			Print.p("v2,");
+			for (i=0; i<MAX_SENSOR_NUM; i++) {
+				ssp = &Sensor[i];
+				if (ssp->index != INVALID_INDEX) {
+					if (i != 0) Print.p(",");
+					Print.l((long)ssp->index,DEC);
+					Print.p(",");
+					if ((ssp->next_state == SENSOR_STATE_ON_STABLE) || (ssp->next_state == SENSOR_STATE_ON_UNSTABLE)) {
+						Print.p("on,");
+					} else {
+						Print.p("off,");
+					}
+					switch(ssp->sensor_val.type) {
+						case INT8_VAL:
+							Print.l((long)ssp->sensor_val.data.int8_val,DEC);
+							break;
+						case UINT8_VAL:
+							Print.l((long)ssp->sensor_val.data.uint8_val,DEC);
+							break;
+						case INT16_VAL:
+							Print.l((long)ssp->sensor_val.data.int16_val,DEC);
+							break;
+						case UINT16_VAL:
+							Print.l((long)ssp->sensor_val.data.uint16_val,DEC);
+							break;
+						case INT32_VAL:
+							Print.l((long)ssp->sensor_val.data.int32_val,DEC);
+							break;
+						case UINT32_VAL:
+							Print.l((long)ssp->sensor_val.data.uint32_val,DEC);
+							break;
+						case FLOAT_VAL:
+							Print.d((double)ssp->sensor_val.data.float_val,ssp->sensor_val.digit);
+							break;
+						case DOUBLE_VAL:
+							Print.d(ssp->sensor_val.data.double_val,ssp->sensor_val.digit);
+							break;
+						default:
+							break;
+					}
+					Print.p(",");
+					Print.p(vls_val[level]);
+					Print.p(",");
+					if (ssp->reason != INVALID_REASON) Print.l((long)ssp->reason,DEC);
+				}
+			}
 		}
 #ifdef DEBUG
 		Serial.println(tx_buf);
@@ -510,28 +627,28 @@ static uint32_t sensor_main(void) {
 				Serial.println("");
 #endif
 				switch (eack_data->eack_flag) {
-				case EACK_NORMAL:
-					forcible_flag = false;
-					break;
-				case EACK_FORCIBLE_FLAG:
-					forcible_flag = true;
-					break;
-				case EACK_PARAM_UPD:
-					forcible_flag = false;
-					mode = PARAM_UPD_MODE;
-					break;
-				case EACK_GW_SEARCH:
-					forcible_flag = false;
-					mode = GW_SEARCH_MODE;
-					break;
-				case EACK_FW_UPD:
-					forcible_flag = false;
-					mode = FW_UPD_MODE;
-					break;
-				default:
-					eack_error |= EACK_ERR_FLAG;
-					forcible_flag = false;
-					break;
+					case EACK_NORMAL:
+						forcible_flag = false;
+						break;
+					case EACK_FORCIBLE_FLAG:
+						forcible_flag = true;
+						break;
+					case EACK_PARAM_UPD:
+						forcible_flag = false;
+						mode = PARAM_UPD_MODE;
+						break;
+					case EACK_GW_SEARCH:
+						forcible_flag = false;
+						mode = GW_SEARCH_MODE;
+						break;
+					case EACK_FW_UPD:
+						forcible_flag = false;
+						mode = FW_UPD_MODE;
+						break;
+					default:
+						eack_error |= EACK_ERR_FLAG;
+						forcible_flag = false;
+						break;
 				}
 				tmp = eack_data->sleep_interval_sec * 1000ul;
 				if (tmp > MAX_INTERVAL) {
@@ -563,14 +680,11 @@ static uint32_t sensor_main(void) {
 				SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
 				SubGHz.send(gateway_panid,gateway_addr,tx_buf,Print.len(),NULL);
 				SubGHz.close();
-			} else {
-				if (sensor_state_change_callback != NULL) sensor_state_change_callback(on_off_state);
 			}
 		} else {
 			mode = GW_SEARCH_MODE;
 		}
 	}
-
 #ifdef DEBUG
 	Serial.print("go to sleep: ");
 	Serial.println_long(sleep_interval,DEC);
@@ -578,22 +692,20 @@ static uint32_t sensor_main(void) {
 	return sleep_interval;
 }
 
-static SENSOR_STATE func_init_state(void)
-{
+static void SensorState_initState(SensorState* p_this) {
 	SENSOR_VAL sensor_val;
-	sensor_meas(&sensor_val);
-	sensor_comp_val = getDoubleData(&sensor_val);
-	thrs_on_start = 0;
-	thrs_off_start = 0;
-	if (sensor_comp_val >= thrs_off_val) {
-		return SENSOR_STATE_ON_STABLE;
+	sensor_meas(p_this->index,&sensor_val);
+	p_this->sensor_comp_val = getDoubleData(&sensor_val);
+	p_this->thrs_on_start = 0;
+	p_this->thrs_off_start = 0;
+	if (p_this->sensor_comp_val >= p_this->thrs_off_val) {
+		p_this->next_state = SENSOR_STATE_ON_STABLE;
 	} else {
-		return SENSOR_STATE_OFF_STABLE;
+		p_this->next_state = SENSOR_STATE_OFF_STABLE;
 	}
 }
 
-static void fw_update(void)
-{
+static void fw_update(void) {
 	int rx_len;
 	uint16_t src_addr;
 	uint8_t hw_type;
@@ -629,7 +741,7 @@ static void fw_update(void)
 						s = strtok(NULL,",");	// name
 						hw_type = (uint8_t)strtol(d,NULL,0);
 						if ((OTA.getHwType() == hw_type) && \
-							(strncmp(s,ota_param.name,OTA_PRGM_NAME_SIZE) == 0)) {
+								(strncmp(s,ota_param.name,OTA_PRGM_NAME_SIZE) == 0)) {
 							d = strtok(NULL,",");
 							ota_param.hw_type = hw_type;
 							ota_param.ver = (uint8_t)strtol(d,NULL,0);
@@ -658,7 +770,8 @@ void setup() {
 	char* pathname;
 	volatile char* tmp;
 	volatile char* cpVersion;
-	
+	int i;
+
 	digitalWrite(ORANGE_LED,HIGH);
 	pinMode(ORANGE_LED,OUTPUT);
 	pinMode(BLUE_LED,OUTPUT);
@@ -679,7 +792,6 @@ void setup() {
 	}
 	Serial.println_long((long)addr16,HEX);
 	sleep(1000);
-	sensor_state_change_callback = NULL;
 	pathname = sensor_init();
 	filename = strtok(pathname,"\\");
 	do {
@@ -710,72 +822,79 @@ void setup() {
 #ifndef DEBUG
 	Serial.end();
 #endif
+	for (i=0; i<MAX_SENSOR_NUM; i++) SensorState_construct(&Sensor[i]);
 }
 
 void loop() {
-	uint32_t sleep_time=0;
 	// put your main code here, to run repeatedly:
+	uint32_t sleep_time=0;
+	int i;
+	SensorState *ssp;
+
 	switch (mode) {
-	case GW_SEARCH_MODE:			// search gateway
+		case GW_SEARCH_MODE:			// search gateway
 #ifdef DEBUG
-		Serial.println("GW SEARCH MODE");
+			Serial.println("GW SEARCH MODE");
 #endif
-		if (gw_search()) {			// found gateway successfully
-			if (my_short_addr != 0xffff) SubGHz.setMyAddress(my_short_addr);
-			if(sensor_activate() == true) {
-				sleep_time = sleep_interval;
+			if (gw_search()) {			// found gateway successfully
+				if (my_short_addr != 0xffff) SubGHz.setMyAddress(my_short_addr);
+				if(sensor_activate() == true) {
+					sleep_time = sleep_interval;
+				} else {
+					sleep_time = 0;
+				}
+				mode = INIT_MODE;
 			} else {
-				sleep_time = 0;
+				sleep_time = GW_SEARCH_INTERVAL;
 			}
-			mode = INIT_MODE;
-		} else {
-			sleep_time = GW_SEARCH_INTERVAL;
-		}
-		break;
-	case INIT_MODE:			// search gateway
-		state_func = func_init_state();
-		sleep_time = sleep_interval;
-		mode = NORMAL_MODE;
-		break;
-	case NORMAL_MODE:
+			break;
+		case INIT_MODE:			// search gateway
+			for (i=0; i<MAX_SENSOR_NUM; i++) {
+				ssp = &Sensor[i];
+				if (ssp->index != INVALID_INDEX) SensorState_initState(ssp);
+			}
+			sleep_time = sleep_interval;
+			mode = NORMAL_MODE;
+			break;
+		case NORMAL_MODE:
 #ifdef DEBUG
-		Serial.println("NORMAL MODE");
+			Serial.println("NORMAL MODE");
 #endif
-		sleep_time = sensor_main();
-		if(mode != NORMAL_MODE) {
-			sensor_deactivate();
+			sleep_time = sensor_main();
+			if(mode != NORMAL_MODE) {
+				sensor_deactivate();
+				sleep_time = DEFAULT_SLEEP_INTERVAL;
+			}
+			break;
+		case PARAM_UPD_MODE:			// update paramter
+#ifdef DEBUG
+			Serial.println("PARAM UPDATE MODE");
+#endif
+			if (param_update()) {
+				if (my_short_addr != 0xffff) SubGHz.setMyAddress(my_short_addr);
+				if(sensor_activate() == true) {
+					sleep_time = sleep_interval;
+				} else {
+					sleep_time = 0;
+				}
+				mode = INIT_MODE;
+			} else {
+				mode = GW_SEARCH_MODE;
+				sensor_deactivate();
+				sleep_time = GW_SEARCH_INTERVAL;
+			}
+			break;
+		case FW_UPD_MODE:
+#ifdef DEBUG
+			Serial.println("FW UPDATE MODE");
+#endif
+			fw_update();
+			mode = GW_SEARCH_MODE;			// return to normal mode, because fw update failed
+			sleep_interval = DEFAULT_SLEEP_INTERVAL;
 			sleep_time = DEFAULT_SLEEP_INTERVAL;
-		}
-		break;
-	case PARAM_UPD_MODE:			// update paramter
-#ifdef DEBUG
-		Serial.println("PARAM UPDATE MODE");
-#endif
-		if (param_update()) {
-			if (my_short_addr != 0xffff) SubGHz.setMyAddress(my_short_addr);
-			if(sensor_activate() == true) {
-				sleep_time = sleep_interval;
-			} else {
-				sleep_time = 0;
-			}
-			mode = INIT_MODE;
-		} else {
-			mode = GW_SEARCH_MODE;
-			sensor_deactivate();
-			sleep_time = GW_SEARCH_INTERVAL;
-		}
-		break;
-	case FW_UPD_MODE:
-#ifdef DEBUG
-		Serial.println("FW UPDATE MODE");
-#endif
-		fw_update();
-		mode = GW_SEARCH_MODE;			// return to normal mode, because fw update failed
-		sleep_interval = DEFAULT_SLEEP_INTERVAL;
-		sleep_time = DEFAULT_SLEEP_INTERVAL;
-		break;
-	default:
-		break;
+			break;
+		default:
+			break;
 	}
 	if(sleep_time > 0) {
 		wait_event_timeout(&waitEventFlag,sleep_time);
