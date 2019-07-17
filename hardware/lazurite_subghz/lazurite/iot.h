@@ -44,8 +44,9 @@
 #define UINT32_VAL		( 6 )
 #define FLOAT_VAL		( 7 )
 #define DOUBLE_VAL		( 8 )
-#define STATE_TO_OFF	( 0 )
-#define STATE_TO_ON		( 1 )
+#define MAX_SENSOR_NUM				( 4 )
+#define INVALID_INDEX				( -1 )
+#define INVALID_REASON				( -1 )
 
 typedef struct {
 	union  {
@@ -63,8 +64,29 @@ typedef struct {
 	uint16_t reason;
 } SENSOR_VAL;
 
+typedef enum {
+	SENSOR_STATE_OFF_STABLE = 0,
+	SENSOR_STATE_OFF_UNSTABLE,
+	SENSOR_STATE_ON_STABLE,
+	SENSOR_STATE_ON_UNSTABLE
+} SENSOR_STATE;
+
+typedef struct {
+	int index;
+	double sensor_comp_val;
+	SENSOR_VAL sensor_val;
+	double thrs_on_val;
+	double thrs_off_val;
+	uint32_t thrs_on_interval;
+	uint32_t thrs_off_interval;
+	uint32_t thrs_on_start;
+	uint32_t thrs_off_start;
+	int reason;
+	SENSOR_STATE next_state;
+} SensorState;
+
 extern char* sensor_init(void);
-extern void sensor_meas(int index, SENSOR_VAL *sensor_val);
+extern void sensor_meas(SensorState s[]);
 extern bool sensor_activate(void);
 extern void sensor_deactivate(void);
 extern bool waitEventFlag;

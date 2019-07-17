@@ -68,9 +68,6 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define PARAM_UPD_RETRY_TIMES	( 4 )
 #define SEND_DATA_RETRY_TIMES	( 1 )
 #define MAX_BUF_SIZE			( 250 )
-#define MAX_SENSOR_NUM				( 4 )
-#define INVALID_INDEX				( -1 )
-#define INVALID_REASON				( -1 )
 #define SENSOR_TYPE_SINGLE		( 1 )
 #define SENSOR_TYPE_MULTI		( 2 )
 
@@ -99,31 +96,10 @@ typedef struct {
 	uint8_t		retry;
 } TRX_RETRY;
 
-typedef enum {
-	SENSOR_STATE_OFF_STABLE = 0,
-	SENSOR_STATE_OFF_UNSTABLE,
-	SENSOR_STATE_ON_STABLE,
-	SENSOR_STATE_ON_UNSTABLE
-} SENSOR_STATE;
-
-typedef struct {
-	int index;
-	double sensor_comp_val;
-	SENSOR_VAL sensor_val;
-	double thrs_on_val;
-	double thrs_off_val;
-	uint32_t thrs_on_interval;
-	uint32_t thrs_off_interval;
-	uint32_t thrs_on_start;
-	uint32_t thrs_off_start;
-	int reason;
-	SENSOR_STATE next_state;
-} SensorState;
-
 SensorState Sensor[MAX_SENSOR_NUM];
 
-static void SensorState_construct(SensorState* p_this);
-static void SensorState_initState(SensorState* p_this);
+static void SensorState_construct(SensorState s[]);
+static void SensorState_initState(SensorState s[]);
 static void SensorState_offStable(SensorState* p_this);
 static void SensorState_offUnstable(SensorState* p_this);
 static void SensorState_onStable(SensorState* p_this);
@@ -349,16 +325,22 @@ static bool param_update(void) {
 	return activate_update(&d);
 }
 
-static void SensorState_construct(SensorState* p_this) {
-	p_this->index = INVALID_INDEX;
-	p_this->thrs_on_val = 0.1;
-	p_this->thrs_off_val = 0.1;
-	p_this->thrs_on_interval = 0;
-	p_this->thrs_off_interval = 0;
-	p_this->thrs_on_start = 0;
-	p_this->thrs_off_start = 0;
-	p_this->reason = INVALID_REASON;
-	p_this->next_state = SENSOR_STATE_OFF_STABLE;
+static void SensorState_construct(SensorState s[]) {
+	int i;
+	SensorState *ssp;
+
+	for (i=0; i<MAX_SENSOR_NUM; i++) {
+		ssp = &s[i];
+		ssp->index = INVALID_INDEX;
+		ssp->thrs_on_val = 0.1;
+		ssp->thrs_off_val = 0.1;
+		ssp->thrs_on_interval = 0;
+		ssp->thrs_off_interval = 0;
+		ssp->thrs_on_start = 0;
+		ssp->thrs_off_start = 0;
+		ssp->reason = INVALID_REASON;
+		ssp->next_state = SENSOR_STATE_OFF_STABLE;
+	}
 }
 
 static void SensorState_validateNextState(SensorState* p_this) {
@@ -443,10 +425,10 @@ static uint32_t sensor_main(void) {
 	uint32_t tmp,header=0;
 	SensorState *ssp;
 
+	sensor_meas(Sensor);				// start measuring
 	for (i=0; i<MAX_SENSOR_NUM; i++) {
 		ssp = &Sensor[i];
 		if (ssp->index != INVALID_INDEX) {
-			sensor_meas(ssp->index,&ssp->sensor_val);				// start measuring
 			switch(ssp->sensor_val.type) {
 				case INT8_VAL:
 					ssp->sensor_comp_val = ssp->sensor_val.data.int8_val;
@@ -692,16 +674,24 @@ static uint32_t sensor_main(void) {
 	return sleep_interval;
 }
 
-static void SensorState_initState(SensorState* p_this) {
+static void SensorState_initState(SensorState s[]) {
 	SENSOR_VAL sensor_val;
-	sensor_meas(p_this->index,&sensor_val);
-	p_this->sensor_comp_val = getDoubleData(&sensor_val);
-	p_this->thrs_on_start = 0;
-	p_this->thrs_off_start = 0;
-	if (p_this->sensor_comp_val >= p_this->thrs_off_val) {
-		p_this->next_state = SENSOR_STATE_ON_STABLE;
-	} else {
-		p_this->next_state = SENSOR_STATE_OFF_STABLE;
+	int i;
+	SensorState *ssp;
+
+	sensor_meas(s);
+	for (i=0; i<MAX_SENSOR_NUM; i++) {
+		ssp = &s[i];
+		if (ssp->index != INVALID_INDEX) {
+			ssp->sensor_comp_val = getDoubleData(&sensor_val);
+			ssp->thrs_on_start = 0;
+			ssp->thrs_off_start = 0;
+			if (ssp->sensor_comp_val >= ssp->thrs_off_val) {
+				ssp->next_state = SENSOR_STATE_ON_STABLE;
+			} else {
+				ssp->next_state = SENSOR_STATE_OFF_STABLE;
+			}
+		}
 	}
 }
 
@@ -770,7 +760,6 @@ void setup() {
 	char* pathname;
 	volatile char* tmp;
 	volatile char* cpVersion;
-	int i;
 
 	digitalWrite(ORANGE_LED,HIGH);
 	pinMode(ORANGE_LED,OUTPUT);
@@ -822,14 +811,12 @@ void setup() {
 #ifndef DEBUG
 	Serial.end();
 #endif
-	for (i=0; i<MAX_SENSOR_NUM; i++) SensorState_construct(&Sensor[i]);
+	SensorState_construct(Sensor);
 }
 
 void loop() {
 	// put your main code here, to run repeatedly:
 	uint32_t sleep_time=0;
-	int i;
-	SensorState *ssp;
 
 	switch (mode) {
 		case GW_SEARCH_MODE:			// search gateway
@@ -849,10 +836,7 @@ void loop() {
 			}
 			break;
 		case INIT_MODE:			// search gateway
-			for (i=0; i<MAX_SENSOR_NUM; i++) {
-				ssp = &Sensor[i];
-				if (ssp->index != INVALID_INDEX) SensorState_initState(ssp);
-			}
+			SensorState_initState(Sensor);
 			sleep_time = sleep_interval;
 			mode = NORMAL_MODE;
 			break;
