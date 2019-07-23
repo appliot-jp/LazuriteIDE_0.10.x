@@ -9,6 +9,7 @@ LazuriteIDEの中でML620Q504に関連するソフトウエアのソースコー
 
 Lazurite BasicでWatch Dog Timerを使用するためには、オプションでLazurite Basic(WatchDogTimer)を指定してください。
 Lazurite Sub-GHzでWatch Dog Timerを使用するためには、オプションでLazurite Sub-GHz(WatchDogTimer)を指定してください。
+Lazurite mini seriesでWatch Dog Timerを使用するためには、オプションでLazurite mini series(WatchDogTimer)を指定してください。
 
 Watch Dog Timerをクリアするためには、wdt.hをインクルードして、wdt_clear(void)関数を実行する必要があります。
 デフォルトのwatch dog timerは約8秒が設定されています。2回分(16秒間) wdt_clearが実行されないと、マイコンは自動的にリセットします。
