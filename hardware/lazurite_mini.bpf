@@ -12,6 +12,10 @@ OPTION_NAME=LAZURITE mini series
 OPTION_BUILD=hardware\\lazurite_mini\\build\\lazurite_mini.bld
 OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
 
+OPTION_NAME=LAZURITE mini series (WatchDogTimer)
+OPTION_BUILD=hardware\\lazurite_mini\\build\\lazurite_wdt.bld
+OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
+
 OPTION_NAME=LAZURITE IoT
 OPTION_BUILD=hardware\\lazurite_mini\\build\\lazurite_iot.bld
 OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
