@@ -262,8 +262,8 @@ static bool activate_update(TRX_RETRY *p) {
 	int i = 0;
 
 	while (1) {
-		SubGHz.rxEnable(NULL);
 		SubGHz.begin(SUBGHZ_CH,p->gateway_panid,BAUD,PWR);
+		SubGHz.rxEnable(NULL);
 		digitalWrite(BLUE_LED,LOW);
 		SubGHz.send(p->gateway_panid,p->gateway_addr,p->tx_str,strlen(p->tx_str),NULL);
 		digitalWrite(BLUE_LED,HIGH);
@@ -283,11 +283,11 @@ static bool activate_update(TRX_RETRY *p) {
 			}
 			if ((millis() - prev_send_time) > WAIT_RX_TIMEOUT ) break;	// timed out
 		}
-		SubGHz.close();
 		SubGHz.rxDisable();
+		SubGHz.close();
 		if (setting_done) break;
 		if (i++ < p->retry) {
-			sleep(GW_SEARCH_RETRY_INTERVAL);
+			sleep(GW_SEARCH_RETRY_INTERVAL+rand()&500);
 		} else {
 #ifdef DEBUG
 			Serial.println("Retry count exceeds the specified value.");
@@ -575,8 +575,8 @@ static uint32_t sensor_main(void) {
 		Serial.println(tx_buf);
 #endif
 		digitalWrite(BLUE_LED,LOW);
-		SubGHz.rxDisable();
 		SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
+		SubGHz.rxDisable();
 		for (i=0; i<=SEND_DATA_RETRY_TIMES; i++) {
 #ifdef DEBUG
 			if (i != 0) Serial.println("retry occured.");
@@ -658,9 +658,9 @@ static uint32_t sensor_main(void) {
 #ifdef DEBUG
 				Serial.println(tx_buf);
 #endif
-				SubGHz.rxDisable();
 				SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
 				SubGHz.send(gateway_panid,gateway_addr,tx_buf,Print.len(),NULL);
+				SubGHz.rxDisable();
 				SubGHz.close();
 			}
 		} else {
@@ -695,6 +695,18 @@ static void SensorState_initState(SensorState s[]) {
 	}
 }
 
+static bool check_aes_key(uint8_t key[])
+{
+	int i;
+	bool ret = false;
+
+	for (i=0; i<OTA_AES_KEY_SIZE; i++) {
+		if (key[i] != 0xff) ret = true;
+	}
+
+	return ret;
+}
+
 static void fw_update(void) {
 	int rx_len;
 	uint16_t src_addr;
@@ -705,16 +717,15 @@ static void fw_update(void) {
 	SUBGHZ_MSG msg;
 
 	digitalWrite(BLUE_LED,LOW);
-	SubGHz.rxDisable();
 	SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
 	msg = SubGHz.send(gateway_panid,gateway_addr,tx_str,strlen(tx_str),NULL);
 	SubGHz.close();
 	digitalWrite(BLUE_LED,HIGH);
 
 	if (msg == SUBGHZ_OK) {
-		SubGHz.setKey(ota_aes_key);
-		SubGHz.rxEnable(NULL);
+		if (check_aes_key(ota_aes_key)) SubGHz.setKey(ota_aes_key);
 		SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
+		SubGHz.rxEnable(NULL);
 		prev_send_time = millis();
 
 		while (1) {
@@ -747,8 +758,8 @@ static void fw_update(void) {
 			if ((millis() - prev_send_time) > WAIT_RX_TIMEOUT) break;
 		}
 		prev_send_time = 0;
-		SubGHz.close();
 		SubGHz.rxDisable();
+		SubGHz.close();
 	}
 	SubGHz.setKey(NULL);	// timed out
 }
@@ -781,6 +792,7 @@ void setup() {
 	}
 	Serial.println_long((long)addr16,HEX);
 	sleep(1000);
+	srand(addr16);
 	pathname = sensor_init();
 	filename = strtok(pathname,"\\");
 	do {
