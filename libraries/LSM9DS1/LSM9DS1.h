@@ -56,7 +56,7 @@
 #define LSM9DS1_ODR_M_10Hz			( 0x4 )
 #define LSM9DS1_ODR_M_20Hz			( 0x5 )
 #define LSM9DS1_ODR_M_40Hz			( 0x6 )
-#define LSM9DS1_ODR_M_80Hz			( 0x6 )
+#define LSM9DS1_ODR_M_80Hz			( 0x7 )
 // accel full-scale range
 #define LSM9DS1_XL_FS_RANGE_2G		( 0x00 )
 #define LSM9DS1_XL_FS_RANGE_4G		( 0x01 )
@@ -81,11 +81,16 @@ typedef struct {
 	void (*begin)(uint8_t odr_rate_xlg, uint8_t odr_rate_m);
 	void (*setAccRange)(uint8_t range);
 	void (*setGyroRange)(uint8_t range);
+	void (*setMagRange)(uint8_t range);
 	bool (*availableAcc)(void);
 	bool (*availableGyro)(void);
+	bool (*availableMag)(void);
 	void (*getAcc)(float *val);
 	void (*getGyro)(float *val);
+	void (*getMag)(float *val);
 	void (*powerDownAccGyro)(void);
+	void (*powerDownAccOnly)(void);
+	void (*powerDownMag)(void);
 } st_LSM9DS1_f;
 
 extern const st_LSM9DS1_f LSM9DS1;
