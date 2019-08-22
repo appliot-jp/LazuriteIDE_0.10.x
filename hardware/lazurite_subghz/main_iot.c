@@ -287,7 +287,7 @@ static bool activate_update(TRX_RETRY *p) {
 		SubGHz.close();
 		if (setting_done) break;
 		if (i++ < p->retry) {
-			sleep(GW_SEARCH_RETRY_INTERVAL+rand()&500);
+			sleep(GW_SEARCH_RETRY_INTERVAL+(rand()&500));
 		} else {
 #ifdef DEBUG
 			Serial.println("Retry count exceeds the specified value.");
@@ -695,18 +695,6 @@ static void SensorState_initState(SensorState s[]) {
 	}
 }
 
-static bool check_aes_key(uint8_t key[])
-{
-	int i;
-	bool ret = false;
-
-	for (i=0; i<OTA_AES_KEY_SIZE; i++) {
-		if (key[i] != 0xff) ret = true;
-	}
-
-	return ret;
-}
-
 static void fw_update(void) {
 	int rx_len;
 	uint16_t src_addr;
@@ -723,7 +711,7 @@ static void fw_update(void) {
 	digitalWrite(BLUE_LED,HIGH);
 
 	if (msg == SUBGHZ_OK) {
-		if (check_aes_key(ota_aes_key)) SubGHz.setKey(ota_aes_key);
+		if (OTA.checkAesKey()) SubGHz.setKey(ota_aes_key);
 		SubGHz.begin(SUBGHZ_CH,gateway_panid,BAUD,PWR);
 		SubGHz.rxEnable(NULL);
 		prev_send_time = millis();

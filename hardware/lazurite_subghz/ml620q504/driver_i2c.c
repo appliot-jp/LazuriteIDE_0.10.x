@@ -20,6 +20,7 @@
 
 #ifdef SUBGHZ_OTA
 	#pragma SEGCODE "OTA_SEGCODE"
+	#pragma SEGINIT "OTA_SEGINIT"
 	#pragma SEGNOINIT "OTA_SEGNOINIT"
 #endif
 #include <stdlib.h>

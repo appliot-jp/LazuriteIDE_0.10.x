@@ -42,6 +42,9 @@ static void (*fn_p[2])(void) = {setup, loop};
 void main( void )
 {
 	/* --- Platform Initial Setting --- */
+#ifdef SUBGHZ_OTA
+	OTA.init();
+#endif
 	init();
 #ifdef SUBGHZ_OTA
 	OTA.boot();

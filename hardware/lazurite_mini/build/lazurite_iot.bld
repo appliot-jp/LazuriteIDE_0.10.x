@@ -113,9 +113,9 @@ LNKOPT=/COMB(OTA_SEGCODE  $$lmulu8sw $$dildu8sw $$ndsubu8sw $$ndaddu8sw \
 			$$XNCODmemcmp_nn $$XNCODmemset_n $$XNCODstrcpy_nn $$XNCODstrtol_n \
 			$$XNCODxstoul_n $$XNCODstrcspn_nn $$XNCODstrspn_nn $$XNCODmemchr_n \
 			$$XNCODstrlen_n $$XNCODstrncmp_nn $$XNCODstrtok_nn $$XNCODstrncat_nn)
-LNKOPT=/CODE($$content_of_init-6H $$NCODml620504fsw-76H OTA_SEGCODE-7000H)
-LNKOPT=/DATA(OTA_SEGINIT-0D800H OTA_SEGNOINIT OTA_SETUP_LOOP)
-LNKOPT=/TABLE(OTA_SETUP_LOOPTAB-400H $$init_info OTA_SEGCONST-6400H \
+LNKOPT=/CODE($$content_of_init-6H $$NCODml620504fsw-76H OTA_SEGCODE-6D00H)
+LNKOPT=/DATA(OTA_SETUP_LOOP-0D800H OTA_SEGINIT OTA_SEGNOINIT )
+LNKOPT=/TABLE(OTA_SETUP_LOOPTAB-400H $$init_info OTA_SEGCONST-6000H \
 			$$NTABdrv_pinMode$driver_gpio $$NTABi2c_isr$driver_i2c \
 			$$NTABdrv_attachInterrupt$driver_extirq $$XNTABxstoul_n \
 			$$XFTABxctype)
