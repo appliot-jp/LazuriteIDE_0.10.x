@@ -68,8 +68,8 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define PARAM_UPD_RETRY_TIMES	( 4 )
 #define SEND_DATA_RETRY_TIMES	( 1 )
 #define MAX_BUF_SIZE			( 250 )
-#define SENSOR_TYPE_SINGLE		( 1 )
-#define SENSOR_TYPE_MULTI		( 2 )
+#define SENSOR_TYPE_V1			( 1 )
+#define SENSOR_TYPE_V2			( 2 )
 
 bool waitEventFlag = false;
 static uint8_t mode,type;
@@ -190,11 +190,11 @@ static int parse_payload(uint8_t *payload) {
 	if (i == 8) {
 		Serial.println("single sensor");
 		num = 1;
-		type = SENSOR_TYPE_SINGLE;
+		type = SENSOR_TYPE_V1;
 	} else if (((i - 4) % 5 == 0) && (num <= MAX_SENSOR_NUM)) {
 		Serial.print("multi sensor: ");
 		Serial.println_long((long)num,DEC);
-		type = SENSOR_TYPE_MULTI;
+		type = SENSOR_TYPE_V2;
 	} else {
 		return -1; // number of parameter unmatched
 	}
@@ -207,14 +207,14 @@ static int parse_payload(uint8_t *payload) {
 		gateway_panid = (uint16_t)strtoul(p[1],NULL,0);
 		gateway_addr = (uint16_t)strtoul(p[2],NULL,0);
 		my_short_addr = (uint16_t)strtoul(p[3],NULL,0);
-		if (type == SENSOR_TYPE_SINGLE) {
+		if (type == SENSOR_TYPE_V1) {
 			ssp = &Sensor[0];
 			ssp->index = 0;
 			ssp->thrs_on_val = strtod(p[4],NULL);
 			ssp->thrs_on_interval = strtoul(p[5],NULL,0) * 1000ul;
 			ssp->thrs_off_val = strtod(p[6],NULL);
 			ssp->thrs_off_interval = strtoul(p[7],NULL,0) * 1000ul;
-		} else if (type == SENSOR_TYPE_MULTI) {
+		} else if (type == SENSOR_TYPE_V2) {
 			for (i=0; i<num; i++) {
 				ssp = &Sensor[i];
 				ssp->index = (uint16_t)strtoul(p[4+i*5],NULL,0);
@@ -486,7 +486,7 @@ static uint32_t sensor_main(void) {
 		level = voltage_check(VLS_3_068);
 		send_data_flag = false;
 		Print.init(tx_buf,sizeof(tx_buf));
-		if (type == SENSOR_TYPE_SINGLE) {
+		if (type == SENSOR_TYPE_V1) {
 			ssp = &Sensor[0];
 			if ((ssp->next_state == SENSOR_STATE_ON_STABLE) || (ssp->next_state == SENSOR_STATE_ON_UNSTABLE)) {
 				Print.p("on,");
@@ -523,7 +523,7 @@ static uint32_t sensor_main(void) {
 			}
 			Print.p(",");
 			Print.p(vls_val[level]);
-		} else if (type == SENSOR_TYPE_MULTI) {
+		} else if (type == SENSOR_TYPE_V2) {
 			Print.p("v2,");
 			for (i=0; i<MAX_SENSOR_NUM; i++) {
 				ssp = &Sensor[i];
