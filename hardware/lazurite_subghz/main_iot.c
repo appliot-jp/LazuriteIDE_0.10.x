@@ -837,7 +837,7 @@ void loop() {
 			break;
 		case INIT_MODE:			// search gateway
 			SensorState_initState(Sensor);
-			sleep_time = sleep_interval;
+			sleep_time = 0;
 			mode = NORMAL_MODE;
 			break;
 		case NORMAL_MODE:
