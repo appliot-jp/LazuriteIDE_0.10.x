@@ -1,6 +1,6 @@
-#include "CTSensor2_7_ide.h"		// Additional Header
+#include "CTSensor2_8_ide.h"		// Additional Header
 
-/* FILE NAME: CTSensor2_7.c
+/* FILE NAME: CTSensor2_8.c
  * The MIT License (MIT)
  *
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
@@ -64,6 +64,9 @@ void sensor_deactivate(void) {
 
 /*
  * function of sensor measurement
+ *
+ * s[]: Array of SensorState is passed. If single sensor type, array size is always '1'.
+ *
  * val->data is settled depends on data type
  * data type is set into val->type
  * val->digit shows digit of floating number.
@@ -77,7 +80,8 @@ void sensor_deactivate(void) {
  * val->data.float_val=xxx;   val->type = FLOAT_VAL;  val->digit = d;
  * val->data.double_val=xxx;  val->type = DOUBLE_VAL; val->digit = d;
  */
-void sensor_meas(SENSOR_VAL *val) {
+void sensor_meas(SensorState s[]) {
+	SENSOR_VAL *val = &(s[0].sensor_val);
 	unsigned long  st_time,en_time;
 	double amps;
 	volatile int st_voltage,en_voltage,dif_vol;

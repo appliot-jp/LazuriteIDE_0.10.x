@@ -524,11 +524,11 @@ static uint32_t sensor_main(void) {
 			Print.p(",");
 			Print.p(vls_val[level]);
 		} else if (type == SENSOR_TYPE_V2) {
-			Print.p("v2,");
+			Print.p("v2");
 			for (i=0; i<MAX_SENSOR_NUM; i++) {
 				ssp = &Sensor[i];
 				if (ssp->index != INVALID_INDEX) {
-					if (i != 0) Print.p(",");
+					Print.p(",");
 					Print.l((long)ssp->index,DEC);
 					Print.p(",");
 					if ((ssp->next_state == SENSOR_STATE_ON_STABLE) || (ssp->next_state == SENSOR_STATE_ON_UNSTABLE)) {
@@ -568,6 +568,7 @@ static uint32_t sensor_main(void) {
 					Print.p(vls_val[level]);
 					Print.p(",");
 					if (ssp->reason != INVALID_REASON) Print.l((long)ssp->reason,DEC);
+					Print.p(",");
 				}
 			}
 		}
