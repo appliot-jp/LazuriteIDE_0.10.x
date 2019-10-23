@@ -70,6 +70,8 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define MAX_BUF_SIZE			( 250 )
 #define SENSOR_TYPE_V1			( 1 )
 #define SENSOR_TYPE_V2			( 2 )
+#define STATE_TO_OFF			( 0 )
+#define STATE_TO_ON				( 1 )
 
 bool waitEventFlag = false;
 static uint8_t mode,type;
@@ -417,7 +419,7 @@ static void SensorState_onUnstable(SensorState* p_this) {
 }
 
 static uint32_t sensor_main(void) {
-	uint8_t tx_buf[200];
+	uint8_t tx_buf[200], on_off_state;
 	SUBGHZ_MSG msg;
 	EACK_DATA *eack_data;
 	uint8_t *p;
@@ -490,8 +492,10 @@ static uint32_t sensor_main(void) {
 			ssp = &Sensor[0];
 			if ((ssp->next_state == SENSOR_STATE_ON_STABLE) || (ssp->next_state == SENSOR_STATE_ON_UNSTABLE)) {
 				Print.p("on,");
+				on_off_state = STATE_TO_ON;
 			} else {
 				Print.p("off,");
+				on_off_state = STATE_TO_OFF;
 			}
 			switch(ssp->sensor_val.type) {
 				case INT8_VAL:
@@ -523,6 +527,10 @@ static uint32_t sensor_main(void) {
 			}
 			Print.p(",");
 			Print.p(vls_val[level]);
+			if ((on_off_state == STATE_TO_OFF) && (ssp->reason != INVALID_REASON)) {
+				Print.p(",");
+				Print.l((long)ssp->reason,DEC);
+			}
 		} else if (type == SENSOR_TYPE_V2) {
 			Print.p("v2");
 			for (i=0; i<MAX_SENSOR_NUM; i++) {
@@ -533,8 +541,10 @@ static uint32_t sensor_main(void) {
 					Print.p(",");
 					if ((ssp->next_state == SENSOR_STATE_ON_STABLE) || (ssp->next_state == SENSOR_STATE_ON_UNSTABLE)) {
 						Print.p("on,");
+						on_off_state = STATE_TO_ON;
 					} else {
 						Print.p("off,");
+						on_off_state = STATE_TO_OFF;
 					}
 					switch(ssp->sensor_val.type) {
 						case INT8_VAL:
@@ -567,8 +577,9 @@ static uint32_t sensor_main(void) {
 					Print.p(",");
 					Print.p(vls_val[level]);
 					Print.p(",");
-					if (ssp->reason != INVALID_REASON) Print.l((long)ssp->reason,DEC);
+					if ((on_off_state == STATE_TO_OFF) && (ssp->reason != INVALID_REASON)) Print.l((long)ssp->reason,DEC);
 					Print.p(",");
+					// Print.l(deltaT,DEC);:waitEventFlag
 				}
 			}
 		}

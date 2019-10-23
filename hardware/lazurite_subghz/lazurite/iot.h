@@ -44,9 +44,9 @@
 #define UINT32_VAL		( 6 )
 #define FLOAT_VAL		( 7 )
 #define DOUBLE_VAL		( 8 )
-#define MAX_SENSOR_NUM				( 4 )
-#define INVALID_INDEX				( -1 )
-#define INVALID_REASON				( -1 )
+#define MAX_SENSOR_NUM	( 4 )
+#define INVALID_INDEX	( -1 )
+#define INVALID_REASON	( -1 )
 
 typedef struct {
 	union  {
@@ -61,7 +61,6 @@ typedef struct {
 	} data;
 	uint8_t type;
 	uint8_t digit;
-	uint16_t reason;
 } SENSOR_VAL;
 
 typedef enum {
