@@ -118,7 +118,6 @@ void sensor_meas(SensorState s[]) {
 	reason_val = digitalRead(REASON_INT_PIN1) ? 0 : 1;
 	reason_val |= digitalRead(REASON_INT_PIN2) ? 0 : 1 << 1;
 	reason_val |= digitalRead(REASON_INT_PIN3) ? 0 : 1 << 2;
-	Serial.println_long(reason_val,DEC);
 	if (reason_val) {
 		*reason = reason_val;
 	} else {

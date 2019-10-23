@@ -190,12 +190,16 @@ static int parse_payload(uint8_t *payload) {
 	}
 	num = (i - 4) / 5;
 	if (i == 8) {
+#ifdef DEBUG
 		Serial.println("single sensor");
+#endif
 		num = 1;
 		type = SENSOR_TYPE_V1;
 	} else if (((i - 4) % 5 == 0) && (num <= MAX_SENSOR_NUM)) {
+#ifdef DEBUG
 		Serial.print("multi sensor: ");
 		Serial.println_long((long)num,DEC);
+#endif
 		type = SENSOR_TYPE_V2;
 	} else {
 		return -1; // number of parameter unmatched
