@@ -84,6 +84,9 @@ static bool sgRxAuto = false;
 #define CMD_SUBGHZ_GET_ED_VAL "sged"
 #define CMD_SUBGHZ_SET_TRX_STATE "sgtrx"
 #define CMD_SUBGHZ_SET_CONFIG "sgsc"
+#define CMD_SUBGHZ_SET_MODULATION "sgmd"
+#define CMD_SUBGHZ_SET_DSSS_SIZE "sgds"
+#define CMD_SUBGHZ_SET_DSSS_SP_FACTOR "sgspf"
 #define CMD_WRITE_DATA "w"
 #define CMD_WRITE_BINARY "wb"
 
@@ -424,33 +427,8 @@ static void fer(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac) {
 }
 
 static void sgi(uint8_t** pparam){
-	int i=0;
-	char* en;
-    uint8_t modulation;
-    uint8_t dsssSize;
-    SUBGHZ_PARAM a;
-
-	// command sprit
-	do {			
-		i++;
-	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
-
-    modulation = (uint8_t)strtol(pparam[1],&en,0);
-    dsssSize = (uint8_t)strtol(pparam[2],&en,0);
-
 	SubGHz.init();
-
-	SubGHz.setModulation(modulation);
-	SubGHz.setDsssSize(dsssSize,0);
-	SubGHz.setDsssSpreadFactor(64);
-
-	Serial.print("sgi");
-	Serial.print(",0x");
-  	Serial.print_long(modulation,HEX);
-	Serial.print(",");
-  	Serial.print_long(dsssSize,DEC);
-	Serial.println("");
-
+	Serial.println("sgi");
 }
 
 static void sgb(uint8_t** pparam){
@@ -974,6 +952,68 @@ static void sgsc(uint8_t** pparam)
 	Serial.print_long(rxStatus.rssi,DEC);
 	Serial.print(",");
 	Serial.println_long(rxStatus.status,DEC);
+}
+
+static void sgmd(uint8_t** pparam)
+{
+	int i=0;
+	char* en;
+    uint8_t modulation;
+	// command sprit
+	do {			
+		i++;
+	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
+
+    modulation = (uint8_t)strtol(pparam[1],&en,0);
+
+	SubGHz.setModulation(modulation);
+
+	Serial.print("sgmd,");
+	Serial.print("0x");	
+	Serial.println_long(modulation,HEX);
+}
+
+static void sgspf(uint8_t** pparam)
+{
+	int i=0;
+	char* en;
+    uint8_t spf;
+	// command sprit
+	do {			
+		i++;
+	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
+
+    spf = (uint8_t)strtol(pparam[1],&en,0);
+
+    // default: 64
+	SubGHz.setDsssSpreadFactor(spf);
+
+	Serial.print("sgspf,");
+	Serial.print("0x");	
+	Serial.println_long(spf,HEX);
+}
+
+static void sgds(uint8_t** pparam)
+{
+	int i=0;
+	char* en;
+    uint8_t dsssSize;
+    uint8_t addrMode;
+	// command sprit
+	do {			
+		i++;
+	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
+
+    dsssSize = (uint8_t)strtol(pparam[1],&en,0);
+    addrMode = (uint8_t)strtol(pparam[2],&en,0);
+
+	SubGHz.setDsssSize(dsssSize,addrMode);
+
+	Serial.print("sgds");
+	Serial.print(",0x");	
+	Serial.print_long(dsssSize,HEX);
+	Serial.print(",0x");	
+	Serial.println_long(addrMode,HEX);
 }
 
 static void sgout()
@@ -1935,6 +1975,9 @@ void command_decoder(uint8_t* pcmd,uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_ED_VAL,16)== 0) sged(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_TRX_STATE,16)== 0) sgtrx(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_CONFIG,16)== 0) sgsc(pparam);
+	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_MODULATION,16)== 0) sgmd(pparam);
+	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_DSSS_SIZE,16)== 0) sgds(pparam);
+	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_DSSS_SP_FACTOR,16)== 0) sgspf(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_READ,16)== 0) sgr(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_READ_BINARY,16)== 0) sgrb(pparam);
 	else if(strncmp(pparam[0],CMD_SET_BAUD,16)== 0) sb(pparam,mac);
