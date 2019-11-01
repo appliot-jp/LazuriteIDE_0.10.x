@@ -1,6 +1,6 @@
-#include "HallDoor_1_ide.h"		// Additional Header
+#include "HallDoor_2_ide.h"		// Additional Header
 
-/* FILE NAME: HallDoor_1.c
+/* FILE NAME: HallDoor_2.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
@@ -60,10 +60,14 @@ bool sensor_activate(void) {
  */
 void sensor_deactivate(void) {
 	detachInterrupt(HALL_INT);
+	return;
 }
 
 /*
  * function of sensor measurement
+ *
+ * s[]: Array of SensorState is passed. If single sensor type, array size is always '1'.
+ *
  * val->data is settled depends on data type
  * data type is set into val->type
  * val->digit shows digit of floating number.
@@ -77,7 +81,8 @@ void sensor_deactivate(void) {
  * val->data.float_val=xxx;   val->type = FLOAT_VAL;  val->digit = d;
  * val->data.double_val=xxx;  val->type = DOUBLE_VAL; val->digit = d;
  */
-void sensor_meas(SENSOR_VAL *val) {
+void sensor_meas(SensorState s[]) {
+	SENSOR_VAL *val = &(s[0].sensor_val);
 
 	val->data.uint8_val=!digitalRead(HALL_PIN);  val->type = UINT8_VAL;
 	

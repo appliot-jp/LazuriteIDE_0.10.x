@@ -1,6 +1,6 @@
-#include "ALSensor_2_ide.h"		// Additional Header
+#include "ProxSensor_2_ide.h"		// Additional Header
 
-/* FILE NAME: ALSensor_2.c
+/* FILE NAME: ProxSensor_2.c
  * The MIT License (MIT)
  *
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
@@ -49,11 +49,14 @@ bool sensor_activate(void) {
  * callback function of deactivation
  */
 void sensor_deactivate(void) {
-	
+	return;
 }
 
 /*
  * function of sensor measurement
+ *
+ * s[]: Array of SensorState is passed. If single sensor type, array size is always '1'.
+ *
  * val->data is settled depends on data type
  * data type is set into val->type
  * val->digit shows digit of floating number.
@@ -67,12 +70,13 @@ void sensor_deactivate(void) {
  * val->data.float_val=xxx;   val->type = FLOAT_VAL;  val->digit = d;
  * val->data.double_val=xxx;  val->type = DOUBLE_VAL; val->digit = d;
  */
-void sensor_meas(SENSOR_VAL *val) {
+void sensor_meas(SensorState s[]) {
+	SENSOR_VAL *val = &(s[0].sensor_val);
 	uint16_t ps_val;
 	float als_val;
 
 	rpr0521rs.get_oneShot(&ps_val, &als_val);
-	val->data.double_val=als_val;  val->type = DOUBLE_VAL; val->digit = 2;
+	val->data.uint16_val=ps_val;  val->type = UINT16_VAL;
 	
 	return;
 }

@@ -1,6 +1,6 @@
-#include "TempSensor_1_ide.h"		// Additional Header
+#include "ALSensor_3_ide.h"		// Additional Header
 
-/* FILE NAME: TempSensor_1.c
+/* FILE NAME: ALSensor_3.c
  * The MIT License (MIT)
  *
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
@@ -25,35 +25,16 @@
  * THE SOFTWARE.
 */
 
-uint8_t i2c_addr = 0x76;        //I2C Address
-uint8_t osrs_t = 1;             //Temperature oversampling x 1
-uint8_t osrs_p = 1;             //Pressure oversampling x 1
-uint8_t osrs_h = 1;             //Humidity oversampling x 1
-uint8_t bme280mode = 1;         //Normal mode
-uint8_t t_sb = 5;               //Tstandby 1000ms
-uint8_t filter = 0;             //Filter off
-uint8_t spi3w_en = 0;           //3-wire SPI Disable
-
 /*
  * initializaing function
  * this function is called in initalizing process
  * return filename
  */
-
 char* sensor_init() {
 	static char filename[] = __FILE__;
 	Wire.begin();
-	bme280.setMode(i2c_addr, osrs_t, osrs_p, osrs_h, bme280mode, t_sb, filter, spi3w_en);
-	bme280.readTrim();
+	rpr0521rs.init();
 	return filename;
-}
-/*
- *  callback of activation
- *  return:  true waiting time before first sensor_meas
- *           false ensor_meas immidiatery after activation
- */
-bool sensor_activate() {
-	return false;
 }
 
 /*
@@ -61,13 +42,21 @@ bool sensor_activate() {
  * return  true : sensor_meas is called after interval
  *         false: sensor_meas is called immidialtely
  */
-void sensor_deactivate() {
-	detachInterrupt(1);
+bool sensor_activate(void) {
+	return false;
+}
+/*
+ * callback function of deactivation
+ */
+void sensor_deactivate(void) {
 	return;
 }
 
 /*
  * function of sensor measurement
+ *
+ * s[]: Array of SensorState is passed. If single sensor type, array size is always '1'.
+ *
  * val->data is settled depends on data type
  * data type is set into val->type
  * val->digit shows digit of floating number.
@@ -81,12 +70,13 @@ void sensor_deactivate() {
  * val->data.float_val=xxx;   val->type = FLOAT_VAL;  val->digit = d;
  * val->data.double_val=xxx;  val->type = DOUBLE_VAL; val->digit = d;
  */
-void sensor_meas(SENSOR_VAL *val) {
-	double temp_act, press_act, hum_act;
+void sensor_meas(SensorState s[]) {
+	SENSOR_VAL *val = &(s[0].sensor_val);
+	uint16_t ps_val;
+	float als_val;
 
-	bme280.setMode(i2c_addr, osrs_t, osrs_p, osrs_h, bme280mode, t_sb, filter, spi3w_en);
-	bme280.readData(&temp_act, &press_act, &hum_act);
-	val->data.double_val=temp_act;  val->type = DOUBLE_VAL; val->digit = 1;
+	rpr0521rs.get_oneShot(&ps_val, &als_val);
+	val->data.double_val=als_val;  val->type = DOUBLE_VAL; val->digit = 2;
+	
 	return;
 }
-

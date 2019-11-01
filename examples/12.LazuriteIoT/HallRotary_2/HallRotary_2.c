@@ -1,6 +1,6 @@
-#include "HallRotary_1_ide.h"		// Additional Header
+#include "HallRotary_2_ide.h"		// Additional Header
 
-/* FILE NAME: HallRotary_1.c
+/* FILE NAME: HallRotary_2.c
  * The MIT License (MIT)
  *
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
@@ -25,7 +25,6 @@
  * THE SOFTWARE.
 */
 
-//#define DEBUG	// uncomment, if using debug message
 #define ORANGE_LED 25
 static uint16_t hall_count;
 
@@ -34,7 +33,6 @@ void isr_hall(void)
 	hall_count++;
 	digitalWrite(ORANGE_LED,digitalRead(3));
 }
-
 
 /*
  * initializaing function
@@ -47,7 +45,6 @@ char* sensor_init() {
 	pinMode(ORANGE_LED,OUTPUT);
 	return filename;
 }
-
 
 /*
  *  callback of activation
@@ -72,6 +69,9 @@ void sensor_deactivate() {
 
 /*
  * function of sensor measurement
+ *
+ * s[]: Array of SensorState is passed. If single sensor type, array size is always '1'.
+ *
  * val->data is settled depends on data type
  * data type is set into val->type
  * val->digit shows digit of floating number.
@@ -85,8 +85,9 @@ void sensor_deactivate() {
  * val->data.float_val=xxx;   val->type = FLOAT_VAL;  val->digit = d;
  * val->data.double_val=xxx;  val->type = DOUBLE_VAL; val->digit = d;
  */
-void sensor_meas(SENSOR_VAL *val) {
-	
+void sensor_meas(SensorState s[]) {
+	SENSOR_VAL *val = &(s[0].sensor_val);	
+
 	noInterrupts();
 	val->data.uint16_val = hall_count;
 	val->type = UINT16_VAL;

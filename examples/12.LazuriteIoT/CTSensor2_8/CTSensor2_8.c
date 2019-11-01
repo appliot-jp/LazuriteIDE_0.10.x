@@ -25,13 +25,6 @@
  * THE SOFTWARE.
 */
 
-/* --------------------------------------------------------------------------------
- * Please note that this sample program needs OTA library and the below AES key
- * must be changed apporpriately.
- * -------------------------------------------------------------------------------- */
-
-//#define DEBUG	// uncomment, if using debug message
-
 #define CHB						( 2 )
 #define MEAS 					( 3 )
 
@@ -59,7 +52,7 @@ bool sensor_activate(void) {
  * callback function of deactivation
  */
 void sensor_deactivate(void) {
-	
+	return;
 }
 
 /*

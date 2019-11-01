@@ -1,9 +1,9 @@
-#include "MD311_2_ide.h"		// Additional Header
+#include "TempSensor_2_ide.h"		// Additional Header
 
-/* FILE NAME: MD311_2.c
+/* FILE NAME: TempSensor_2.c
  * The MIT License (MIT)
  *
- * Copyright (c) 2019  Lapis Semiconductor Co.,Ltd.
+ * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
  * All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,45 +25,44 @@
  * THE SOFTWARE.
 */
 
-#include <driver_gpio.h>
-
-#define CHB						( 2 )
-#define MEAS 					( 3 )
-#define REASON_INT_PIN1			( 11 )
-#define REASON_INT_PIN2			( 12 )
-#define REASON_INT_PIN3			( 13 )
-
-void reason_init(void) {
-	pinMode(REASON_INT_PIN1,INPUT_PULLUP);	// Active LOW
-	pinMode(REASON_INT_PIN2,INPUT_PULLUP);	// Active LOW
-	pinMode(REASON_INT_PIN3,INPUT_PULLUP);	// Active LOW
-}
+uint8_t i2c_addr = 0x76;        //I2C Address
+uint8_t osrs_t = 1;             //Temperature oversampling x 1
+uint8_t osrs_p = 1;             //Pressure oversampling x 1
+uint8_t osrs_h = 1;             //Humidity oversampling x 1
+uint8_t bme280mode = 1;         //Normal mode
+uint8_t t_sb = 5;               //Tstandby 1000ms
+uint8_t filter = 0;             //Filter off
+uint8_t spi3w_en = 0;           //3-wire SPI Disable
 
 /*
  * initializaing function
  * this function is called in initalizing process
  * return filename
  */
+
 char* sensor_init() {
 	static char filename[] = __FILE__;
-	pinMode(CHB,OUTPUT);
-	pinMode(MEAS,OUTPUT);
-	analogReadResolution(12);
-	reason_init();
+	Wire.begin();
+	bme280.setMode(i2c_addr, osrs_t, osrs_p, osrs_h, bme280mode, t_sb, filter, spi3w_en);
+	bme280.readTrim();
 	return filename;
 }
+/*
+ *  callback of activation
+ *  return:  true waiting time before first sensor_meas
+ *           false ensor_meas immidiatery after activation
+ */
+bool sensor_activate() {
+	return false;
+}
+
 /*
  * callback function of activation
  * return  true : sensor_meas is called after interval
  *         false: sensor_meas is called immidialtely
  */
-bool sensor_activate(void) {
-	return false;
-}
-/*
- * callback function of deactivation
- */
-void sensor_deactivate(void) {
+void sensor_deactivate() {
+	detachInterrupt(1);
 	return;
 }
 
@@ -87,42 +86,11 @@ void sensor_deactivate(void) {
  */
 void sensor_meas(SensorState s[]) {
 	SENSOR_VAL *val = &(s[0].sensor_val);
-	int *reason = &(s[0].reason), reason_val;
-	unsigned long  st_time,en_time;
-	double amps;
-	volatile int st_voltage,en_voltage,dif_vol;
-	digitalWrite(MEAS,HIGH);
-	digitalWrite(CHB,HIGH);
-	st_voltage = analogRead(A0);
-	sleep(1);
-	st_voltage = analogRead(A0);
-	sleep(1);
-	st_voltage = analogRead(A0);
-	sleep(1);
-	st_voltage = analogRead(A0);
-	st_time = millis();
-	do {
-		sleep(1);
-		en_voltage = analogRead(A0);
-		en_time = millis();
-	} while(((en_time - st_time) < 1000) && (en_voltage < 1024));
-	digitalWrite(CHB,LOW);
-	digitalWrite(MEAS,LOW);
-	amps = 3.3*1.1;
-	dif_vol = en_voltage-st_voltage;
-	dif_vol = (dif_vol < 0) ? 0 : dif_vol;
-	amps = amps * dif_vol /4.096/(en_time - st_time);
-	val->data.double_val = amps;
-	val->type = DOUBLE_VAL;
-	val->digit = 2;
-	// check reason
-	reason_val = digitalRead(REASON_INT_PIN1) ? 0 : 1;
-	reason_val |= digitalRead(REASON_INT_PIN2) ? 0 : 1 << 1;
-	reason_val |= digitalRead(REASON_INT_PIN3) ? 0 : 1 << 2;
-	if (reason_val) {
-		*reason = reason_val;
-	} else {
-		*reason = INVALID_REASON;
-	}
+	double temp_act, press_act, hum_act;
+
+	bme280.setMode(i2c_addr, osrs_t, osrs_p, osrs_h, bme280mode, t_sb, filter, spi3w_en);
+	bme280.readData(&temp_act, &press_act, &hum_act);
+	val->data.double_val=temp_act;  val->type = DOUBLE_VAL; val->digit = 1;
 	return;
 }
+
