@@ -62,6 +62,7 @@ static bool sgRxAuto = false;
 #define CMD_SUBGHZ_BEGIN "sgb"
 #define CMD_SUBGHZ_SEND "sgs"
 #define CMD_SUBGHZ_CONTINUE_SENDING "sgcs"
+#define CMD_SUBGHZ_SEND_HOPPING "sghp"
 #define CMD_SUBGHZ_RXENABLE "sgre"
 #define CMD_SUBGHZ_RX_AUTO "sgra"
 #define CMD_SUBGHZ_RXDISABLE "sgrd"
@@ -74,7 +75,7 @@ static bool sgRxAuto = false;
 #define CMD_SUBGHZ_GET_MY_ADDR64 "sggma64"
 #define CMD_SUBGHZ_SET_MY_ADDRESS "sgsma"
 #define CMD_SUBGHZ_GET_STATUS "sggs"
-#define CMD_SUBGHZ_SET_ANTSW "sgsansw"
+#define CMD_SUBGHZ_SET_ANTSW "sgansw"
 #define CMD_WRITE_DATA "w"
 #define CMD_WRITE_BINARY "wb"
 
@@ -547,6 +548,44 @@ error:
 	return;
 }
 
+static void sghp(uint8_t** pparam){
+	int i,send_cnt=0;
+	char* en;
+//	uint8_t ch[10]={24,26,28,30,33,35,37,39,41,43};
+	uint8_t ch[10]={35,24,43,37,26,41,28,39,30,33};
+	uint16_t panid=0xabcd;
+	uint16_t distPanid=0xffff;
+	uint16_t distAddr=0xffff;
+	uint8_t rate=100;
+	uint8_t pwr=20;
+	uint8_t len=230;
+	uint8_t pkt=1;
+	SUBGHZ_MSG msg;
+    
+	// command sprit
+	do {			
+		i++;
+	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
+
+	pkt = (int)strtol(pparam[1],&en,0);
+
+    for(i=0; i <len ; i++){
+        wbuf[i]=i;
+    }
+
+    for(send_cnt=0; send_cnt <pkt ; send_cnt++){
+        for(i=0; i <10 ; i++){
+            digitalWrite(TXLED,LOW);
+            msg = SubGHz.begin(ch[i], panid, rate, pwr);
+            msg = SubGHz.send(distPanid,distAddr,wbuf,len,NULL);
+            digitalWrite(TXLED,HIGH);
+        }
+    }
+
+    Serial.print("sghp,");
+    Serial.println_long(pkt,DEC);
+}
+
 static void write_data(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac){
 	// command sprit
 	pparam[1] = strtok(NULL,"\r\n");
@@ -836,7 +875,7 @@ static void sggs(uint8_t** pparam)
 	Serial.println_long(rxStatus.status,DEC);
 }
 
-static void sgsansw(uint8_t** pparam)
+static void sgansw(uint8_t** pparam)
 {
 	int i=0;
 	char* en;
@@ -852,7 +891,7 @@ static void sgsansw(uint8_t** pparam)
 	if(*en != NULL) return;
 	{
 		SubGHz.antSwitch(ant_sw);
-		Serial.print("sgsansw,0x");
+		Serial.print("sgansw,0x");
 		Serial.println_long(ant_sw,HEX);
 	}
 }
@@ -1764,6 +1803,7 @@ void command_decoder(uint8_t* pcmd,uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	else if(strncmp(pparam[0],CMD_SUBGHZ_BEGIN,16)== 0) sgb(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_SEND,16)== 0) sgs(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_CONTINUE_SENDING,16)== 0) sgcs(pparam);
+	else if(strncmp(pparam[0],CMD_SUBGHZ_SEND_HOPPING,16)== 0) sghp(pparam);
 	else if(strncmp(pparam[0],CMD_WRITE_DATA,16)== 0) write_data(pparam,mac);
 	else if(strncmp(pparam[0],CMD_WRITE_BINARY,16)== 0) write_binary(pparam,mac);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_RXENABLE,16)== 0) sgre(pparam);
@@ -1775,7 +1815,7 @@ void command_decoder(uint8_t* pcmd,uint8_t** pparam,SUBGHZ_MAC_PARAM* mac)
 	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_MY_ADDRESS,16)== 0) sggma(pparam,mac);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_MY_ADDR64,16)== 0) sggma64(pparam,mac);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_MY_ADDRESS,16)== 0) sgsma(pparam,mac);
-	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_ANTSW,16)== 0) sgsansw(pparam);
+	else if(strncmp(pparam[0],CMD_SUBGHZ_SET_ANTSW,16)== 0) sgansw(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_GET_STATUS,16)== 0) sggs(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_READ,16)== 0) sgr(pparam);
 	else if(strncmp(pparam[0],CMD_SUBGHZ_READ_BINARY,16)== 0) sgrb(pparam);
