@@ -15,3 +15,6 @@ OPTION_NAME=LAZURITE Sub-GHz
 OPTION_BUILD=hardware\\lazurite_subghz3\\build\\lazurite3_SubGHz.bld
 OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
 
+OPTION_NAME=LAZURITE 4K
+OPTION_BUILD=hardware\\lazurite_subghz3\\build\\lazurite3_4k.bld
+OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
