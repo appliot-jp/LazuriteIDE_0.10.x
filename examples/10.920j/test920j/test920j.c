@@ -448,7 +448,7 @@ static void sgb(uint8_t** pparam){
 	pwr = (uint8_t)strtol(pparam[4],&en,0);
 	if(*en != NULL) return;
 	if(
-		(((ch>=24)&&(ch<=61)&&(rate==50))||((ch>=24)&&(ch<=60)&&(ch!=32)&&(rate==100))) &&
+		(((ch>=24)&&(ch<=61)&&(rate==50))||((ch>=24)&&(ch<=60)&&(rate==100))) &&
 		((pwr == 1) || (pwr == 20)) 
 	)
 	{
@@ -552,7 +552,8 @@ static void sghp(uint8_t** pparam){
 	int i,send_cnt=0;
 	char* en;
 //	uint8_t ch[10]={24,26,28,30,33,35,37,39,41,43};
-	uint8_t ch[10]={35,24,43,37,26,41,28,39,30,33};
+//	uint8_t ch[10]={35,24,43,37,26,41,28,39,30,33};
+	uint8_t ch[10]={34,24,42,36,26,40,28,38,30,32};
 	uint16_t panid=0xabcd;
 	uint16_t distPanid=0xffff;
 	uint16_t distAddr=0xffff;
@@ -560,6 +561,7 @@ static void sghp(uint8_t** pparam){
 	uint8_t pwr=20;
 	uint8_t len=230;
 	uint8_t pkt=1;
+	uint8_t ch_num=1;
 	SUBGHZ_MSG msg;
     
 	// command sprit
@@ -567,14 +569,15 @@ static void sghp(uint8_t** pparam){
 		i++;
 	} while((pparam[i] = strtok(NULL,", \r\n"))!=NULL);
 
-	pkt = (int)strtol(pparam[1],&en,0);
+	ch_num = (int)strtol(pparam[1],&en,0);
+	pkt = (int)strtol(pparam[2],&en,0);
 
     for(i=0; i <len ; i++){
         wbuf[i]=i;
     }
 
     for(send_cnt=0; send_cnt <pkt ; send_cnt++){
-        for(i=0; i <10 ; i++){
+        for(i=0; i <ch_num ; i++){
             digitalWrite(TXLED,LOW);
             msg = SubGHz.begin(ch[i], panid, rate, pwr);
             msg = SubGHz.send(distPanid,distAddr,wbuf,len,NULL);
