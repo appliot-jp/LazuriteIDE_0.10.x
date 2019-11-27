@@ -22,3 +22,7 @@ OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
 OPTION_NAME=LAZURITE Sub-GHz(WatchDogTimer)
 OPTION_BUILD=hardware\\lazurite_subghz\\build\\lazurite_SubGHz_wdt.bld
 OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
+
+OPTION_NAME=LAZURITE Sub-GHz(Abroad)
+OPTION_BUILD=hardware\\lazurite_subghz\\build\\lazurite_SubGHz_abroad.bld
+OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
