@@ -551,9 +551,10 @@ error:
 static void sghp(uint8_t** pparam){
 	int i,send_cnt=0;
 	char* en;
-//	uint8_t ch[10]={24,26,28,30,33,35,37,39,41,43};
-//	uint8_t ch[10]={35,24,43,37,26,41,28,39,30,33};
-	uint8_t ch[10]={34,24,42,36,26,40,28,38,30,32};
+	uint8_t index=10;
+//	uint8_t ch[]={24,26,28,30,33,35,37,39,41,43};
+//	uint8_t ch[]={35,24,43,37,26,41,28,39,30,33};
+	uint8_t ch[]={34,24,42,36,26,40,28,38,30,32};
 	uint16_t panid=0xabcd;
 	uint16_t distPanid=0xffff;
 	uint16_t distAddr=0xffff;
@@ -562,6 +563,8 @@ static void sghp(uint8_t** pparam){
 	uint8_t len=230;
 	uint8_t pkt=1;
 	uint8_t ch_num=1;
+	uint8_t min_ch=ch[1]; // 24
+	uint8_t max_ch;
 	SUBGHZ_MSG msg;
     
 	// command sprit
@@ -571,17 +574,20 @@ static void sghp(uint8_t** pparam){
 
 	ch_num = (int)strtol(pparam[1],&en,0);
 	pkt = (int)strtol(pparam[2],&en,0);
+    max_ch = min_ch + ((ch_num-1)*2);
 
     for(i=0; i <len ; i++){
         wbuf[i]=i;
     }
 
     for(send_cnt=0; send_cnt <pkt ; send_cnt++){
-        for(i=0; i <ch_num ; i++){
-            digitalWrite(TXLED,LOW);
-            msg = SubGHz.begin(ch[i], panid, rate, pwr);
-            msg = SubGHz.send(distPanid,distAddr,wbuf,len,NULL);
-            digitalWrite(TXLED,HIGH);
+        for(i=0; i <index ; i++){
+        	if (ch[i] <= max_ch) {
+              digitalWrite(TXLED,LOW);
+              msg = SubGHz.begin(ch[i], panid, rate, pwr);
+              msg = SubGHz.send(distPanid,distAddr,wbuf,len,NULL);
+              digitalWrite(TXLED,HIGH);
+        	}
         }
     }
 
