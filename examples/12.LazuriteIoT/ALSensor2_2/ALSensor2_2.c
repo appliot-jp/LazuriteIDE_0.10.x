@@ -1,6 +1,6 @@
-#include "ALSensor2_1_ide.h"		// Additional Header
+#include "ALSensor2_2_ide.h"		// Additional Header
 
-/* FILE NAME: ALSensor_2.c
+/* FILE NAME: ALSensor2_2.c
  * The MIT License (MIT)
  *
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
@@ -77,7 +77,7 @@ void sensor_deactivate(void) {
  * val->data is settled depends on data type
  * data type is set into val->type
  * val->digit shows digit of floating number.
- * 
+ *
  * val->data.uint8_val=xxx;   val->type = UINT8_VAL;
  * val->data.int8_val=xxx;    val->type = INT8_VAL;
  * val->data.uint16_val=xxx;  val->type = UINT16_VAL;
@@ -87,22 +87,22 @@ void sensor_deactivate(void) {
  * val->data.float_val=xxx;   val->type = FLOAT_VAL;  val->digit = d;
  * val->data.double_val=xxx;  val->type = DOUBLE_VAL; val->digit = d;
  */
-void sensor_meas(SENSOR_VAL *val) {
+void sensor_meas(SensorState s[]) {
+	SENSOR_VAL *val = &(s[0].sensor_val);
 	float als_val;
-	uint16_t ps_val;
 	int i;
 	uint8_t rawval[6];
 	uint16_t rawals[2];
 
 	rpr0521rs.read(RPR0521RS_PS_DATA_LSB, rawval, 6);
-	
+
 	rawals[0] = ((unsigned short)rawval[3] << 8) | rawval[2];
 	rawals[1] = ((unsigned short)rawval[5] << 8) | rawval[4];
 
 	als_val = rpr0521rs.convert_lux(rawals);
 	data_buf[data_buf_index] = als_val;
 	data_buf_index++;
-	
+
 	if(data_buf_index >= 8) data_buf_index = 0;
 
 	als_val = 0;
@@ -111,9 +111,9 @@ void sensor_meas(SENSOR_VAL *val) {
 	}
 	als_val = als_val/DATA_BUF_LENGTH;
 	val->data.double_val=als_val;  val->type = DOUBLE_VAL; val->digit = 2;
-	
+
 	Serial.print("STX,");
-	Serial.print_double(als_val,2);
+	Serial.print_double((double)als_val,2);
 	Serial.println(",ETX");
 
 	return;

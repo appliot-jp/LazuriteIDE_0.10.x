@@ -1,6 +1,6 @@
-#include "DCSensor2_0_ide.h"		// Additional Header
+#include "DCSensor2_1_ide.h"		// Additional Header
 
-/* FILE NAME: DCSensor2_0.c
+/* FILE NAME: DCSensor2_1.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
@@ -41,7 +41,7 @@ void callback(void)
 char* sensor_init() {
 	static char filename[] = __FILE__;
 	analogReadResolution(12);
-	
+
 	return filename;
 }
 
@@ -69,7 +69,7 @@ void sensor_deactivate(void) {
  * val->data is settled depends on data type
  * data type is set into val->type
  * val->digit shows digit of floating number.
- * 
+ *
  * val->data.uint8_val=xxx;   val->type = UINT8_VAL;
  * val->data.int8_val=xxx;    val->type = INT8_VAL;
  * val->data.uint16_val=xxx;  val->type = UINT16_VAL;
@@ -79,18 +79,19 @@ void sensor_deactivate(void) {
  * val->data.float_val=xxx;   val->type = FLOAT_VAL;  val->digit = d;
  * val->data.double_val=xxx;  val->type = DOUBLE_VAL; val->digit = d;
  */
-void sensor_meas(SENSOR_VAL *val) {
+void sensor_meas(SensorState s[]) {
+	SENSOR_VAL *val = &(s[0].sensor_val);
 	uint16_t data;
 
 	data = analogRead(14);
-	
-	val->data.uint16_val=data;	
+
+	val->data.uint16_val=data;
 	val->type = UINT16_VAL;
 
 	Serial.print("STX,");
-	Serial.print_long(data,DEC);
+	Serial.print_long((long)data,DEC);
 	Serial.println(",ETX");
-	
+
 	return;
 }
 
