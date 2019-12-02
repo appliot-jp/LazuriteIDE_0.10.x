@@ -26,12 +26,12 @@
  * THE SOFTWARE.
 */
 
-
+#define ORANGE 25						// pin number of Blue LED
 #define LED 26						// pin number of Blue LED
 #define SUBGHZ_CH		SUBGHZ_HOPPING_TS_S			// channel number (frequency)
 //#define SUBGHZ_CH		24			// channel number (frequency)
-#define SUBGHZ_PANID	0xFFFF		// panid
-#define HOST_ADDRESS	0xFFFF		// distination address
+#define SUBGHZ_PANID	0xABCD		// panid
+#define HOST_ADDRESS	0x8E6D		// distination address
 
 unsigned char send_data[] = {"Welcome Lazurite SubGHz2!!\r\n"};
 //unsigned char send_data[] = {"Welcome SubGHz2!!\r\n"};
@@ -42,20 +42,34 @@ void callback(void)
 {
 	event = true;
 }
+void print_hex_func(uint8_t data)
+{
+	if(data == 0) Serial.print("00");
+	else if(data < 16) {
+		Serial.print("0");
+		Serial.print_long(data,HEX);
+	} else {
+		Serial.print_long(data,HEX);
+	}
+	
 
+}
 void setup(void)
 {
 	SubGHz.init();					// initializing Sub-GHz
 	SubGHz.setBroadcastEnb(false);
+	
 	Serial.begin(115200);			// Initializing serial
 	
-	pinMode(LED,OUTPUT);			// setting of LED
+	pinMode(LED,OUTPUT);			// setting of LED	pinMode(LED,OUTPUT);			// setting of LED	pinMode(LED,OUTPUT);			// setting of LED
 	digitalWrite(LED,HIGH);			// setting of LED
+
+	pinMode(ORANGE,OUTPUT);			// setting of LED	
+	digitalWrite(ORANGE,HIGH);
 	
-	timer2.set(10000L,callback);
+	timer2.set(120L,callback);
 	timer2.start();
 	
-	SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_100KBPS, SUBGHZ_PWR_20MW);		// start Sub-GHz
 	Serial.println_long(SubGHz.getMyAddress,HEX);
 //	SubGHz.rxEnable(NULL);
 }
@@ -68,12 +82,12 @@ void loop(void)
 	
 	// preparing data
 	digitalWrite(LED,LOW);														// LED ON
+	SubGHz.begin(SUBGHZ_CH, SUBGHZ_PANID,  SUBGHZ_100KBPS, SUBGHZ_PWR_20MW);		// start Sub-GHz
 	msg = SubGHz.send(SUBGHZ_PANID, HOST_ADDRESS, &send_data, sizeof(send_data),NULL);// send data
 	digitalWrite(LED,HIGH);														// LED off
-	SubGHz.msgOut(msg);
+//	SubGHz.msgOut(msg);
 	// close
-//	SubGHz.close();																// Sub-GHz module sets into power down mode.
-
+	SubGHz.close();																// Sub-GHz module sets into power down mode.
 
 	wait_event(&event);
 

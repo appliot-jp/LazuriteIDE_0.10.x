@@ -105,6 +105,7 @@ extern void _intNullHdr(void);
 #define		DI_DFLASH		0x0100
 extern void enb_interrupts(unsigned short irq_ch);
 extern void dis_interrupts(unsigned short irq_ch);
+extern unsigned char getMIE(void);
 extern void rst_interrupts(void);
 
 #endif /* _DRIVER_GPIO_H_ */

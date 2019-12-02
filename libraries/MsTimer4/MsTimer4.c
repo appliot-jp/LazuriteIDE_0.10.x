@@ -93,19 +93,19 @@ void ms_timer4_set(unsigned long ms, void (*f)())
 	timer4.callback = f;
 
 	// setting timer
-	timer_16bit_set(2,0x68, tm_data, ms_timer4_isr);
+	timer_16bit_set(4,0x68, tm_data, ms_timer4_isr);
 
 	return;
 }
 
 void ms_timer4_start(void)
 {
-	timer_16bit_start(2);
+	timer_16bit_start(4);
 }
 
 void ms_timer4_stop(void)
 {
-	timer_16bit_stop(2);
+	timer_16bit_stop(4);
 }
 
 extern char uart_tx_sending;

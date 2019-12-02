@@ -287,12 +287,18 @@ static void stop_long_timer(void)
 
 void delay_long(unsigned long ms)
 {
-	start_long_timer(ms);
+	if(subghz_api_status != 0) {
+		uint32_t event_time;
+		event_time = millis();
+		while((millis() - event_time) < ms) {}
+	} else {
+		start_long_timer(ms);
 
-	while(delay_flag == false)
-	{
-		lp_setHaltMode();
-		wdt_clear();
+		while(delay_flag == false)
+		{
+			lp_setHaltMode();
+			wdt_clear();
+		}
 	}
 
 	stop_long_timer();
@@ -301,34 +307,50 @@ void delay_long(unsigned long ms)
 
 void sleep_long(unsigned long ms)
 {
-	start_long_timer(ms);
-
-	#ifdef PWR_LED
-	drv_digitalWrite(11,HIGH);		// PWR LED OFF
-	#endif
-	
-	while(delay_flag == false)
-	{
-#ifdef SUBGHZ
-		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
-#else
-		if((uart_tx_sending == true) || (uartf_tx_sending == true))
+	if(subghz_api_status != 0) {
+		uint32_t event_time;
+		event_time = millis();
+		while((millis() - event_time) < ms) {}
+	} else {
+		start_long_timer(ms);
+#ifdef PWR_LED
+		drv_digitalWrite(11,HIGH);		// PWR LED OFF
 #endif
+		while(delay_flag == false)
 		{
-			lp_setHaltMode();
-			wdt_clear();
+			if(getMIE() == 0) {
+				digitalWrite(25,LOW);
+				if(QTM1 == 1) {
+					isr_sys_timer();
+					QTM1 = 0;
+				}
+				if(QTM7 == 1) {
+					delay_isr();
+					QTM7 = 0;
+				}
+			}
+#ifdef SUBGHZ
+			if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
+#else
+				if((uart_tx_sending == true) || (uartf_tx_sending == true))
+#endif
+				{
+					lp_setHaltMode();
+					wdt_clear();
+				}
+				else
+				{
+					lp_setHaltHMode();
+					wdt_clear();
+				}
 		}
-		else
-		{
-			lp_setHaltHMode();
-			wdt_clear();
-		}
-	}
-	stop_long_timer();
+		stop_long_timer();
 
-	#ifdef PWR_LED
-	drv_digitalWrite(11,LOW);		// PWR LED ON
-	#endif
+#ifdef PWR_LED
+		drv_digitalWrite(11,LOW);		// PWR LED ON
+#endif
+		digitalWrite(25,HIGH);
+	} 
 	return;
 }
 
@@ -337,26 +359,26 @@ volatile unsigned long millis(void)
 	unsigned long timer_l;
 	unsigned long timer_h;
 	unsigned long result;
-	
-//	__DI();
+
+	//	__DI();
 	dis_interrupts(DI_MILLIS);
 	timer_l = read_reg16(TM01C);
 	timer_h = sys_timer_count;
-	
+
 	if(QTM1 == 1)
 	{
 		timer_h++;
 		timer_l=0;
 	}
-	
-//	__EI();
+
+	//	__EI();
 	enb_interrupts(DI_MILLIS);
-	
+
 	timer_l = (timer_l * 1000) >> 15;
 	timer_h = timer_h * 2000;
-	
+
 	result = timer_h + timer_l;
-	
+
 	return result;
 }
 
@@ -407,31 +429,44 @@ void watch_dog_isr(void)
 
 void wait_event(bool *flag)
 {	
-	#ifdef PWR_LED
+#ifdef PWR_LED
 	drv_digitalWrite(11,HIGH);		// PWR LED OFF
-	#endif
+#endif
 
 	while(*flag == false)
 	{
+		if(getMIE() == 0) {
+			digitalWrite(25,LOW);
+			if(QTM1 == 1) {
+				isr_sys_timer();
+				QTM1 = 0;
+			}
+			if(QTM7 == 1) {
+				delay_isr();
+				QTM7 = 0;
+			}
+			digitalWrite(25,LOW);
+		}
 #ifdef SUBGHZ
 		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
 #else
-		if((uart_tx_sending == true) || (uartf_tx_sending == true))
+			if((uart_tx_sending == true) || (uartf_tx_sending == true))
 #endif
-		{
-			lp_setHaltMode();
-			wdt_clear();
-		}
-		else
-		{
-			lp_setHaltHMode();
-			wdt_clear();
-		}
+			{
+				lp_setHaltMode();
+				wdt_clear();
+			}
+			else
+			{
+				lp_setHaltHMode();
+				wdt_clear();
+			}
 	}
 	*flag = false;
-	#ifdef PWR_LED
+#ifdef PWR_LED
 	drv_digitalWrite(11,LOW);		// PWR LED ON
-	#endif
+#endif
+	digitalWrite(25,HIGH);
 }
 
 volatile unsigned long micros(void)
@@ -439,26 +474,26 @@ volatile unsigned long micros(void)
 	unsigned long timer_l;
 	unsigned long timer_h;
 	unsigned long result;
-	
-//	__DI();
+
+	//	__DI();
 	dis_interrupts(DI_MILLIS);
 	timer_l = read_reg16(TM01C);
 	timer_h = sys_timer_count;
-	
+
 	if(QTM1 == 1)
 	{
 		timer_h++;
 		timer_l=0;
 	}
-	
-//	__EI();
+
+	//	__EI();
 	enb_interrupts(DI_MILLIS);
-	
+
 	timer_l = (timer_l * 15625) >> 9;
 	timer_h = timer_h * 2000000;
-	
+
 	result = timer_h + timer_l;
-	
+
 	return result;
 }
 
@@ -479,14 +514,14 @@ volatile void delay_microseconds(unsigned long us)
 			us--;
 		}
 	}
-	
+
 	return;
 }
 
 #ifdef SUBGHZ_OTA
-	#pragma SEGCODE
-	#pragma SEGINIT
-	#pragma SEGNOINIT
+#pragma SEGCODE
+#pragma SEGINIT
+#pragma SEGNOINIT
 #endif
 
 void interrupts()
@@ -505,26 +540,26 @@ uint32_t wait_event_timeout(uint8_t *flag,uint32_t time)
 
 	start_long_timer(time);
 
-	#ifdef PWR_LED
+#ifdef PWR_LED
 	drv_digitalWrite(11,HIGH);		// PWR LED OFF
-	#endif
+#endif
 	result = millis();
 	while((*flag == false) && (delay_flag == false))
 	{
 #ifdef SUBGHZ
 		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
 #else
-		if((uart_tx_sending == true) || (uartf_tx_sending == true))
+			if((uart_tx_sending == true) || (uartf_tx_sending == true))
 #endif
-		{
-			lp_setHaltMode();
-			wdt_clear();
-		}
-		else
-		{
-			lp_setHaltHMode();
-			wdt_clear();
-		}
+			{
+				lp_setHaltMode();
+				wdt_clear();
+			}
+			else
+			{
+				lp_setHaltHMode();
+				wdt_clear();
+			}
 	}
 	stop_long_timer();
 
@@ -535,11 +570,11 @@ uint32_t wait_event_timeout(uint8_t *flag,uint32_t time)
 	}
 
 	*flag = false;
-	
-	#ifdef PWR_LED
+
+#ifdef PWR_LED
 	drv_digitalWrite(11,LOW);		// PWR LED ON
-	#endif
-	
+#endif
+
 	return result;
 }
 
