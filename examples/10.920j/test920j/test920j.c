@@ -34,6 +34,7 @@
 
 #define DEBUG_SERIAL
 static uint8_t pinSleep=0;
+static uint8_t baseChannel=24;
 static bool nSleep=true;
 static uint8_t pinRecv=0;
 static char cmdbuf[260];
@@ -440,6 +441,7 @@ static void sgb(uint8_t** pparam){
 
 	// command process
 	ch = (uint8_t)strtol(pparam[1],&en,0);
+    baseChannel = ch;
 	if(*en != NULL) return;
 	panid = (uint16_t)strtol(pparam[2],&en,0);
 	if(*en != NULL) return;
@@ -551,10 +553,10 @@ error:
 static void sghp(uint8_t** pparam){
 	int i,send_cnt=0;
 	char* en;
-	uint8_t index=10;
+	uint8_t index=11;
 //	uint8_t ch[]={24,26,28,30,33,35,37,39,41,43};
 //	uint8_t ch[]={35,24,43,37,26,41,28,39,30,33};
-	uint8_t ch[]={34,24,42,36,26,40,28,38,30,32};
+	uint8_t ch[12]={34,24,42,36,26,40,28,38,30,32,44,46};
 	uint16_t panid=0xabcd;
 	uint16_t distPanid=0xffff;
 	uint16_t distAddr=0xffff;
@@ -563,7 +565,7 @@ static void sghp(uint8_t** pparam){
 	uint8_t len=230;
 	uint8_t pkt=1;
 	uint8_t ch_num=1;
-	uint8_t min_ch=ch[1]; // 24
+	uint8_t min_ch=baseChannel; // baseChannel was set by sgb command.
 	uint8_t max_ch;
 	SUBGHZ_MSG msg;
     
@@ -576,13 +578,18 @@ static void sghp(uint8_t** pparam){
 	pkt = (int)strtol(pparam[2],&en,0);
     max_ch = min_ch + ((ch_num-1)*2);
 
+    if (max_ch >= ch[index]) {
+        Serial.println("sghp,invalid parameter");
+        goto error;
+    }
+
     for(i=0; i <len ; i++){
         wbuf[i]=i;
     }
 
     for(send_cnt=0; send_cnt <pkt ; send_cnt++){
         for(i=0; i <index ; i++){
-        	if (ch[i] <= max_ch) {
+        	if (ch[i] >= min_ch && ch[i] <= max_ch) {
               digitalWrite(TXLED,LOW);
               msg = SubGHz.begin(ch[i], panid, rate, pwr);
               msg = SubGHz.send(distPanid,distAddr,wbuf,len,NULL);
@@ -592,7 +599,11 @@ static void sghp(uint8_t** pparam){
     }
 
     Serial.print("sghp,");
+    Serial.print_long(ch_num,DEC);
+    Serial.print(",");
     Serial.println_long(pkt,DEC);
+error:
+    return;
 }
 
 static void write_data(uint8_t** pparam,SUBGHZ_MAC_PARAM* mac){
