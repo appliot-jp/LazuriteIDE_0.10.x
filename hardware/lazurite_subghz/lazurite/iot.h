@@ -82,6 +82,9 @@ typedef struct {
 	uint32_t thrs_off_start;
 	int reason;
 	SENSOR_STATE next_state;
+	uint8_t vls_level;
+	uint32_t last_save_time; // last timestamp of sending sensor data including keep alive
+	bool save_request; // flag of requesting to send sensor data
 } SensorState;
 
 extern char* sensor_init(void);
@@ -89,6 +92,5 @@ extern void sensor_meas(SensorState s[]);
 extern bool sensor_activate(void);
 extern void sensor_deactivate(void);
 extern bool waitEventFlag;
-extern void sensor_set_state_change_callback(void (*f)(uint8_t state));
 
 #endif // _IOT_H_
