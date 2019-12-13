@@ -35,8 +35,9 @@
 #define LIB_DEBUG // uncomment, if use libdebug
 //#define BREAK_MODE // uncomment, if use BREAK_MODE of libdebug
 
-#ifdef LIB_DEBUG
-	#include "..\..\libraries\libdebug\libdebug.h"
+#include "..\..\libraries\libdebug\libdebug.h"
+#if defined(LIB_DEBUG) && !defined(DEBUG)
+	#error Missing DEBUG macro.
 #endif
 
 /* --------------------------------------------------------------------------------
@@ -490,7 +491,7 @@ static void sensor_operJudge(SensorState *p_this) {
 		default:
 			break;
 	}
-#if 0//def DEBUG
+#if 0//#ifdef DEBUG
 	Serial.print("index: ");
 	Serial.print_long((long)p_this->index,DEC);
 	Serial.print(", state: ");
@@ -498,7 +499,7 @@ static void sensor_operJudge(SensorState *p_this) {
 	Serial.print(" -> ");
 #endif
 	SensorState_validateNextState(p_this);
-#if 0//def DEBUG
+#if 0//#ifdef DEBUG
 	Serial.println_long((long)p_this->next_state,DEC);
 #endif
 }
@@ -646,7 +647,7 @@ static uint8_t sensor_restoreQueue(void) {
 			Print.l((long)buf->reason,DEC);
 		}
 		diff = now - buf->time;
-		if (diff > 1) {
+		if (diff > 10) {
 			Print.p(",");
 			Print.l(diff,DEC);
 		}
@@ -809,18 +810,16 @@ static void SensorState_onUnstable(SensorState* p_this) {
 /* --------------------------------------------------------------------------------
  * State control task
  * -------------------------------------------------------------------------------- */
-#define WAIT_RX_TIMEOUT	( 2*1000ul )
-#define MAX_ACTIVATE_RETRY	( 14 )
-#define ACTIVATE_RETRY_INTERVAL	( 1800*1000ul )
-#define MAX_TX_RETRY ( 1 )
-#define TX_RETRY_INTERVAL	( 3*1000ul )
-//#define TX_RETRY_INTERVAL ( 20*1000ul+ (rand()&500) )
-#define TX_FAIL_RETRY_INTERVAL ( rand()&1000 )
-//#define MAX_BACKOFF_COUNT	( 8 )
-#define MAX_BACKOFF_COUNT	( 4 )
-#define MIN_BACKOFF_INTERVAL	( 1000ul ) // actual max interval is 2^8*1000=256 s
-#define MAX_UPD_PARAM_RETRY	( 3 )
-#define NO_SLEEP	( 0 )
+#define RX_INTERVAL ( 2*1000ul )
+#define MAX_TX_COUNT ( 1 )
+#define TX_INTERVAL ( rand()&1000 )
+#define RETRY_INTERVAL ( 10*1000ul+ (rand()&500) )
+#define MAX_ACTIVATE_RETRY ( 14 )
+#define ACTIVATE_RETRY_INTERVAL ( 1800*1000ul )
+#define MAX_UPD_PARAM_RETRY ( 3 )
+#define MAX_BACKOFF_COUNT ( 8 )
+#define MIN_BACKOFF_INTERVAL ( 1000ul ) // actual max interval is 2^8*1000=256 s
+#define NO_SLEEP ( 0 )
 
 static uint8_t activate_str[50];
 static uint8_t update_str[] = "update";
@@ -847,26 +846,26 @@ static MAIN_IOT_STATE func_trigActivate(void) {
 	MAIN_IOT_STATE mode = STATE_TRIG_ACTIVATE;
 	SUBGHZ_MSG msg;
 
-	if (tx_param.fail <= MAX_TX_RETRY) { // keep current mode
-		tx_param.panid = 0xffff;
-		tx_param.addr = 0xffff;
-		tx_param.str = activate_str;
-		tx_param.rx_on = true;
-		msg = func_trxOrTxOnly(&tx_param);
-		if (msg == SUBGHZ_OK) {
-			mode = STATE_WAIT_ACTIVATE;
-			BREAK("waiting...");
-			tx_param.fail = 0;
-			mip.sleep_time = NO_SLEEP;
-		} else {
-			SubGHz.close();
-			BREAK("tx fail");
-			tx_param.fail++;
-			mip.sleep_time = TX_FAIL_RETRY_INTERVAL;
-		}
-	} else {
+	tx_param.panid = 0xffff;
+	tx_param.addr = 0xffff;
+	tx_param.str = activate_str;
+	tx_param.rx_on = true;
+	msg = func_trxOrTxOnly(&tx_param);
+	if (msg == SUBGHZ_OK) {
+		mode = STATE_WAIT_ACTIVATE;
+		BREAK("waiting...");
 		tx_param.fail = 0;
-		mip.sleep_time = DEFAULT_SLEEP_INTERVAL;
+		mip.sleep_time = NO_SLEEP;
+	} else {
+		SubGHz.close();
+		BREAK("tx fail");
+		if (tx_param.fail >= MAX_TX_COUNT) {
+			tx_param.fail = 0;
+			mip.sleep_time = DEFAULT_SLEEP_INTERVAL;
+		} else {
+			tx_param.fail++;
+			mip.sleep_time = TX_INTERVAL;
+		}
 	}
 	return mode;
 }
@@ -888,27 +887,27 @@ static MAIN_IOT_STATE func_waitActivate(void) {
 			} else {
 				mip.sleep_time = NO_SLEEP;
 			}
-			mip.enable_sense = true;
 			tx_param.retry = 0; // clear
 		}
-	} else if (millis() - tx_param.tx_time > WAIT_RX_TIMEOUT) { // timeout
+	} else if (millis() - tx_param.tx_time > RX_INTERVAL) { // timeout
 		mode = STATE_TRIG_ACTIVATE;
 		SubGHz.close();
 		tx_param.retry++;
 		BREAKL("tx_param.retry: ",(long)tx_param.retry,DEC);
 		if (tx_param.retry <= MAX_ACTIVATE_RETRY) {
-			mip.sleep_time = TX_RETRY_INTERVAL;
+			mip.sleep_time = RETRY_INTERVAL;
 		} else {
-			BREAKL("mip.sleep_time: ",mip.sleep_time,DEC);
 			tx_param.retry = 0; // clear
 			mip.sleep_time = ACTIVATE_RETRY_INTERVAL;
 		}
+		BREAKL("mip.sleep_time: ",mip.sleep_time,DEC);
 	}
 	return mode;
 }
 
 static MAIN_IOT_STATE func_initSensor(void) {
 	SensorState_initState();
+	mip.enable_sense = true;
 	mip.sleep_time = NO_SLEEP;
 	return STATE_SEND_QUEUE;
 }
@@ -919,7 +918,6 @@ static MAIN_IOT_STATE func_sendQueue(void) {
 	uint8_t num=0;
 
 	if (queue_length() == 0) {
-		//BREAKL("queue is empty.\nsense_interval: ",mip.sense_interval,DEC);
 		mip.sleep_time = mip.sense_interval;
 	} else {
 		num = sensor_restoreQueue();
@@ -939,8 +937,8 @@ static MAIN_IOT_STATE func_sendQueue(void) {
 		} else { // fail
 			mode = STATE_TRIG_RECONNECT;
 			tx_param.set_backoff_time = true;
-			mip.sleep_time = NO_SLEEP;
 		}
+		mip.sleep_time = NO_SLEEP;
 	}
 	return mode;
 }
@@ -974,27 +972,23 @@ static MAIN_IOT_STATE func_trigReconnect(void) {
 	sense_time = mip.last_sense_time + mip.sense_interval;
 	// set backoff timestamp to reconnect
 	if (tx_param.set_backoff_time == true) {
-		if (tx_param.backoff_time == 0) tx_param.backoff_time = now;
 		tx_param.set_backoff_time = false;
 		tmp = pow(2.0,(double)tx_param.retry) * MIN_BACKOFF_INTERVAL;
-		tmp *= rand() / RAND_MAX / 10;
+		tmp += tmp * rand() / ((double)RAND_MAX * 5);
 		backoff_interval = (uint32_t)tmp;
-		BREAKL("backoff_interval: ",(long)backoff_interval,DEC);
+		tx_param.backoff_time = now + backoff_interval;
+		BREAKL("backoff_interval: ",backoff_interval,DEC);
 		BREAKL("backoff_time: ",tx_param.backoff_time,DEC);
-		tx_param.backoff_time += backoff_interval;
 	}
 	//BREAKL("now: ",now,DEC);
 	//BREAKL("sense_time: ",sense_time,DEC);
 	if (compareTimestamp(tx_param.backoff_time,sense_time)) {
-		//BREAK("sense_time is greater than backoff_time");
 		mip.sleep_time = tx_param.backoff_time - now;
 	} else {
-		//BREAK("sense_time is less than backoff_time");
 		mip.sleep_time = sense_time - now;
 	}
 	// try to reconnect if the backoff time has been gone over
 	if (compareTimestamp(tx_param.backoff_time,now)) {
-		//BREAK("now is greater than backoff_time");
 		tx_param.panid = 0xffff;
 		tx_param.addr = 0xffff;
 		tx_param.str = activate_str;
@@ -1027,7 +1021,7 @@ static MAIN_IOT_STATE func_waitReconnect(void) {
 			tx_param.retry = 0; // clear
 			tx_param.backoff_time = 0; // clear
 		}
-	} else if (millis() - tx_param.tx_time > WAIT_RX_TIMEOUT) { // timeout
+	} else if (millis() - tx_param.tx_time > RX_INTERVAL) { // timeout
 		BREAK("timeout");
 		mode = STATE_TRIG_RECONNECT;
 		SubGHz.close();
@@ -1045,26 +1039,26 @@ static MAIN_IOT_STATE func_trigUpdParam(void) {
 	MAIN_IOT_STATE mode = STATE_TRIG_UPD_PARAM;
 	SUBGHZ_MSG msg;
 
-	if (tx_param.fail <= MAX_TX_RETRY) { // keep current mode
-		tx_param.panid = mip.gateway_panid;
-		tx_param.addr = mip.gateway_addr;
-		tx_param.str = update_str;
-		tx_param.rx_on = true;
-		msg = func_trxOrTxOnly(&tx_param);
-		if (msg == SUBGHZ_OK) {
-			mode = STATE_WAIT_UPD_PARAM;
-			BREAK("waiting...");
-			tx_param.fail = 0;
-			mip.sleep_time = NO_SLEEP;
-		} else {
-			SubGHz.close();
-			BREAK("tx fail");
-			tx_param.fail++;
-			mip.sleep_time = TX_FAIL_RETRY_INTERVAL;
-		}
-	} else {
+	tx_param.panid = mip.gateway_panid;
+	tx_param.addr = mip.gateway_addr;
+	tx_param.str = update_str;
+	tx_param.rx_on = true;
+	msg = func_trxOrTxOnly(&tx_param);
+	if (msg == SUBGHZ_OK) {
+		mode = STATE_WAIT_UPD_PARAM;
+		BREAK("waiting...");
 		tx_param.fail = 0;
-		mip.sleep_time = DEFAULT_SLEEP_INTERVAL;
+		mip.sleep_time = NO_SLEEP;
+	} else {
+		SubGHz.close();
+		BREAK("tx fail");
+		if (tx_param.fail >= MAX_TX_COUNT) {
+			tx_param.fail = 0;
+			mip.sleep_time = DEFAULT_SLEEP_INTERVAL;
+		} else {
+			tx_param.fail++;
+			mip.sleep_time = TX_INTERVAL;
+		}
 	}
 	return mode;
 }
@@ -1086,23 +1080,23 @@ static MAIN_IOT_STATE func_waitUpdParam(void) {
 			} else {
 				mip.sleep_time = NO_SLEEP;
 			}
-			mip.enable_sense = true;
 			tx_param.retry = 0; // clear
 		}
-	} else if (millis() - tx_param.tx_time > WAIT_RX_TIMEOUT) { // timeout
-		mode = STATE_TRIG_ACTIVATE;
+	} else if (millis() - tx_param.tx_time > RX_INTERVAL) { // timeout
 		SubGHz.close();
 		tx_param.retry++;
 		BREAKL("tx_param.retry: ",(long)tx_param.retry,DEC);
 		if (tx_param.retry <= MAX_UPD_PARAM_RETRY) {
-			mip.sleep_time = TX_RETRY_INTERVAL;
+			mode = STATE_TRIG_UPD_PARAM;
+			mip.sleep_time = RETRY_INTERVAL;
 		} else {
-			BREAKL("mip.sleep_time: ",mip.sleep_time,DEC);
+			mode = STATE_TRIG_ACTIVATE;
 			tx_param.retry = 0; // clear
 			sensor_deactivate();
 			mip.enable_sense = false;
-			mip.sleep_time = ACTIVATE_RETRY_INTERVAL;
+			mip.sleep_time = NO_SLEEP;
 		}
+		BREAKL("mip.sleep_time: ",mip.sleep_time,DEC);
 	}
 	return mode;
 }
@@ -1192,18 +1186,23 @@ void setup() {
 
 void loop() {
 	// put your main code here, to run repeatedly:
-	static uint32_t remain_time=0;
+	uint32_t remain_time=0;
 
 	// switching tasks
 	mip.func_mode = functions[mip.func_mode]();
 	// sleep or wait event
 	if (mip.sleep_time != 0) {
-		BREAKL("sleep_time: ",mip.sleep_time,DEC);
+		//BREAKL("sleep_time: ",mip.sleep_time,DEC);
 		remain_time = wait_event_timeout(&waitEventFlag,mip.sleep_time);
 	}
 	// always running task
-	if ((mip.enable_sense == true) && (millis() - mip.last_sense_time > mip.sense_interval)) {
-		//BREAKL("sensor_main,sleep_time: ",mip.sleep_time,DEC);
+	if ((mip.enable_sense == true) &&
+			((millis() - mip.last_sense_time > mip.sense_interval) ||
+			(remain_time != 0) || (waitEventFlag == true))) {
+		noInterrupts();
+		if (waitEventFlag == true) waitEventFlag = false;
+		interrupts();
 		sensor_main();
+		//BREAKL("sensor_main: ",mip.last_sense_time,DEC);
 	}
 }
