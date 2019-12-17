@@ -55,6 +55,7 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define SUBGHZ_CH				( 36 )
 #define DEFAULT_SLEEP_INTERVAL	( 5*1000ul )
 #define MAX_BUF_SIZE			( 240 )
+#define NO_SLEEP ( 0 )
 
 typedef enum {
 	STATE_TRIG_ACTIVATE = 0,
@@ -112,10 +113,11 @@ static MAIN_IOT_STATE func_waitFwUpd(void);
  * Global variable
  * -------------------------------------------------------------------------------- */
 bool waitEventFlag = false;
+bool useInterruptFlag = false;
 static uint8_t rx_buf[MAX_BUF_SIZE];
 static uint8_t tx_buf[MAX_BUF_SIZE];
 static TX_PARAM tx_param = {0xffff,0xffff,"",false,0,0,0,0,false};
-MAIN_IOT_PARAM mip = {STATE_TRIG_ACTIVATE,0,false,0,DEFAULT_SLEEP_INTERVAL,0,0xffff,0xffff,0xffff};
+MAIN_IOT_PARAM mip = {STATE_TRIG_ACTIVATE,0,false,0,DEFAULT_SLEEP_INTERVAL,NO_SLEEP,0xffff,0xffff,0xffff};
 
 static MAIN_IOT_STATE (*functions[])(void) = {
 	func_trigActivate,
@@ -297,6 +299,9 @@ static int queue_dequeue(uint8_t num) {
 #define EACK_ERR_FLAG			( 0x01 )
 #define EACK_ERR_INTERVAL		( 0x02 )
 #define EACK_ERR_SIZE			( 0x04 )
+#define PARSE_ERR_UNDEF_FORMAT ( -1 )
+#define PARSE_ERR_UNDEF_HEADER ( -2 )
+#define PARSE_ERR_UNDEF_TYPE ( -3 )
 
 __packed typedef struct {
 	uint8_t eack_flag;
@@ -349,6 +354,7 @@ static int sensor_parsePayload(bool flag, uint8_t *payload) {
 	int i,num;
 	uint8_t *p[4+5*MAX_SENSOR_NUM+1];
 	SensorState *ssp;
+	int ret=0;
 
 	// payload :
 	// "'activate' or 'debug',(panid),(shortaddr),(id),
@@ -372,13 +378,13 @@ static int sensor_parsePayload(bool flag, uint8_t *payload) {
 		BREAKL("multi sensor: ",(long)num,DEC);
 		mip.sensor_type = SENSOR_TYPE_V2;
 	} else {
-		return -1; // number of parameter unmatched
+		ret = PARSE_ERR_UNDEF_FORMAT; // number of parameter unmatched
 	}
 	if (strncmp(p[0],"activate",8) == 0) {
 		mip.gateway_panid = (uint16_t)strtoul(p[1],NULL,0);
 		mip.gateway_addr = (uint16_t)strtoul(p[2],NULL,0);
-		mip.my_short_addr = (uint16_t)strtoul(p[3],NULL,0);
-		if (flag == true) { // if reconenct, do not touch threshold parameters
+		if (flag == true) { // if reconenct, do not touch short addr and threshold parameters
+			mip.my_short_addr = (uint16_t)strtoul(p[3],NULL,0);
 			if (mip.sensor_type == SENSOR_TYPE_V1) {
 				ssp = &Sensor[0];
 				ssp->index = 0;
@@ -396,7 +402,7 @@ static int sensor_parsePayload(bool flag, uint8_t *payload) {
 					ssp->thrs_off_interval = strtoul(p[8+i*5],NULL,0) * 1000ul;
 				}
 			} else {
-				return -1; // undefined type
+				ret = PARSE_ERR_UNDEF_TYPE; // undefined type
 			}
 		}
 		BREAK(p[0]);
@@ -411,10 +417,13 @@ static int sensor_parsePayload(bool flag, uint8_t *payload) {
 			BREAKD("thrs_off_val: ",ssp->thrs_off_val,2);
 			BREAKL("thrs_off_interval: ",(long)ssp->thrs_off_interval,DEC);
 		}
-		return 0;
 	} else {
-		return -2;	// string pattern unmatched
+		ret = PARSE_ERR_UNDEF_HEADER;	// string pattern unmatched
 	}
+#ifdef DEBUG
+	delay(1000); // wait for message dump
+#endif
+	return ret;
 }
 
 static int sensor_saveQueue(SensorState *p_this) {
@@ -507,7 +516,7 @@ static void sensor_operJudge(SensorState *p_this) {
 static uint32_t sensor_checkEack(MAIN_IOT_STATE *mode) {
 	EACK_DATA *eack_data;
 	int eack_size,i,eack_error=0;
-	uint32_t tmp,sleep_time=0;
+	uint32_t tmp,sleep_time=NO_SLEEP;
 	uint8_t *p;
 
 	SubGHz.getEnhanceAck(&p,&eack_size);
@@ -819,10 +828,10 @@ static void SensorState_onUnstable(SensorState* p_this) {
 #define MAX_UPD_PARAM_RETRY ( 3 )
 #define MAX_BACKOFF_COUNT ( 8 )
 #define MIN_BACKOFF_INTERVAL ( 1000ul ) // actual max interval is 2^8*1000=256 s
-#define NO_SLEEP ( 0 )
 
 static uint8_t activate_str[50];
 static uint8_t update_str[] = "update";
+const uint8_t pow_arr[MAX_BACKOFF_COUNT+1] = {1,2,4,8,16,32,64,128,256};
 
 static SUBGHZ_MSG func_trxOrTxOnly(TX_PARAM *ptx) {
 	SUBGHZ_MSG msg;
@@ -947,8 +956,8 @@ static MAIN_IOT_STATE func_sendQueue(void) {
  * compareTimestamp - comparer between base_time and target_time
  *   input: base_time - base timestamp
  *          target_time - target timestamp to be compared
- *   output: false - target_time is equal or less than base_time
- *           true - target_time is greater than base_time
+ *  output: true - base_time < target_time
+ *          false - base_time >= target_time
  */
 static bool compareTimestamp(uint32_t base_time, uint32_t target_time) {
 	bool ret;
@@ -966,26 +975,34 @@ static MAIN_IOT_STATE func_trigReconnect(void) {
 	MAIN_IOT_STATE mode = STATE_TRIG_RECONNECT;
 	SUBGHZ_MSG msg;
 	static uint32_t backoff_interval=0;
-	uint32_t now=millis(),sense_time;
-	double tmp;
+	uint32_t now=millis(),sense_time,tmp;
 
 	sense_time = mip.last_sense_time + mip.sense_interval;
 	// set backoff timestamp to reconnect
 	if (tx_param.set_backoff_time == true) {
 		tx_param.set_backoff_time = false;
-		tmp = pow(2.0,(double)tx_param.retry) * MIN_BACKOFF_INTERVAL;
-		tmp += tmp * rand() / ((double)RAND_MAX * 5);
-		backoff_interval = (uint32_t)tmp;
+		//tmp = pow(2.0,(double)tx_param.retry) * MIN_BACKOFF_INTERVAL;
+		tmp = pow_arr[tx_param.retry] * MIN_BACKOFF_INTERVAL;
+		backoff_interval = tmp + tmp * rand() / (RAND_MAX << 5); // + 0~6%
 		tx_param.backoff_time = now + backoff_interval;
 		BREAKL("backoff_interval: ",backoff_interval,DEC);
-		BREAKL("backoff_time: ",tx_param.backoff_time,DEC);
+		//BREAKL("backoff_time: ",tx_param.backoff_time,DEC);
 	}
 	//BREAKL("now: ",now,DEC);
 	//BREAKL("sense_time: ",sense_time,DEC);
-	if (compareTimestamp(tx_param.backoff_time,sense_time)) {
-		mip.sleep_time = tx_param.backoff_time - now;
-	} else {
-		mip.sleep_time = sense_time - now;
+	if (compareTimestamp(tx_param.backoff_time,sense_time)) { // tx_param.backoff_time < sense_time
+		if (compareTimestamp(tx_param.backoff_time,now)) { // tx_param.backoff_time < now
+			mip.sleep_time = NO_SLEEP;
+		} else { // tx_param.backoff_time >= now
+			mip.sleep_time = tx_param.backoff_time - now;
+		}
+		BREAKL("mip.sleep_time: ",mip.sleep_time,DEC);
+	} else { // tx_param.backoff_time >= sense_time
+		if (compareTimestamp(sense_time,now)) { // sense_time < now
+			mip.sleep_time = NO_SLEEP;
+		} else { // sense_time >= now
+			mip.sleep_time = sense_time - now;
+		}
 	}
 	// try to reconnect if the backoff time has been gone over
 	if (compareTimestamp(tx_param.backoff_time,now)) {
@@ -1017,7 +1034,6 @@ static MAIN_IOT_STATE func_waitReconnect(void) {
 		SubGHz.decMac(&mac,rx_buf,rx_len);
 		if (sensor_parsePayload(false,mac.payload) == 0) { // parse ok
 			mode = STATE_SEND_QUEUE;
-			if (mip.my_short_addr != 0xffff) SubGHz.setMyAddress(mip.my_short_addr);
 			tx_param.retry = 0; // clear
 			tx_param.backoff_time = 0; // clear
 		}
@@ -1191,17 +1207,24 @@ void loop() {
 	// switching tasks
 	mip.func_mode = functions[mip.func_mode]();
 	// sleep or wait event
-	if (mip.sleep_time != 0) {
-		//BREAKL("sleep_time: ",mip.sleep_time,DEC);
+	if (mip.sleep_time != NO_SLEEP) {
+		//BREAKL("mip.sleep_time: ",mip.sleep_time,DEC);
 		remain_time = wait_event_timeout(&waitEventFlag,mip.sleep_time);
 	}
 	// always running task
-	if ((mip.enable_sense == true) &&
-			((millis() - mip.last_sense_time > mip.sense_interval) ||
-			(remain_time != 0) || (waitEventFlag == true))) {
-		noInterrupts();
-		if (waitEventFlag == true) waitEventFlag = false;
-		interrupts();
+	if (mip.enable_sense == true) { // sensor is enabled
+		// case 1. int flag false, sense_time over
+		if (useInterruptFlag == false) {
+			if (millis() - mip.last_sense_time < mip.sense_interval) return;
+		} else {
+			// case 2. int flag true, int event exist
+			if ((remain_time != 0) || (waitEventFlag == true)) {
+				waitEventFlag = false;
+				// call sensor_main()
+			} else {
+				return;
+			}
+		}
 		sensor_main();
 		//BREAKL("sensor_main: ",mip.last_sense_time,DEC);
 	}

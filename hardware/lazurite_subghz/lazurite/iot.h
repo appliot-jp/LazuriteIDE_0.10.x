@@ -92,5 +92,6 @@ extern void sensor_meas(SensorState s[]);
 extern bool sensor_activate(void);
 extern void sensor_deactivate(void);
 extern bool waitEventFlag;
+extern bool useInterruptFlag;
 
 #endif // _IOT_H_
