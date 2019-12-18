@@ -76,6 +76,8 @@ extern void i2c_send_stopbit(UCHAR ch);									// send stop bit
 extern void i2c_start(UCHAR ch, BOOLEAN write, BOOLEAN cont);				// start transmittion or receive. restart condition is "I2CnST bit ==1" and "cont == false"
 extern CHAR i2c_get_status(UCHAR ch);									// get status
 extern void i2c_isr(UCHAR ch);
+extern void i2c0_isr(void);
+extern void i2c1_isr(void);
 extern UINT16 i2c_read_amount(UCHAR ch);
 extern UINT16 i2c_write_amount(UCHAR ch);
 extern UINT8 i2c_get_err_status(UCHAR ch);
