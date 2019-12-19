@@ -302,6 +302,9 @@ static int queue_dequeue(uint8_t num) {
 #define PARSE_ERR_UNDEF_FORMAT ( -1 )
 #define PARSE_ERR_UNDEF_HEADER ( -2 )
 #define PARSE_ERR_UNDEF_TYPE ( -3 )
+#define PAYLOAD_SINGLE_LEN ( 8 )
+#define PAYLOAD_HEADER_SIZE ( 4 )
+#define PAYLOAD_PARAM_SIZE ( 5 )
 
 __packed typedef struct {
 	uint8_t eack_flag;
@@ -350,17 +353,22 @@ static double sensor_getDoubleData(SENSOR_VAL *val) {
 	return 0;
 }
 
-static int sensor_parsePayload(bool flag, uint8_t *payload) {
+/*
+ * sensor_parsePayload - parse payload data
+ *   input: address of mac.payload
+ *   output: 1 - success, threshold parameters is changed (must be initialized)
+ *           0 - success, threshold parameters is not changed
+ *         < 0 - error
+ */
+static int sensor_parsePayload(uint8_t *payload) {
 	int i,num;
 	uint8_t *p[4+5*MAX_SENSOR_NUM+1];
+	double thrs_on_val,thrs_off_val;
+	uint32_t thrs_on_interval,thrs_off_interval;
 	SensorState *ssp;
+	bool changed=false;
 	int ret=0;
 
-	// payload :
-	// "'activate' or 'debug',(panid),(shortaddr),(id),
-	//  (index),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec]),
-	//   ...
-	//  (index),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec])"
 	for (i=0;;i++) {
 		if (i == 0) {
 			p[i] = strtok(payload, ",");
@@ -369,41 +377,65 @@ static int sensor_parsePayload(bool flag, uint8_t *payload) {
 		}
 		if (p[i] == NULL) break;
 	}
-	num = (i - 4) / 5;
-	if (i == 8) {
+	num = (i - PAYLOAD_HEADER_SIZE) / PAYLOAD_PARAM_SIZE;
+
+	// payload(single sensor) :
+	// "'activate' or 'debug',(panid),(shortaddr),
+	//  (thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec]),
+	//
+	// payload(multi sensor) :
+	// "'activate' or 'debug',(panid),(shortaddr),(id),
+	//  (index),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec]),
+	//   ...
+	//  (index),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec])"
+
+	if (i == PAYLOAD_SINGLE_LEN) {
 		BREAK("single sensor");
-		num = 1;
 		mip.sensor_type = SENSOR_TYPE_V1;
-	} else if (((i - 4) % 5 == 0) && (num <= MAX_SENSOR_NUM)) {
+	} else if (((i - PAYLOAD_HEADER_SIZE) % PAYLOAD_PARAM_SIZE == 0) && (num <= MAX_SENSOR_NUM)) {
 		BREAKL("multi sensor: ",(long)num,DEC);
 		mip.sensor_type = SENSOR_TYPE_V2;
 	} else {
-		ret = PARSE_ERR_UNDEF_FORMAT; // number of parameter unmatched
+		ret = PARSE_ERR_UNDEF_FORMAT; // undefined payload format
 	}
 	if (strncmp(p[0],"activate",8) == 0) {
 		mip.gateway_panid = (uint16_t)strtoul(p[1],NULL,0);
 		mip.gateway_addr = (uint16_t)strtoul(p[2],NULL,0);
-		if (flag == true) { // if reconenct, do not touch short addr and threshold parameters
-			mip.my_short_addr = (uint16_t)strtoul(p[3],NULL,0);
-			if (mip.sensor_type == SENSOR_TYPE_V1) {
-				ssp = &Sensor[0];
-				ssp->index = 0;
-				ssp->thrs_on_val = strtod(p[4],NULL);
-				ssp->thrs_on_interval = strtoul(p[5],NULL,0) * 1000ul;
-				ssp->thrs_off_val = strtod(p[6],NULL);
-				ssp->thrs_off_interval = strtoul(p[7],NULL,0) * 1000ul;
-			} else if (mip.sensor_type == SENSOR_TYPE_V2) {
-				for (i=0; i<num; i++) {
-					ssp = &Sensor[i];
-					ssp->index = (uint16_t)strtoul(p[4+i*5],NULL,0);
-					ssp->thrs_on_val = strtod(p[5+i*5],NULL);
-					ssp->thrs_on_interval = strtoul(p[6+i*5],NULL,0) * 1000ul;
-					ssp->thrs_off_val = strtod(p[7+i*5],NULL);
-					ssp->thrs_off_interval = strtoul(p[8+i*5],NULL,0) * 1000ul;
-				}
-			} else {
-				ret = PARSE_ERR_UNDEF_TYPE; // undefined type
+		mip.my_short_addr = (uint16_t)strtoul(p[3],NULL,0);
+		if (mip.sensor_type == SENSOR_TYPE_V1) {
+			ssp = &Sensor[0];
+			ssp->index = 0;
+			thrs_on_val = strtod(p[4],NULL);
+			thrs_on_interval = strtoul(p[5],NULL,0) * 1000ul;
+			thrs_off_val = strtod(p[6],NULL);
+			thrs_off_interval = strtoul(p[7],NULL,0) * 1000ul;
+			if (ssp->thrs_on_val != thrs_on_val) changed = true;
+			if (ssp->thrs_on_interval != thrs_on_interval) changed = true;
+			if (ssp->thrs_off_val != thrs_off_val) changed = true;
+			if (ssp->thrs_off_interval != thrs_off_interval) changed = true;
+			ssp->thrs_on_val = thrs_on_val;
+			ssp->thrs_on_interval = thrs_on_interval;
+			ssp->thrs_off_val = thrs_off_val;
+			ssp->thrs_off_interval = thrs_off_interval;
+		} else if (mip.sensor_type == SENSOR_TYPE_V2) {
+			for (i=0; i<num; i++) {
+				ssp = &Sensor[i];
+				ssp->index = (uint16_t)strtoul(p[4+i*5],NULL,0);
+				thrs_on_val = strtod(p[5+i*5],NULL);
+				thrs_on_interval = strtoul(p[6+i*5],NULL,0) * 1000ul;
+				thrs_off_val = strtod(p[7+i*5],NULL);
+				thrs_off_interval = strtoul(p[8+i*5],NULL,0) * 1000ul;
+				if (ssp->thrs_on_val != thrs_on_val) changed = true;
+				if (ssp->thrs_on_interval != thrs_on_interval) changed = true;
+				if (ssp->thrs_off_val != thrs_off_val) changed = true;
+				if (ssp->thrs_off_interval != thrs_off_interval) changed = true;
+				ssp->thrs_on_val = thrs_on_val;
+				ssp->thrs_on_interval = thrs_on_interval;
+				ssp->thrs_off_val = thrs_off_val;
+				ssp->thrs_off_interval = thrs_off_interval;
 			}
+		} else {
+			ret = PARSE_ERR_UNDEF_TYPE; // undefined type
 		}
 		BREAK(p[0]);
 		BREAKL("panid: ",(long)mip.gateway_panid,HEX);
@@ -423,6 +455,7 @@ static int sensor_parsePayload(bool flag, uint8_t *payload) {
 #ifdef DEBUG
 	delay(1000); // wait for message dump
 #endif
+	if (changed == true) ret = 1;
 	return ret;
 }
 
@@ -831,7 +864,7 @@ static void SensorState_onUnstable(SensorState* p_this) {
 
 static uint8_t activate_str[50];
 static uint8_t update_str[] = "update";
-const uint8_t pow_arr[MAX_BACKOFF_COUNT+1] = {1,2,4,8,16,32,64,128,256};
+const uint16_t pow_arr[MAX_BACKOFF_COUNT+1] = {1,2,4,8,16,32,64,128,256};
 
 static SUBGHZ_MSG func_trxOrTxOnly(TX_PARAM *ptx) {
 	SUBGHZ_MSG msg;
@@ -888,7 +921,7 @@ static MAIN_IOT_STATE func_waitActivate(void) {
 	if (rx_len > 0) { // receive
 		rx_buf[rx_len] = 0;
 		SubGHz.decMac(&mac,rx_buf,rx_len);
-		if (sensor_parsePayload(true,mac.payload) == 0) { // parse ok
+		if (sensor_parsePayload(mac.payload) >= 0) { // parse ok
 			mode = STATE_INIT_SENSOR;
 			if (mip.my_short_addr != 0xffff) SubGHz.setMyAddress(mip.my_short_addr);
 			if (sensor_activate() == true) {
@@ -909,7 +942,6 @@ static MAIN_IOT_STATE func_waitActivate(void) {
 			tx_param.retry = 0; // clear
 			mip.sleep_time = ACTIVATE_RETRY_INTERVAL;
 		}
-		BREAKL("mip.sleep_time: ",mip.sleep_time,DEC);
 	}
 	return mode;
 }
@@ -975,28 +1007,26 @@ static MAIN_IOT_STATE func_trigReconnect(void) {
 	MAIN_IOT_STATE mode = STATE_TRIG_RECONNECT;
 	SUBGHZ_MSG msg;
 	static uint32_t backoff_interval=0;
-	uint32_t now=millis(),sense_time,tmp;
+	uint32_t now=millis(),sense_time;
+	double tmp;
 
 	sense_time = mip.last_sense_time + mip.sense_interval;
 	// set backoff timestamp to reconnect
 	if (tx_param.set_backoff_time == true) {
 		tx_param.set_backoff_time = false;
-		//tmp = pow(2.0,(double)tx_param.retry) * MIN_BACKOFF_INTERVAL;
+		/* tmp = pow(2.0,(double)tx_param.retry) * MIN_BACKOFF_INTERVAL; */
 		tmp = pow_arr[tx_param.retry] * MIN_BACKOFF_INTERVAL;
-		backoff_interval = tmp + tmp * rand() / (RAND_MAX << 5); // + 0~6%
+		tmp += tmp * rand() / ((double)RAND_MAX * 20); // +0~5%
+		backoff_interval = (uint32_t)tmp;
 		tx_param.backoff_time = now + backoff_interval;
 		BREAKL("backoff_interval: ",backoff_interval,DEC);
-		//BREAKL("backoff_time: ",tx_param.backoff_time,DEC);
 	}
-	//BREAKL("now: ",now,DEC);
-	//BREAKL("sense_time: ",sense_time,DEC);
 	if (compareTimestamp(tx_param.backoff_time,sense_time)) { // tx_param.backoff_time < sense_time
 		if (compareTimestamp(tx_param.backoff_time,now)) { // tx_param.backoff_time < now
 			mip.sleep_time = NO_SLEEP;
 		} else { // tx_param.backoff_time >= now
 			mip.sleep_time = tx_param.backoff_time - now;
 		}
-		BREAKL("mip.sleep_time: ",mip.sleep_time,DEC);
 	} else { // tx_param.backoff_time >= sense_time
 		if (compareTimestamp(sense_time,now)) { // sense_time < now
 			mip.sleep_time = NO_SLEEP;
@@ -1026,14 +1056,19 @@ static MAIN_IOT_STATE func_trigReconnect(void) {
 static MAIN_IOT_STATE func_waitReconnect(void) {
 	MAIN_IOT_STATE mode = STATE_WAIT_RECONNECT;
 	SUBGHZ_MAC_PARAM mac;
-	int rx_len;
+	int rx_len,ret;
 
 	rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
 	if (rx_len > 0) { // receive
 		rx_buf[rx_len] = 0;
 		SubGHz.decMac(&mac,rx_buf,rx_len);
-		if (sensor_parsePayload(false,mac.payload) == 0) { // parse ok
-			mode = STATE_SEND_QUEUE;
+		ret = sensor_parsePayload(mac.payload);
+		if (ret < 0) {
+			BREAKL("parse error: ",(long)ret,DEC);
+		} else {
+			if (ret == 1) mode = STATE_INIT_SENSOR;
+			else mode = STATE_SEND_QUEUE;
+			if (mip.my_short_addr != 0xffff) SubGHz.setMyAddress(mip.my_short_addr);
 			tx_param.retry = 0; // clear
 			tx_param.backoff_time = 0; // clear
 		}
@@ -1088,7 +1123,7 @@ static MAIN_IOT_STATE func_waitUpdParam(void) {
 	if (rx_len > 0) { // receive
 		rx_buf[rx_len] = 0;
 		SubGHz.decMac(&mac,rx_buf,rx_len);
-		if (sensor_parsePayload(true,mac.payload) == 0) { // parse ok
+		if (sensor_parsePayload(mac.payload) >= 0) { // parse ok
 			mode = STATE_INIT_SENSOR;
 			if (mip.my_short_addr != 0xffff) SubGHz.setMyAddress(mip.my_short_addr);
 			if (sensor_activate() == true) {
@@ -1112,7 +1147,6 @@ static MAIN_IOT_STATE func_waitUpdParam(void) {
 			mip.enable_sense = false;
 			mip.sleep_time = NO_SLEEP;
 		}
-		BREAKL("mip.sleep_time: ",mip.sleep_time,DEC);
 	}
 	return mode;
 }
@@ -1208,7 +1242,7 @@ void loop() {
 	mip.func_mode = functions[mip.func_mode]();
 	// sleep or wait event
 	if (mip.sleep_time != NO_SLEEP) {
-		//BREAKL("mip.sleep_time: ",mip.sleep_time,DEC);
+		BREAKL("mip.sleep_time: ",mip.sleep_time,DEC);
 		remain_time = wait_event_timeout(&waitEventFlag,mip.sleep_time);
 	}
 	// always running task
@@ -1226,6 +1260,6 @@ void loop() {
 			}
 		}
 		sensor_main();
-		//BREAKL("sensor_main: ",mip.last_sense_time,DEC);
+		BREAKL("sensor_main: ",mip.last_sense_time,DEC);
 	}
 }
