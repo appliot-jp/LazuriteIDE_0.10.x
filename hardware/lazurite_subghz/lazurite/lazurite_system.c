@@ -165,10 +165,30 @@ void HALT_Until_Event(HALT_EVENT halt_event,uint16_t timeout)
 		timer_16bit_set(6,0xE8,timeout,halt_event_isr);
 		timer_16bit_start(6);
 	}
+	digitalWrite(25,LOW);
 	while(cont)
 	{
 		CHAR status;
-		lp_setHaltMode();
+		if(getMIE() == 0) {
+			if(QTM1 == 1) {
+				isr_sys_timer();
+				QTM1 = 0;
+			}
+			if(QTM7 == 1) {
+				delay_isr();
+				QTM7 = 0;
+			}
+			if(QI2C0 == 1) {
+				i2c0_isr();
+				QI2C0 = 0;
+			}
+			if(QI2C1 == 1) {
+				i2c1_isr();
+				QI2C1 = 0;
+			}
+		} else {
+			lp_setHaltMode();
+		}
 		// process during waiting
 		i2c_isr(0);
 		i2c_isr(1);
@@ -204,6 +224,7 @@ void HALT_Until_Event(HALT_EVENT halt_event,uint16_t timeout)
 		}		
 		wdt_clear();
 	}
+	digitalWrite(25,HIGH);
 	if(timeout)
 		timer_16bit_stop(6);
 	return;
