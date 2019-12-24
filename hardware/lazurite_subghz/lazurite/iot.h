@@ -45,7 +45,7 @@
 #define FLOAT_VAL		( 7 )
 #define DOUBLE_VAL		( 8 )
 #define MAX_SENSOR_NUM	( 4 )
-#define INVALID_INDEX	( -1 )
+#define INVALID_ID	( -1 )
 #define INVALID_REASON	( -1 )
 
 typedef struct {
@@ -71,7 +71,7 @@ typedef enum {
 } SENSOR_STATE;
 
 typedef struct {
-	int index;
+	int id;
 	double sensor_comp_val;
 	SENSOR_VAL sensor_val;
 	double thrs_on_val;

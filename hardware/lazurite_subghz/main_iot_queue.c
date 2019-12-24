@@ -184,7 +184,7 @@ typedef struct {
 	} data;
 	uint8_t type;
 	uint8_t digit;
-	int index;
+	int id;
 	uint8_t state;
 	uint8_t vls_level;
 	int reason;
@@ -301,10 +301,9 @@ static int queue_dequeue(uint8_t num) {
 #define EACK_ERR_SIZE			( 0x04 )
 #define PARSE_ERR_UNDEF_FORMAT ( -1 )
 #define PARSE_ERR_UNDEF_HEADER ( -2 )
-#define PARSE_ERR_UNDEF_TYPE ( -3 )
-#define PAYLOAD_SINGLE_LEN ( 8 )
-#define PAYLOAD_HEADER_SIZE ( 4 )
+#define PAYLOAD_HEADER_SIZE ( 3 )
 #define PAYLOAD_PARAM_SIZE ( 5 )
+#define PAYLOAD_SINGLE_LEN ( PAYLOAD_HEADER_SIZE + PAYLOAD_PARAM_SIZE )
 
 __packed typedef struct {
 	uint8_t eack_flag;
@@ -362,7 +361,7 @@ static double sensor_getDoubleData(SENSOR_VAL *val) {
  */
 static int sensor_parsePayload(uint8_t *payload) {
 	int i,num;
-	uint8_t *p[4+5*MAX_SENSOR_NUM+1];
+	uint8_t *p[PAYLOAD_HEADER_SIZE+PAYLOAD_PARAM_SIZE*MAX_SENSOR_NUM+1];
 	double thrs_on_val,thrs_off_val;
 	uint32_t thrs_on_interval,thrs_off_interval;
 	SensorState *ssp;
@@ -380,14 +379,14 @@ static int sensor_parsePayload(uint8_t *payload) {
 	num = (i - PAYLOAD_HEADER_SIZE) / PAYLOAD_PARAM_SIZE;
 
 	// payload(single sensor) :
-	// "'activate' or 'debug',(panid),(shortaddr),
-	//  (thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec]),
+	// "'activate' or 'debug',(gw_panid),(gw_shortaddr),
+	//  (id),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec]),
 	//
 	// payload(multi sensor) :
-	// "'activate' or 'debug',(panid),(shortaddr),(id),
-	//  (index),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec]),
+	// "'activate' or 'debug',(gw_panid),(gw_shortaddr),
+	//  (id),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec]),
 	//   ...
-	//  (index),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec])"
+	//  (id),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec])"
 
 	if (i == PAYLOAD_SINGLE_LEN) {
 		BREAK("single sensor");
@@ -402,13 +401,13 @@ static int sensor_parsePayload(uint8_t *payload) {
 		mip.gateway_panid = (uint16_t)strtoul(p[1],NULL,0);
 		mip.gateway_addr = (uint16_t)strtoul(p[2],NULL,0);
 		mip.my_short_addr = (uint16_t)strtoul(p[3],NULL,0);
-		if (mip.sensor_type == SENSOR_TYPE_V1) {
-			ssp = &Sensor[0];
-			ssp->index = 0;
-			thrs_on_val = strtod(p[4],NULL);
-			thrs_on_interval = strtoul(p[5],NULL,0) * 1000ul;
-			thrs_off_val = strtod(p[6],NULL);
-			thrs_off_interval = strtoul(p[7],NULL,0) * 1000ul;
+		for (i=0; i<num; i++) {
+			ssp = &Sensor[i];
+			ssp->id = (uint16_t)strtoul(p[3+i*PAYLOAD_PARAM_SIZE],NULL,0);
+			thrs_on_val = strtod(p[4+i*PAYLOAD_PARAM_SIZE],NULL);
+			thrs_on_interval = strtoul(p[5+i*PAYLOAD_PARAM_SIZE],NULL,0) * 1000ul;
+			thrs_off_val = strtod(p[6+i*PAYLOAD_PARAM_SIZE],NULL);
+			thrs_off_interval = strtoul(p[7+i*PAYLOAD_PARAM_SIZE],NULL,0) * 1000ul;
 			if (ssp->thrs_on_val != thrs_on_val) changed = true;
 			if (ssp->thrs_on_interval != thrs_on_interval) changed = true;
 			if (ssp->thrs_off_val != thrs_off_val) changed = true;
@@ -417,25 +416,6 @@ static int sensor_parsePayload(uint8_t *payload) {
 			ssp->thrs_on_interval = thrs_on_interval;
 			ssp->thrs_off_val = thrs_off_val;
 			ssp->thrs_off_interval = thrs_off_interval;
-		} else if (mip.sensor_type == SENSOR_TYPE_V2) {
-			for (i=0; i<num; i++) {
-				ssp = &Sensor[i];
-				ssp->index = (uint16_t)strtoul(p[4+i*5],NULL,0);
-				thrs_on_val = strtod(p[5+i*5],NULL);
-				thrs_on_interval = strtoul(p[6+i*5],NULL,0) * 1000ul;
-				thrs_off_val = strtod(p[7+i*5],NULL);
-				thrs_off_interval = strtoul(p[8+i*5],NULL,0) * 1000ul;
-				if (ssp->thrs_on_val != thrs_on_val) changed = true;
-				if (ssp->thrs_on_interval != thrs_on_interval) changed = true;
-				if (ssp->thrs_off_val != thrs_off_val) changed = true;
-				if (ssp->thrs_off_interval != thrs_off_interval) changed = true;
-				ssp->thrs_on_val = thrs_on_val;
-				ssp->thrs_on_interval = thrs_on_interval;
-				ssp->thrs_off_val = thrs_off_val;
-				ssp->thrs_off_interval = thrs_off_interval;
-			}
-		} else {
-			ret = PARSE_ERR_UNDEF_TYPE; // undefined type
 		}
 		BREAK(p[0]);
 		BREAKL("panid: ",(long)mip.gateway_panid,HEX);
@@ -443,7 +423,7 @@ static int sensor_parsePayload(uint8_t *payload) {
 		BREAKL("my_short_addr: ",(long)mip.my_short_addr,HEX);
 		for (i=0; i<MAX_SENSOR_NUM; i++) {
 			ssp = &Sensor[i];
-			BREAKL("index: ",(long)ssp->index,DEC);
+			BREAKL("id: ",(long)ssp->id,DEC);
 			BREAKD("thrs_on_val: ",ssp->thrs_on_val,2);
 			BREAKL("thrs_on_interval: ",(long)ssp->thrs_on_interval,DEC);
 			BREAKD("thrs_off_val: ",ssp->thrs_off_val,2);
@@ -469,7 +449,7 @@ static int sensor_saveQueue(SensorState *p_this) {
 	}
 	buf.vls_level = p_this->vls_level;
 	buf.time = mip.last_sense_time;
-	buf.index = p_this->index;
+	buf.id = p_this->id;
 	buf.reason = p_this->reason;
 	switch(p_this->sensor_val.type) {
 		case INT8_VAL:
@@ -534,8 +514,8 @@ static void sensor_operJudge(SensorState *p_this) {
 			break;
 	}
 #if 0//#ifdef DEBUG
-	Serial.print("index: ");
-	Serial.print_long((long)p_this->index,DEC);
+	Serial.print("id: ");
+	Serial.print_long((long)p_this->id,DEC);
 	Serial.print(", state: ");
 	Serial.print_long((long)p_this->next_state,DEC);
 	Serial.print(" -> ");
@@ -622,14 +602,14 @@ static uint8_t sensor_restoreQueue(void) {
 	QUEUE_DATA *buf;
 	uint32_t now,diff;
 	uint8_t tmp[100],n;
-	uint16_t head;
+	uint16_t head_local;
 	int len;
 
 	if (mip.sensor_type == SENSOR_TYPE_V1) {
 		Print.init(tx_buf,sizeof(tx_buf));
 		len = 1;
 	} else if (mip.sensor_type == SENSOR_TYPE_V2) {
-		memset(tx_buf,0,sizeof(tx_buf)); // clear memory
+		Print.init(tx_buf,sizeof(tx_buf)); // clear memory
 		Print.init(tmp,sizeof(tmp));
 		len = queue_length();
 		Print.p("v2");
@@ -639,18 +619,12 @@ static uint8_t sensor_restoreQueue(void) {
 		return 0;
 	}
 	now = millis();
-	head = queue.head;
+	head_local = queue.head;
 	for (n=0; n<len; n++) {
-		queue_peek(head,&buf);
-		if (n != 0) { // for SENSOR_TYPE_V2
-			if ((strlen(tx_buf)+Print.len()) <= MAX_BUF_SIZE) {
-				strncat(tx_buf,tmp,Print.len());
-				head = queue_next(head);
-			} else {
-				break;
-			}
+		queue_peek(head_local,&buf);
+		if (mip.sensor_type == SENSOR_TYPE_V2) { // for SENSOR_TYPE_V2
 			Print.p(",");
-			Print.l((long)buf->index,DEC);
+			Print.l((long)buf->id,DEC);
 			Print.p(",");
 		}
 		buf->state == STATE_TO_ON ? Print.p("on,") : Print.p("off,");
@@ -689,9 +663,18 @@ static uint8_t sensor_restoreQueue(void) {
 			Print.l((long)buf->reason,DEC);
 		}
 		diff = now - buf->time;
+		Print.p(",");
 		if (diff > 10) {
-			Print.p(",");
 			Print.l(diff,DEC);
+		}
+		if (mip.sensor_type == SENSOR_TYPE_V2) { // for SENSOR_TYPE_V2
+			if ((strlen(tx_buf)+Print.len()) <= MAX_BUF_SIZE) {
+				strncat(tx_buf,tmp,Print.len());
+				Print.init(tmp,sizeof(tmp)); // clear memory
+				head_local = queue_next(head_local);
+			} else {
+				break;
+			}
 		}
 	}
 	return n;
@@ -705,7 +688,7 @@ static void sensor_main(void) {
 	mip.last_sense_time = millis();
 	for (i=0; i<MAX_SENSOR_NUM; i++) {
 		ssp = &Sensor[i];
-		if (ssp->index != INVALID_INDEX) {
+		if (ssp->id != INVALID_ID) {
 			// operation change judgement
 			sensor_operJudge(ssp);
 			// keep alive condition judgement
@@ -737,7 +720,7 @@ static void SensorState_construct(void) {
 
 	for (i=0; i<MAX_SENSOR_NUM; i++) {
 		ssp = &Sensor[i];
-		ssp->index = INVALID_INDEX;
+		ssp->id = INVALID_ID;
 		ssp->thrs_on_val = 0.1;
 		ssp->thrs_off_val = 0.1;
 		ssp->thrs_on_interval = 0;
@@ -760,7 +743,7 @@ static void SensorState_initState(void) {
 	mip.last_sense_time = millis();
 	for (i=0; i<MAX_SENSOR_NUM; i++) {
 		ssp = &Sensor[i];
-		if (ssp->index != INVALID_INDEX) {
+		if (ssp->id != INVALID_ID) {
 			ssp->sensor_comp_val = sensor_getDoubleData(&ssp->sensor_val);
 			ssp->thrs_on_start = 0;
 			ssp->thrs_off_start = 0;
@@ -1242,7 +1225,7 @@ void loop() {
 	mip.func_mode = functions[mip.func_mode]();
 	// sleep or wait event
 	if (mip.sleep_time != NO_SLEEP) {
-		BREAKL("mip.sleep_time: ",mip.sleep_time,DEC);
+		//BREAKL("mip.sleep_time: ",mip.sleep_time,DEC);
 		remain_time = wait_event_timeout(&waitEventFlag,mip.sleep_time);
 	}
 	// always running task
@@ -1260,6 +1243,6 @@ void loop() {
 			}
 		}
 		sensor_main();
-		BREAKL("sensor_main: ",mip.last_sense_time,DEC);
+		//BREAKL("sensor_main: ",mip.last_sense_time,DEC);
 	}
 }

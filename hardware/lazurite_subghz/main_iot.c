@@ -72,6 +72,11 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define SENSOR_TYPE_V2			( 2 )
 #define STATE_TO_OFF			( 0 )
 #define STATE_TO_ON				( 1 )
+#define PARSE_ERR_UNDEF_FORMAT ( -1 )
+#define PARSE_ERR_UNDEF_HEADER ( -2 )
+#define PAYLOAD_HEADER_SIZE ( 3 )
+#define PAYLOAD_PARAM_SIZE ( 5 )
+#define PAYLOAD_SINGLE_LEN ( PAYLOAD_HEADER_SIZE + PAYLOAD_PARAM_SIZE )
 
 bool waitEventFlag = false;
 static uint8_t mode,type;
@@ -172,14 +177,10 @@ double getDoubleData(SENSOR_VAL *val) {
 
 static int parse_payload(uint8_t *payload) {
 	int i,num;
-	uint8_t *p[4+5*MAX_SENSOR_NUM+1];
+	uint8_t *p[PAYLOAD_HEADER_SIZE+PAYLOAD_PARAM_SIZE*MAX_SENSOR_NUM+1];
 	SensorState *ssp;
+	int ret=0;
 
-	// payload :
-	// "'activate' or 'debug',(panid),(shortaddr),(id),
-	//  (index),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec]),
-	//   ...
-	//  (index),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec])"
 	for (i=0;;i++) {
 		if (i == 0) {
 			p[i] = strtok(payload, ",");
@@ -188,21 +189,32 @@ static int parse_payload(uint8_t *payload) {
 		}
 		if (p[i] == NULL) break;
 	}
-	num = (i - 4) / 5;
-	if (i == 8) {
+	num = (i - PAYLOAD_HEADER_SIZE) / PAYLOAD_PARAM_SIZE;
+
+	// payload(single sensor) :
+	// "'activate' or 'debug',(gw_panid),(gw_shortaddr),
+	//  (id),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec]),
+	//
+	// payload(multi sensor) :
+	// "'activate' or 'debug',(gw_panid),(gw_shortaddr),
+	//  (id),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec]),
+	//   ...
+	//  (id),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec])"
+
+	if (i == PAYLOAD_SINGLE_LEN) {
 #ifdef DEBUG
 		Serial.println("single sensor");
 #endif
 		num = 1;
 		type = SENSOR_TYPE_V1;
-	} else if (((i - 4) % 5 == 0) && (num <= MAX_SENSOR_NUM)) {
+	} else if (((i - PAYLOAD_HEADER_SIZE) % PAYLOAD_PARAM_SIZE == 0) && (num <= MAX_SENSOR_NUM)) {
 #ifdef DEBUG
 		Serial.print("multi sensor: ");
 		Serial.println_long((long)num,DEC);
 #endif
 		type = SENSOR_TYPE_V2;
 	} else {
-		return -1; // number of parameter unmatched
+		ret = PARSE_ERR_UNDEF_FORMAT; // undefined payload format
 	}
 	if (strncmp(p[0],"debug",5) == 0) {
 		forcible_flag = true;
@@ -213,24 +225,13 @@ static int parse_payload(uint8_t *payload) {
 		gateway_panid = (uint16_t)strtoul(p[1],NULL,0);
 		gateway_addr = (uint16_t)strtoul(p[2],NULL,0);
 		my_short_addr = (uint16_t)strtoul(p[3],NULL,0);
-		if (type == SENSOR_TYPE_V1) {
-			ssp = &Sensor[0];
-			ssp->index = 0;
-			ssp->thrs_on_val = strtod(p[4],NULL);
-			ssp->thrs_on_interval = strtoul(p[5],NULL,0) * 1000ul;
-			ssp->thrs_off_val = strtod(p[6],NULL);
-			ssp->thrs_off_interval = strtoul(p[7],NULL,0) * 1000ul;
-		} else if (type == SENSOR_TYPE_V2) {
-			for (i=0; i<num; i++) {
-				ssp = &Sensor[i];
-				ssp->index = (uint16_t)strtoul(p[4+i*5],NULL,0);
-				ssp->thrs_on_val = strtod(p[5+i*5],NULL);
-				ssp->thrs_on_interval = strtoul(p[6+i*5],NULL,0) * 1000ul;
-				ssp->thrs_off_val = strtod(p[7+i*5],NULL);
-				ssp->thrs_off_interval = strtoul(p[8+i*5],NULL,0) * 1000ul;
-			}
-		} else {
-			return -1; // undefined type
+		for (i=0; i<num; i++) {
+			ssp = &Sensor[i];
+			ssp->id = (uint16_t)strtoul(p[3+i*PAYLOAD_PARAM_SIZE],NULL,0);
+			ssp->thrs_on_val = strtod(p[4+i*PAYLOAD_PARAM_SIZE],NULL);
+			ssp->thrs_on_interval = strtoul(p[5+i*PAYLOAD_PARAM_SIZE],NULL,0) * 1000ul;
+			ssp->thrs_off_val = strtod(p[6+i*PAYLOAD_PARAM_SIZE],NULL);
+			ssp->thrs_off_interval = strtoul(p[7+i*PAYLOAD_PARAM_SIZE],NULL,0) * 1000ul;
 		}
 		send_data_flag = true;		// forcibly send data, because parameter might be changed
 #ifdef DEBUG
@@ -243,8 +244,8 @@ static int parse_payload(uint8_t *payload) {
 		Serial.println_long((long)my_short_addr,HEX);
 		for (i=0; i<MAX_SENSOR_NUM; i++) {
 			ssp = &Sensor[i];
-			Serial.print("index: ");
-			Serial.println_long((long)ssp->index,DEC);
+			Serial.print("id: ");
+			Serial.println_long((long)ssp->id,DEC);
 			Serial.print("thrs_on_val: ");
 			Serial.println_double(ssp->thrs_on_val,2);
 			Serial.print("thrs_on_interval: ");
@@ -255,10 +256,10 @@ static int parse_payload(uint8_t *payload) {
 			Serial.println_long((long)ssp->thrs_off_interval,DEC);
 		}
 #endif
-		return 0;
 	} else {
-		return -2;	// string pattern unmatched
+		ret = PARSE_ERR_UNDEF_HEADER;	// string pattern unmatched
 	}
+	return ret;
 }
 
 static bool activate_update(TRX_RETRY *p) {
@@ -337,7 +338,7 @@ static void SensorState_construct(SensorState s[]) {
 
 	for (i=0; i<MAX_SENSOR_NUM; i++) {
 		ssp = &s[i];
-		ssp->index = INVALID_INDEX;
+		ssp->id = INVALID_ID;
 		ssp->thrs_on_val = 0.1;
 		ssp->thrs_off_val = 0.1;
 		ssp->thrs_on_interval = 0;
@@ -434,7 +435,7 @@ static uint32_t sensor_main(void) {
 	sensor_meas(Sensor);				// start measuring
 	for (i=0; i<MAX_SENSOR_NUM; i++) {
 		ssp = &Sensor[i];
-		if (ssp->index != INVALID_INDEX) {
+		if (ssp->id != INVALID_ID) {
 			switch(ssp->sensor_val.type) {
 				case INT8_VAL:
 					ssp->sensor_comp_val = ssp->sensor_val.data.int8_val;
@@ -474,10 +475,10 @@ static uint32_t sensor_main(void) {
 	}
 	for (i=0; i<MAX_SENSOR_NUM; i++) {
 		ssp = &Sensor[i];
-		if (ssp->index != INVALID_INDEX) {
+		if (ssp->id != INVALID_ID) {
 #ifdef DEBUG
-			Serial.print("index: ");
-			Serial.print_long((long)ssp->index,DEC);
+			Serial.print("id: ");
+			Serial.print_long((long)ssp->id,DEC);
 			Serial.print(", state: ");
 			Serial.print_long((long)ssp->next_state,DEC);
 			Serial.print(" -> ");
@@ -539,9 +540,9 @@ static uint32_t sensor_main(void) {
 			Print.p("v2");
 			for (i=0; i<MAX_SENSOR_NUM; i++) {
 				ssp = &Sensor[i];
-				if (ssp->index != INVALID_INDEX) {
+				if (ssp->id != INVALID_ID) {
 					Print.p(",");
-					Print.l((long)ssp->index,DEC);
+					Print.l((long)ssp->id,DEC);
 					Print.p(",");
 					if ((ssp->next_state == SENSOR_STATE_ON_STABLE) || (ssp->next_state == SENSOR_STATE_ON_UNSTABLE)) {
 						Print.p("on,");
@@ -698,7 +699,7 @@ static void SensorState_initState(SensorState s[]) {
 	sensor_meas(s);
 	for (i=0; i<MAX_SENSOR_NUM; i++) {
 		ssp = &s[i];
-		if (ssp->index != INVALID_INDEX) {
+		if (ssp->id != INVALID_ID) {
 			ssp->sensor_comp_val = getDoubleData(&sensor_val);
 			ssp->thrs_on_start = 0;
 			ssp->thrs_off_start = 0;
