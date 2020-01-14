@@ -30,9 +30,8 @@
 /* --------------------------------------------------------------------------------
  * MACRO switch
  * -------------------------------------------------------------------------------- */
-#define DEBUG // uncomment, if debuggging
-#define USE_LED // uncomment, if using LED for debugging
-#define LIB_DEBUG // uncomment, if use libdebug
+//#define DEBUG // uncomment, if debuggging
+//#define LIB_DEBUG // uncomment, if use libdebug
 //#define BREAK_MODE // uncomment, if use BREAK_MODE of libdebug
 
 #include "..\..\libraries\libdebug\libdebug.h"
@@ -310,12 +309,6 @@ __packed typedef struct {
 	uint16_t sleep_interval_sec;	// unit sec
 } EACK_DATA;
 
-static void SensorState_construct(void);
-static void SensorState_initState(void);
-static void SensorState_offStable(SensorState* p_this);
-static void SensorState_offUnstable(SensorState* p_this);
-static void SensorState_onStable(SensorState* p_this);
-static void SensorState_onUnstable(SensorState* p_this);
 static void SensorState_validateNextState(SensorState* p_this);
 
 SensorState Sensor[MAX_SENSOR_NUM];
@@ -352,6 +345,26 @@ static double sensor_getDoubleData(SENSOR_VAL *val) {
 	return 0;
 }
 
+static void sensor_construct(void) {
+	int i;
+	SensorState *ssp = &Sensor[0];
+
+	for (i=0; i<MAX_SENSOR_NUM; i++,ssp++) {
+		ssp->id = INVALID_ID;
+		ssp->thrs_on_val = 0.1;
+		ssp->thrs_off_val = 0.1;
+		ssp->thrs_on_interval = 0;
+		ssp->thrs_off_interval = 0;
+		ssp->thrs_on_start = 0;
+		ssp->thrs_off_start = 0;
+		ssp->reason = INVALID_REASON;
+		ssp->next_state = SENSOR_STATE_OFF_STABLE;
+		ssp->vls_level = 0;
+		ssp->last_save_time = 0;
+		ssp->save_request = false;
+	}
+}
+
 /*
  * sensor_parsePayload - parse payload data
  *   input: address of mac.payload
@@ -364,7 +377,7 @@ static int sensor_parsePayload(uint8_t *payload) {
 	uint8_t *p[PAYLOAD_HEADER_SIZE+PAYLOAD_PARAM_SIZE*MAX_SENSOR_NUM+1];
 	double thrs_on_val,thrs_off_val;
 	uint32_t thrs_on_interval,thrs_off_interval;
-	SensorState *ssp;
+	SensorState *ssp = &Sensor[0];
 	bool changed=false;
 	int ret=0;
 
@@ -401,8 +414,7 @@ static int sensor_parsePayload(uint8_t *payload) {
 		mip.gateway_panid = (uint16_t)strtoul(p[1],NULL,0);
 		mip.gateway_addr = (uint16_t)strtoul(p[2],NULL,0);
 		mip.my_short_addr = (uint16_t)strtoul(p[3],NULL,0);
-		for (i=0; i<num; i++) {
-			ssp = &Sensor[i];
+		for (i=0; i<num; i++,ssp++) {
 			ssp->id = (uint16_t)strtoul(p[3+i*PAYLOAD_PARAM_SIZE],NULL,0);
 			thrs_on_val = strtod(p[4+i*PAYLOAD_PARAM_SIZE],NULL);
 			thrs_on_interval = strtoul(p[5+i*PAYLOAD_PARAM_SIZE],NULL,0) * 1000ul;
@@ -417,12 +429,15 @@ static int sensor_parsePayload(uint8_t *payload) {
 			ssp->thrs_off_val = thrs_off_val;
 			ssp->thrs_off_interval = thrs_off_interval;
 		}
+		for (;i<MAX_SENSOR_NUM;i++,ssp++) {
+			ssp->id = INVALID_ID;
+		}
 		BREAK(p[0]);
 		BREAKL("panid: ",(long)mip.gateway_panid,HEX);
 		BREAKL("addr: ",(long)mip.gateway_addr,HEX);
 		BREAKL("my_short_addr: ",(long)mip.my_short_addr,HEX);
-		for (i=0; i<MAX_SENSOR_NUM; i++) {
-			ssp = &Sensor[i];
+		ssp = &Sensor[0];
+		for (i=0; i<MAX_SENSOR_NUM; i++,ssp++) {
 			BREAKL("id: ",(long)ssp->id,DEC);
 			BREAKD("thrs_on_val: ",ssp->thrs_on_val,2);
 			BREAKL("thrs_on_interval: ",(long)ssp->thrs_on_interval,DEC);
@@ -513,7 +528,7 @@ static void sensor_operJudge(SensorState *p_this) {
 		default:
 			break;
 	}
-#if 0//#ifdef DEBUG
+#ifdef DEBUG
 	Serial.print("id: ");
 	Serial.print_long((long)p_this->id,DEC);
 	Serial.print(", state: ");
@@ -521,7 +536,7 @@ static void sensor_operJudge(SensorState *p_this) {
 	Serial.print(" -> ");
 #endif
 	SensorState_validateNextState(p_this);
-#if 0//#ifdef DEBUG
+#ifdef DEBUG
 	Serial.println_long((long)p_this->next_state,DEC);
 #endif
 }
@@ -681,13 +696,12 @@ static uint8_t sensor_restoreQueue(void) {
 }
 
 static void sensor_main(void) {
-	SensorState *ssp;
+	SensorState *ssp = &Sensor[0];
 	int i;
 
 	sensor_meas(Sensor);
 	mip.last_sense_time = millis();
-	for (i=0; i<MAX_SENSOR_NUM; i++) {
-		ssp = &Sensor[i];
+	for (i=0; i<MAX_SENSOR_NUM; i++,ssp++) {
 		if (ssp->id != INVALID_ID) {
 			// operation change judgement
 			sensor_operJudge(ssp);
@@ -714,35 +728,13 @@ static void sensor_main(void) {
  * Sensor state machine
  * -------------------------------------------------------------------------------- */
 
-static void SensorState_construct(void) {
-	int i;
-	SensorState *ssp;
-
-	for (i=0; i<MAX_SENSOR_NUM; i++) {
-		ssp = &Sensor[i];
-		ssp->id = INVALID_ID;
-		ssp->thrs_on_val = 0.1;
-		ssp->thrs_off_val = 0.1;
-		ssp->thrs_on_interval = 0;
-		ssp->thrs_off_interval = 0;
-		ssp->thrs_on_start = 0;
-		ssp->thrs_off_start = 0;
-		ssp->reason = INVALID_REASON;
-		ssp->next_state = SENSOR_STATE_OFF_STABLE;
-		ssp->vls_level = 0;
-		ssp->last_save_time = 0;
-		ssp->save_request = false;
-	}
-}
-
 static void SensorState_initState(void) {
-	SensorState *ssp;
+	SensorState *ssp = &Sensor[0];
 	int i;
 
 	sensor_meas(Sensor);
 	mip.last_sense_time = millis();
-	for (i=0; i<MAX_SENSOR_NUM; i++) {
-		ssp = &Sensor[i];
+	for (i=0; i<MAX_SENSOR_NUM; i++,ssp++) {
 		if (ssp->id != INVALID_ID) {
 			ssp->sensor_comp_val = sensor_getDoubleData(&ssp->sensor_val);
 			ssp->thrs_on_start = 0;
@@ -756,25 +748,6 @@ static void SensorState_initState(void) {
 			}
 			sensor_saveQueue(ssp);
 		}
-	}
-}
-
-static void SensorState_validateNextState(SensorState* p_this) {
-	switch (p_this->next_state) {
-		case SENSOR_STATE_OFF_STABLE:
-			SensorState_offStable(p_this);
-			break;
-		case SENSOR_STATE_OFF_UNSTABLE:
-			SensorState_offUnstable(p_this);
-			break;
-		case SENSOR_STATE_ON_STABLE:
-			SensorState_onStable(p_this);
-			break;
-		case SENSOR_STATE_ON_UNSTABLE:
-			SensorState_onUnstable(p_this);
-			break;
-		default:
-			break;
 	}
 }
 
@@ -832,6 +805,25 @@ static void SensorState_onUnstable(SensorState* p_this) {
 	}
 }
 
+static void SensorState_validateNextState(SensorState* p_this) {
+	switch (p_this->next_state) {
+		case SENSOR_STATE_OFF_STABLE:
+			SensorState_offStable(p_this);
+			break;
+		case SENSOR_STATE_OFF_UNSTABLE:
+			SensorState_offUnstable(p_this);
+			break;
+		case SENSOR_STATE_ON_STABLE:
+			SensorState_onStable(p_this);
+			break;
+		case SENSOR_STATE_ON_UNSTABLE:
+			SensorState_onUnstable(p_this);
+			break;
+		default:
+			break;
+	}
+}
+
 /* --------------------------------------------------------------------------------
  * State control task
  * -------------------------------------------------------------------------------- */
@@ -855,15 +847,10 @@ static SUBGHZ_MSG func_trxOrTxOnly(TX_PARAM *ptx) {
 	SubGHz.begin(SUBGHZ_CH,ptx->panid,SUBGHZ_100KBPS,SUBGHZ_PWR_20MW);
 	if (ptx->rx_on == true) SubGHz.rxEnable(NULL);
 	else SubGHz.rxDisable();
-#ifdef USE_LED
 	digitalWrite(BLUE_LED,LOW);
-#endif
 	msg = SubGHz.send(ptx->panid,ptx->addr,ptx->str,strlen(ptx->str),NULL);
-#ifdef USE_LED
 	digitalWrite(BLUE_LED,HIGH);
-#endif
 	if (ptx->rx_on != true) SubGHz.close();
-	ptx->tx_time = millis();
 	return msg;
 }
 
@@ -879,6 +866,7 @@ static MAIN_IOT_STATE func_trigActivate(void) {
 	if (msg == SUBGHZ_OK) {
 		mode = STATE_WAIT_ACTIVATE;
 		BREAK("waiting...");
+		tx_param.tx_time = millis();
 		tx_param.fail = 0;
 		mip.sleep_time = NO_SLEEP;
 	} else {
@@ -1027,6 +1015,7 @@ static MAIN_IOT_STATE func_trigReconnect(void) {
 		if (msg == SUBGHZ_OK) {
 			mode = STATE_WAIT_RECONNECT;
 			BREAK("waiting...");
+			tx_param.tx_time = millis();
 			mip.sleep_time = NO_SLEEP;
 		} else { // fail
 			tx_param.retry++;
@@ -1081,6 +1070,7 @@ static MAIN_IOT_STATE func_trigUpdParam(void) {
 	if (msg == SUBGHZ_OK) {
 		mode = STATE_WAIT_UPD_PARAM;
 		BREAK("waiting...");
+		tx_param.tx_time = millis();
 		tx_param.fail = 0;
 		mip.sleep_time = NO_SLEEP;
 	} else {
@@ -1214,7 +1204,7 @@ void setup() {
 	Serial.end();
 #endif
 	queue_init();
-	SensorState_construct();
+	sensor_construct();
 }
 
 void loop() {
