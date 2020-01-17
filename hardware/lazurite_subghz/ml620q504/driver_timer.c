@@ -19,6 +19,9 @@
  */
 
 #ifdef SUBGHZ_OTA
+	#pragma SEGCODE "OTA_SEGCODE"
+	#pragma SEGINIT "OTA_SEGINIT"
+	#pragma SEGNOINIT "OTA_SEGNOINIT"
 	#pragma SEGCONST "OTA_SEGCONST"
 #endif
 /* --- Common Header --- */
@@ -102,10 +105,6 @@ void timer_8bit_stop(unsigned char ch)
 	
 }
 
-#ifdef SUBGHZ_OTA
-	#pragma SEGCODE "OTA_SEGCODE"
-#endif
-
 void timer_16bit_set(unsigned char ch, unsigned char TMnCON, unsigned short TMnnD, void (*func)(void))
 {
 	unsigned short* pTMnnD;
@@ -145,6 +144,7 @@ void timer_16bit_start(unsigned char ch)
 	ch &= 0xFE;
 	
 	IE5    |= (num_to_bit[ch+1]);							// set ie of timer0, timer1
+	IRQ5    &= ~(num_to_bit[ch+1]);							// set ie of timer0, timer1
 	TMSTR0 |= (num_to_bit[ch]);							// start timer0, timer1
 	return;
 }
@@ -157,6 +157,7 @@ void timer_16bit_stop(unsigned char ch)
 	
 	TMSTP0 |= (num_to_bit[ch]);							// stop timer0, timer1
 	IE5 &= ~(num_to_bit[ch] | num_to_bit[ch+1]);		// disenable timer0, timer1
+	IRQ5 &= ~(num_to_bit[ch] | num_to_bit[ch+1]);		// set ie of timer0, timer1
 	BLKCON0 |= (num_to_bit[ch] | num_to_bit[ch+1]);		// power down timer0, timer1
 	
 	return;

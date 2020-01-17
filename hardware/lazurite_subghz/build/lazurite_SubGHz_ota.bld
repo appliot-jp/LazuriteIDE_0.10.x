@@ -17,11 +17,10 @@ INCPATH=hardware\\lazurite_subghz\\ml620q504\\irq
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\lp
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\mcu_small
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\wdt
-INCPATH=hardware\\lazurite_subghz\\sub_ghz\\
+INCPATH=hardware\\lazurite_subghz\\LazDriver\\
 
 ###### Compiling source files
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\ml620504f_LP.asm
-PRJSRC=hardware\\lazurite_subghz\\main_iot.c
 PRJSRC=hardware\\lazurite_subghz\\main.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\lazurite_system.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\flash.c
@@ -47,15 +46,15 @@ PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_uart.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_flash.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\lp\\lp_manage.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\wdt\\wdt.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\subghz_api.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\aes\\aes.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\mach.c
-PRJSRC=hardware\\lazurite_subghz\\sub_ghz\\macl.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\ota.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\phy\\phy_ml7396.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\hwif\\hal_lazurite.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\hwif\\spi0.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\hwif\\wire0.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\subghz_api.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\aes\\aes.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\mach.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\macl.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\ota.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\phy\\phy_ml7396.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\hwif\\hal_lazurite.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\hwif\\spi0.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\hwif\\wire0.c
 
 ###### Compiling option
 CMPOPT=/TML620504F
@@ -69,14 +68,11 @@ CMPOPT=/SS512
 CMPOPT=/W3
 CMPOPT=/Lv
 CMPOPT=/D_ML620Q504
-CMPOPT=/DLAZURITE_MINI
+CMPOPT=/DLITTLE_ENDIAN
 CMPOPT=/DLAZURITE_IDE
 CMPOPT=/DSUBGHZ
-CMPOPT=/DIOT
-#POWER LED Control for Lazurite Mini
-CMPOPT=/DPWR_LED
-#LDO power mode control for Lazurite Mini
-CMPOPT=/DLDO_CNT
+CMPOPT=/DJP
+CMPOPT=/D_WDT
 CMPOPT=/DSUBGHZ_OTA
 
 OBJDIR=obj\\
@@ -110,16 +106,16 @@ LNKOPT=/COMB(OTA_SEGCONST OTA_SEGINITTAB OTA_USER_PARAM)
 LNKOPT=/COMB(OTA_SEGCODE  $$lmulu8sw $$dildu8sw $$ndsubu8sw $$ndaddu8sw \
 			$$dcmpu8sw $$ulmodu8sw $$dmulu8sw $$dloadu8sw $$lstoru8sw \
 			$$nddivu8sw $$dstoru8sw $$ddivu8sw $$cmpfu8sw $$cidimou8sw \
-			$$sidimou8sw $$simodu8sw $$XNCODmemcpy_nn \
-			$$XNCODmemcmp_nn $$XNCODmemset_n $$XNCODstrcpy_nn $$XNCODstrtol_n \
+			$$sidimou8sw $$slmodu8sw $$simodu8sw $$sldimou8sw $$sldivu8sw \
+			$$XNCODmemcpy_nn $$XNCODmemcmp_nn $$XNCODmemset_n $$XNCODstrcpy_nn $$XNCODstrtol_n \
 			$$XNCODxstoul_n $$XNCODstrcspn_nn $$XNCODstrspn_nn $$XNCODmemchr_n \
 			$$XNCODstrlen_n $$XNCODstrncmp_nn $$XNCODstrtok_nn $$XNCODstrncat_nn)
-LNKOPT=/CODE($$content_of_init-6H $$NCODml620504fsw-76H 6000H OTA_SEGCODE )
+LNKOPT=/CODE($$content_of_init-6H $$NCODml620504fsw-76H 5800H OTA_SEGCODE )
 LNKOPT=/DATA(OTA_SETUP_LOOP-0D800H OTA_SEGINIT OTA_SEGNOINIT )
-LNKOPT=/TABLE(OTA_SETUP_LOOPTAB-400H $$init_info OTA_SEGCONST-6000H \
+LNKOPT=/TABLE(OTA_SETUP_LOOPTAB-400H $$init_info OTA_SEGCONST-5800H \
 			$$NTABdrv_pinMode$driver_gpio $$NTABi2c_isr$driver_i2c \
 			$$NTABdrv_attachInterrupt$driver_extirq $$XNTABxstoul_n \
-			$$XFTABxctype)
+			$$NTABsubghz_setDsssSize$subghz_api $$XFTABxctype)
 
 PRJLIB=bin\\u8dev\\Lib\\LU8100SW.lib
 PRJLIB=bin\\u8dev\\Lib\\LONGU8.lib

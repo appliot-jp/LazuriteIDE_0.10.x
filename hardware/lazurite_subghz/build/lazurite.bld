@@ -19,18 +19,19 @@ INCPATH=hardware\\lazurite_subghz\\ml620q504\\mcu_small
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\wdt
 
 ###### Compiling source files
-PRJSRC=bin\\U8Dev\\Startup\\Src\\\ml620504f.asm
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\ml620504f.asm
 PRJSRC=hardware\\lazurite_subghz\\main.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\lazurite_system.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\flash.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\analogio.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\print.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\digitalio.c
-PRJSRC=hardware\\lazurite_subghz\\lazurite\\lazurite_system.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\random.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\serial.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\tone.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\WInterrupts.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\wiring_shift.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\wiring_pulse.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\WMath.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_adc.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_extirq.c
@@ -58,6 +59,8 @@ CMPOPT=/W3
 CMPOPT=/Lv
 CMPOPT=/D_ML620Q504
 CMPOPT=/DLAZURITE_IDE
+#POWER LED Control for Lazurite Rev3
+CMPOPT=/DPWR_LED
 
 OBJDIR=obj\\
 

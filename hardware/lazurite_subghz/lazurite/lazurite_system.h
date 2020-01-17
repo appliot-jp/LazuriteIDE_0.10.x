@@ -60,6 +60,8 @@ extern bool wait_timeout(uint32_t time);
 extern uint32_t wait_event_timeout(bool *flag,uint32_t time);
 extern void set_timer0_function(void (*func)(uint32_t sys_timer_count));
 extern uint8_t voltage_check(uint8_t level);
+extern void di_wait(void);
+extern void alert(char* msg);
 
 #define VLS_UNDER_1_898 (  2 )
 #define VLS_1_898		(  3 )

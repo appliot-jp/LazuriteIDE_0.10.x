@@ -21,6 +21,12 @@
 
 #include <stdlib.h>
 
+#ifdef SUBGHZ_OTA
+	#pragma SEGCODE "OTA_SEGCODE"
+	#pragma SEGINIT "OTA_SEGINIT"
+	#pragma SEGNOINIT "OTA_SEGNOINIT"
+	#pragma SEGCONST "OTA_SEGCONST"
+#endif
 //********************************************************************************
 //   global parameters
 //********************************************************************************

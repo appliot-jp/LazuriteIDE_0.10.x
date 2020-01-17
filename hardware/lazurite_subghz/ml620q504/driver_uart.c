@@ -600,5 +600,10 @@ void uart_check_irq() {
 		irq_ua0_clearIRQ();
 		uart_rx_isr();
 		irq_ua0_ena();
+	} else if (irq_ua1_checkIRQ()) {
+		irq_ua1_dis();
+		irq_ua1_clearIRQ();
+		uart_tx_isr();
+		irq_ua1_ena();
 	}
 }

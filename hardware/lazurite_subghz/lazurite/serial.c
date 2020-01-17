@@ -21,6 +21,7 @@
 #ifdef SUBGHZ_OTA
 	#pragma SEGCODE "OTA_SEGCODE"
 	#pragma SEGINIT "OTA_SEGINIT"
+	#pragma SEGNOINIT "OTA_SEGNOINIT"
 	#pragma SEGCONST "OTA_SEGCONST"
 #endif
 
@@ -328,11 +329,12 @@ void _hardware_serial_print(char* data)
 			if(uart_tx_write(data[n]) == 1)
 			{
 				n++;
-			}
-			else
-			{
-				wdt_clear();
-				lp_setHaltMode();
+			} else {
+				if(getMIE() == 0) {
+					di_wait();
+				} else {
+					lp_setHaltMode();
+				}
 			}
 		}
 	}
@@ -349,11 +351,12 @@ void _hardware_serial2_print(char* data)
 			if(uartf_tx_write(data[n]) == 1)
 			{
 				n++;
-			}
-			else
-			{
-				wdt_clear();
-				lp_setHaltMode();
+			} else {
+				if(getMIE() == 0) {
+					di_wait();
+				} else {
+					lp_setHaltMode();
+				}
 			}
 		}
 	}

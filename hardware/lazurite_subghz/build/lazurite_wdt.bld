@@ -19,7 +19,7 @@ INCPATH=hardware\\lazurite_subghz\\ml620q504\\mcu_small
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\wdt
 
 ###### Compiling source files
-PRJSRC=bin\\U8Dev\\Startup\\Src\\\ml620504f.asm
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\ml620504f.asm
 PRJSRC=hardware\\lazurite_subghz\\main.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\flash.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\analogio.c

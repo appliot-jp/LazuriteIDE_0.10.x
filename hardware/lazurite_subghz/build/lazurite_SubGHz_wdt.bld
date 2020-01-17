@@ -17,10 +17,10 @@ INCPATH=hardware\\lazurite_subghz\\ml620q504\\irq
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\lp
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\mcu_small
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\wdt
-INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\
+INCPATH=hardware\\lazurite_subghz\\LazDriver\\
 
 ###### Compiling source files
-PRJSRC=bin\\U8Dev\\Startup\\Src\\\ml620504f.asm
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\ml620504f.asm
 PRJSRC=hardware\\lazurite_subghz\\main.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\flash.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\analogio.c
@@ -45,14 +45,14 @@ PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_uart.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_flash.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\lp\\lp_manage.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\wdt\\wdt.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\subghz_api.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\aes\\aes.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\mach.c
-PRJSRC=hardware\\lazurite_subghz\\sub_ghz\\macl.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\phy\\phy_ml7396.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\hwif\\hal_lazurite.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\hwif\\spi0.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\hwif\\wire0.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\subghz_api.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\aes\\aes.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\mach.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\macl.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\phy\\phy_ml7396.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\hwif\\hal_lazurite.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\hwif\\spi0.c
+PRJSRC=hardware\\lazurite_subghz\\LazDriver\\hwif\\wire0.c
 
 ###### Compiling option
 CMPOPT=/TML620504F
@@ -68,6 +68,7 @@ CMPOPT=/Lv
 CMPOPT=/D_ML620Q504
 CMPOPT=/DLAZURITE_IDE
 CMPOPT=/DSUBGHZ
+CMPOPT=/DJP
 CMPOPT=/D_WDT
 
 OBJDIR=obj\\

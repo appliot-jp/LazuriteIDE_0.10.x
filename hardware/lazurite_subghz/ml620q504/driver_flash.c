@@ -31,7 +31,6 @@
 
 void flash_write(unsigned char sector, unsigned short address, unsigned short data)
 {
-	wdt_clear();
 	dis_interrupts(DI_DFLASH);
 	
 	set_bit(FSELF);
@@ -54,7 +53,6 @@ void flash_write_byte(unsigned char sector, unsigned short address, unsigned cha
 	unsigned short tmp_data;
 	unsigned short tmp_addr = address&~(0x0001);
 	
-	wdt_clear();
 	dis_interrupts(DI_DFLASH);
 	
 	tmp_data = flash_read(sector, address&0xFE);
@@ -108,7 +106,6 @@ unsigned char flash_read_byte(unsigned char sector, unsigned short address)
 
 void flash_erase(unsigned char sector)
 {
-	wdt_clear();
 	dis_interrupts(DI_DFLASH);
 
 	set_bit(FSELF);

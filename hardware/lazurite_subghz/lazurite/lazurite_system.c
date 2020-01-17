@@ -22,6 +22,7 @@
 	#pragma SEGCODE "OTA_SEGCODE"
 	#pragma SEGINIT "OTA_SEGINIT"
 	#pragma SEGNOINIT "OTA_SEGNOINIT"
+	#pragma SEGCONST "OTA_SEGCONST"
 #endif
 #include "common.h"
 #include "mcu.h"
@@ -73,7 +74,9 @@ static void stop_long_timer(void);
 #ifdef LAZURITE_BLE
 	extern void ble_timer_func();
 #endif
-
+#ifndef SUBGHZ
+	uint8_t subghz_api_status = 0;
+#endif
 //********************************************************************************
 //   local functions
 //********************************************************************************
@@ -165,27 +168,11 @@ void HALT_Until_Event(HALT_EVENT halt_event,uint16_t timeout)
 		timer_16bit_set(6,0xE8,timeout,halt_event_isr);
 		timer_16bit_start(6);
 	}
-	digitalWrite(25,LOW);
 	while(cont)
 	{
 		CHAR status;
 		if(getMIE() == 0) {
-			if(QTM1 == 1) {
-				isr_sys_timer();
-				QTM1 = 0;
-			}
-			if(QTM7 == 1) {
-				delay_isr();
-				QTM7 = 0;
-			}
-			if(QI2C0 == 1) {
-				i2c0_isr();
-				QI2C0 = 0;
-			}
-			if(QI2C1 == 1) {
-				i2c1_isr();
-				QI2C1 = 0;
-			}
+			di_wait();
 		} else {
 			lp_setHaltMode();
 		}
@@ -222,9 +209,7 @@ void HALT_Until_Event(HALT_EVENT halt_event,uint16_t timeout)
 			}
 			break;
 		}		
-		wdt_clear();
 	}
-	digitalWrite(25,HIGH);
 	if(timeout)
 		timer_16bit_stop(6);
 	return;
@@ -309,15 +294,26 @@ static void stop_long_timer(void)
 void delay_long(unsigned long ms)
 {
 	if(subghz_api_status != 0) {
-		uint32_t event_time;
-		event_time = millis();
-		while((millis() - event_time) < ms) {}
+		uint32_t st_time;
+		uint32_t now;
+		st_time = millis();
+		do {
+			now = millis();
+			if(getMIE() == 0) {
+				di_wait();
+			}
+			wdt_clear();
+		}
+		while(now - st_time < ms);
 	} else {
 		start_long_timer(ms);
-
 		while(delay_flag == false)
 		{
-			lp_setHaltMode();
+			if(getMIE() == 0) {
+				di_wait();
+			} else {
+				lp_setHaltMode();
+			}
 			wdt_clear();
 		}
 	}
@@ -329,9 +325,16 @@ void delay_long(unsigned long ms)
 void sleep_long(unsigned long ms)
 {
 	if(subghz_api_status != 0) {
-		uint32_t event_time;
-		event_time = millis();
-		while((millis() - event_time) < ms) {}
+		uint32_t st_time;
+		uint32_t now;
+		st_time = millis();
+		do {
+			now = millis();
+			if(getMIE() == 0) {
+				di_wait();
+			}
+		}
+		while(now - st_time < ms);
 	} else {
 		start_long_timer(ms);
 #ifdef PWR_LED
@@ -340,15 +343,7 @@ void sleep_long(unsigned long ms)
 		while(delay_flag == false)
 		{
 			if(getMIE() == 0) {
-				digitalWrite(25,LOW);
-				if(QTM1 == 1) {
-					isr_sys_timer();
-					QTM1 = 0;
-				}
-				if(QTM7 == 1) {
-					delay_isr();
-					QTM7 = 0;
-				}
+				di_wait();
 			}
 #ifdef SUBGHZ
 			if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
@@ -370,7 +365,6 @@ void sleep_long(unsigned long ms)
 #ifdef PWR_LED
 		drv_digitalWrite(11,LOW);		// PWR LED ON
 #endif
-		digitalWrite(25,HIGH);
 	} 
 	return;
 }
@@ -456,18 +450,6 @@ void wait_event(bool *flag)
 
 	while(*flag == false)
 	{
-		if(getMIE() == 0) {
-			digitalWrite(25,LOW);
-			if(QTM1 == 1) {
-				isr_sys_timer();
-				QTM1 = 0;
-			}
-			if(QTM7 == 1) {
-				delay_isr();
-				QTM7 = 0;
-			}
-			digitalWrite(25,LOW);
-		}
 #ifdef SUBGHZ
 		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
 #else
@@ -487,7 +469,6 @@ void wait_event(bool *flag)
 #ifdef PWR_LED
 	drv_digitalWrite(11,LOW);		// PWR LED ON
 #endif
-	digitalWrite(25,HIGH);
 }
 
 volatile unsigned long micros(void)
@@ -538,12 +519,6 @@ volatile void delay_microseconds(unsigned long us)
 
 	return;
 }
-
-#ifdef SUBGHZ_OTA
-#pragma SEGCODE
-#pragma SEGINIT
-#pragma SEGNOINIT
-#endif
 
 void interrupts()
 {
@@ -598,6 +573,34 @@ uint32_t wait_event_timeout(uint8_t *flag,uint32_t time)
 
 	return result;
 }
+void di_wait(void) {
+	if(getMIE() == 0) {
+		if(QTM1 == 1) {
+			isr_sys_timer();
+			QTM1 = 0;
+		}
+		if(QTM7 == 1) {
+			delay_isr();
+			QTM7 = 0;
+		}
+		uart_check_irq();
+		if(QI2C0 == 1) {
+			i2c0_isr();
+			QI2C0 = 0;
+		}
+		if(QI2C1 == 1) {
+			i2c1_isr();
+			QI2C1 = 0;
+		}
+	}
+}
+void alert(char * msg) {
+	if (U0EN == 0) {
+		Serial.begin(115200);
+	}
+	Serial.println(msg);
+	return;
+}
 
 static boolean vls_oneshot_check(uint8_t level)
 {
@@ -606,7 +609,7 @@ static boolean vls_oneshot_check(uint8_t level)
 	write_reg8(VLSCONL, level);		// set threshold
 
 	set_bit(ENVLS);					// VLS ON
-	while (VLSRF == 0) wdt_clear();	// wait until check result becomes valid
+	while (VLSRF == 0) {}	// wait until check result becomes valid
 
 	clear_bit(ENVLS);				// VLS OFF
 	return VLSF;					// return 0 : if greator than, 1 : if less than

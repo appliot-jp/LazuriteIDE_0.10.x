@@ -79,6 +79,7 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define PAYLOAD_SINGLE_LEN ( PAYLOAD_HEADER_SIZE + PAYLOAD_PARAM_SIZE )
 
 bool waitEventFlag = false;
+bool useInterruptFlag = false;
 static uint8_t mode,type;
 static uint32_t sleep_interval=DEFAULT_SLEEP_INTERVAL;
 static uint32_t prev_send_time=0;

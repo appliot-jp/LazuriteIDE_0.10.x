@@ -10,7 +10,6 @@
 ###### Include Path
 INCPATH=hardware\\lazurite_subghz
 INCPATH=hardware\\lazurite_subghz\\lazurite
-INCPATH=hardware\\lazurite_subghz\\lazurite
 INCPATH=hardware\\lazurite_subghz\\ml620q504
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\clock
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\common
@@ -18,14 +17,9 @@ INCPATH=hardware\\lazurite_subghz\\ml620q504\\irq
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\lp
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\mcu_small
 INCPATH=hardware\\lazurite_subghz\\ml620q504\\wdt
-INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\
-INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\api
-INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\core
-INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif
-INCPATH=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\others
 
 ###### Compiling source files
-PRJSRC=bin\\U8Dev\\Startup\\Src\\\ml620504f.asm
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\ml620504f.asm
 PRJSRC=hardware\\lazurite_subghz\\main.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\lazurite_system.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\flash.c
@@ -37,6 +31,7 @@ PRJSRC=hardware\\lazurite_subghz\\lazurite\\serial.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\tone.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\WInterrupts.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\wiring_shift.c
+PRJSRC=hardware\\lazurite_subghz\\lazurite\\wiring_pulse.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\WMath.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_adc.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_extirq.c
@@ -50,14 +45,6 @@ PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_uart.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\driver_flash.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\lp\\lp_manage.c
 PRJSRC=hardware\\lazurite_subghz\\ml620q504\\wdt\\wdt.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\subghz_api.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\api\\bp3596.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\api\\aes.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\core\\ml7396.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\hal_lazurite.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\ml7396_hwif_hal.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\spi0.c
-PRJSRC=hardware\\lazurite_subghz\\SUB_GHZ\\CTI\\hwif\\wire0.c
 
 ###### Compiling option
 CMPOPT=/TML620504F
@@ -71,13 +58,9 @@ CMPOPT=/SS512
 CMPOPT=/W3
 CMPOPT=/Lv
 CMPOPT=/D_ML620Q504
-CMPOPT=/DSUBGHZ
-#CMPOPT=/DLAZURITE_MINI
 CMPOPT=/DLAZURITE_IDE
-#POWER LED Control for Lazurite Mini
+#POWER LED Control for Lazurite Rev3
 CMPOPT=/DPWR_LED
-#LDO power mode control for Lazurite Mini
-CMPOPT=/DLDO_CNT
 
 OBJDIR=obj\\
 

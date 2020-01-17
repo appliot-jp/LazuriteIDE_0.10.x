@@ -38,6 +38,7 @@
 /*############################################################################*/
 static void ( *_sIrqHdr[IRQ_SIZE] )( void );	// Function for interrupt
 void _intNullHdr( void );
+unsigned short di_flag = 0;
 
 /*############################################################################*/
 /*#                               Prototype                                  #*/
@@ -149,7 +150,9 @@ static void s_handlerWDTINT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by WDTINT,         */
 	/* add to your aplication's code this.                                    */
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_WDTINT]();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerEXI0INT( void )
@@ -157,10 +160,9 @@ static void s_handlerEXI0INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by EXI0INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_ext0_dis(); 
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_EXI0INT]();
-	irq_ext0_ena();
-
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerEXI1INT( void )
@@ -168,9 +170,9 @@ static void s_handlerEXI1INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by EXI1INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_ext1_dis(); 
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_EXI1INT]();
-	irq_ext1_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerEXI2INT( void )
@@ -178,9 +180,9 @@ static void s_handlerEXI2INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by EXI2INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_ext2_dis(); 
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_EXI2INT]();
-	irq_ext2_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerEXI3INT( void )
@@ -188,9 +190,9 @@ static void s_handlerEXI3INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by EXI3INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_ext3_dis(); 
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_EXI3INT]();
-	irq_ext3_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerEXI4INT( void )
@@ -198,9 +200,9 @@ static void s_handlerEXI4INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by EXI4INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_ext4_dis(); 
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_EXI4INT]();
-	irq_ext4_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerEXI5INT( void )
@@ -208,9 +210,9 @@ static void s_handlerEXI5INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by EXI5INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_ext5_dis(); 
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_EXI5INT]();
-	irq_ext5_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerEXI6INT( void )
@@ -218,9 +220,9 @@ static void s_handlerEXI6INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by EXI6INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_ext6_dis(); 
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_EXI6INT]();
-	irq_ext6_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerEXI7INT( void )
@@ -228,9 +230,9 @@ static void s_handlerEXI7INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by EXI7INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_ext7_dis(); 
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_EXI7INT]();
-	irq_ext7_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerSIO0INT( void )
@@ -238,9 +240,9 @@ static void s_handlerSIO0INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by SIO0INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_sio0_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_SIO0INT]();
-	irq_sio0_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerSIOF0INT( void )
@@ -248,9 +250,9 @@ static void s_handlerSIOF0INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by SIOF0INT,       */
 	/* add to your aplication's code this.                                    */
-	irq_siof0_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_SIOF0INT]();
-	irq_siof0_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerI2C0INT( void )
@@ -258,9 +260,9 @@ static void s_handlerI2C0INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by I2C0INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_i2c0_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_I2C0INT]();
-	irq_i2c0_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerI2C1INT( void )
@@ -268,9 +270,9 @@ static void s_handlerI2C1INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by I2C1INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_i2c1_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_I2C1INT]();
-	irq_i2c1_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerUA0INT( void )
@@ -278,9 +280,9 @@ static void s_handlerUA0INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by UA0INT,         */
 	/* add to your aplication's code this.                                    */
-	irq_ua0_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_UA0INT]();
-	irq_ua0_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerUA1INT( void )
@@ -288,9 +290,9 @@ static void s_handlerUA1INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by UA1INT,         */
 	/* add to your aplication's code this.                                    */
-	irq_ua1_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_UA1INT]();
-	irq_ua1_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerUAF0INT( void )
@@ -298,9 +300,9 @@ static void s_handlerUAF0INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by UAF0INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_uaf0_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_UAF0INT]();
-	irq_uaf0_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerLOSCINT( void )
@@ -308,9 +310,9 @@ static void s_handlerLOSCINT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by LOSCINT,        */
 	/* add to your aplication's code this.                                    */
-	irq_losc_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_LOSCINT]();
-	irq_losc_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerVLSINT( void )
@@ -318,9 +320,9 @@ static void s_handlerVLSINT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by VLSINT,         */
 	/* add to your aplication's code this.                                    */
-    irq_vls_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_VLSINT]();
-	irq_vls_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerMD0INT( void )
@@ -328,9 +330,9 @@ static void s_handlerMD0INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by MD0INT,         */
 	/* add to your aplication's code this.                                    */
-	irq_md0_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_MD0INT]();
-	irq_md0_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerSADINT( void )
@@ -338,9 +340,9 @@ static void s_handlerSADINT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by SADINT,         */
 	/* add to your aplication's code this.                                    */
-	irq_sad_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_SADINT]();
-	irq_sad_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerRADINT( void )
@@ -348,9 +350,9 @@ static void s_handlerRADINT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by RADINT,         */
 	/* add to your aplication's code this.                                    */
-	irq_rad_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_RADINT]();
-	irq_rad_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerCMP0INT( void )
@@ -358,9 +360,9 @@ static void s_handlerCMP0INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by CMP0INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_cmp0_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_CMP0INT]();
-	irq_cmp0_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerCMP1INT( void )
@@ -368,9 +370,9 @@ static void s_handlerCMP1INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by CMP1INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_cmp1_dis();
 	_sIrqHdr[IRQ_NO_CMP1INT]();
-	irq_cmp1_ena();
+	di_flag &= ~DI_INTERRUPT;
+	di_flag |= DI_INTERRUPT;
 }
 
 static void s_handlerTM0INT( void )
@@ -378,9 +380,9 @@ static void s_handlerTM0INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by TM0INT,         */
 	/* add to your aplication's code this.                                    */
-	irq_tm0_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_TM0INT]();
-	irq_tm0_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerTM1INT( void )
@@ -388,9 +390,9 @@ static void s_handlerTM1INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by TM1INT,         */
 	/* add to your aplication's code this.                                    */
-	irq_tm1_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_TM1INT]();
-	irq_tm1_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerTM2INT( void )
@@ -398,9 +400,9 @@ static void s_handlerTM2INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by TM2INT,         */
 	/* add to your aplication's code this.                                    */
-	irq_tm2_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_TM2INT]();
-	irq_tm2_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerTM3INT( void )
@@ -408,9 +410,9 @@ static void s_handlerTM3INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by TM3INT,         */
 	/* add to your aplication's code this.                                    */
-	irq_tm3_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_TM3INT]();
-	irq_tm3_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerTM4INT( void )
@@ -418,9 +420,9 @@ static void s_handlerTM4INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by TM4INT,         */
 	/* add to your aplication's code this.                                    */
-	irq_tm4_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_TM4INT]();
-	irq_tm4_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerTM5INT( void )
@@ -428,9 +430,9 @@ static void s_handlerTM5INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by TM5INT,         */
 	/* add to your aplication's code this.                                    */
-	irq_tm5_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_TM5INT]();
-	irq_tm5_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerTM6INT( void )
@@ -438,9 +440,9 @@ static void s_handlerTM6INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by TM6INT,         */
 	/* add to your aplication's code this.                                    */
-	irq_tm6_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_TM6INT]();
-	irq_tm6_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerTM7INT( void )
@@ -448,9 +450,9 @@ static void s_handlerTM7INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by TM7INT,         */
 	/* add to your aplication's code this.                                    */
-	irq_tm7_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_TM7INT]();
-	irq_tm7_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerFTM0INT( void )
@@ -458,9 +460,9 @@ static void s_handlerFTM0INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by FTM0INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_ftm0_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_FTM0INT]();
-	irq_ftm0_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerFTM1INT( void )
@@ -468,9 +470,9 @@ static void s_handlerFTM1INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by FTM1INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_ftm1_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_FTM1INT]();
-	irq_ftm1_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerFTM2INT( void )
@@ -478,9 +480,9 @@ static void s_handlerFTM2INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by FTM2INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_ftm2_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_FTM2INT]();
-	irq_ftm2_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerFTM3INT( void )
@@ -488,9 +490,9 @@ static void s_handlerFTM3INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by FTM3INT,        */
 	/* add to your aplication's code this.                                    */
-	irq_ftm3_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_FTM3INT]();
-	irq_ftm3_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerLTBC0INT( void )
@@ -498,9 +500,9 @@ static void s_handlerLTBC0INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by LTBC0INT,       */
 	/* add to your aplication's code this.                                    */
-	irq_tbc0_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_LTBC0INT]();
-	irq_tbc0_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerLTBC1INT( void )
@@ -508,9 +510,9 @@ static void s_handlerLTBC1INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by LTBC1INT,       */
 	/* add to your aplication's code this.                                    */
-	irq_tbc1_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_LTBC1INT]();
-	irq_tbc1_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerLTBC2INT( void )
@@ -518,9 +520,9 @@ static void s_handlerLTBC2INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by LTBC2INT,       */
 	/* add to your aplication's code this.                                    */
-	irq_tbc2_dis();
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_LTBC2INT]();
-	irq_tbc2_ena();
+	di_flag &= ~DI_INTERRUPT;
 }
 
 /*******************************************************************************
@@ -575,7 +577,6 @@ int irq_sethandler( unsigned char intNo, void (*func)( void ) )
 }
 
 
-static unsigned short di_flag = 0;
 void rst_interrupts(void)
 {
 	di_flag = 0;
@@ -594,32 +595,14 @@ unsigned char getMIE(void)
 
 void enb_interrupts(unsigned short irq_ch)
 {
-	if(di_flag & DI_INTERRUPT)		// 前回の割り込み禁止処理が割り込み処理中に行われた場合
-									// 割り込み処理用の割り込み禁止ビットをクリア
-	{
-		di_flag &= ~DI_INTERRUPT;
-	}
-	else
-	{
-		di_flag &= ~irq_ch;			// 割り込み禁止中フラグをリセット
+	di_flag &= ~irq_ch;			// 割り込み禁止中フラグをリセット
 		if(di_flag == 0) __EI();	// 何れからも割り込み禁止されていなければ割り込み許可
-	}
 }
 
 
 void dis_interrupts(unsigned short irq_ch)
 {
-	// 割り込み禁止ではないのにMIEビットが0のとき、
-	// すなわち割り込み処理中のときはDI_INTERRUPTのフラグを立てる
-	if((getMIE()==0) && (di_flag==0))		
-	{
-		di_flag |= DI_INTERRUPT;
-	}
-	else
-	{
 		__DI();						// 割り込み禁止
 		di_flag |= irq_ch;			// 割り込み禁止中フラグをセット
-		
-	}
 }
 
