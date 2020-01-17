@@ -68,7 +68,7 @@ void print_init(char* x, size_t size)
 
 int printBuf_ln(void)
 {
-	static unsigned char s[] = "\n";
+	static const char s[] = "\n";
 
 	if((print_buf_size == 0) || (print_buf == NULL)) return;
 	
@@ -173,7 +173,7 @@ size_t printFloat(char* x, double data, unsigned char digit)
 	double round;
 	size_t n = 0;
 	unsigned char i;
-	static unsigned char s[] = "ovf";
+	static const char s[] = "ovf";
 
 	// check overflow
 	if((data > 2147483647.5)||(data < -2147483647.5))

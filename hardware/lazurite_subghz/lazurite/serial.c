@@ -45,6 +45,7 @@
 //********************************************************************************
 //   local parameters
 //********************************************************************************
+static const char crlf[] = "\r\n";
 
 //********************************************************************************
 //   local function definitions
@@ -366,14 +367,13 @@ void _hardware_serial2_print(char* data)
 // print data with CR and LF.
 void _hardware_serial_println(char* data)
 {
-	static unsigned char s[] = "\r\n";
 	_hardware_serial_print(data);
-	_hardware_serial_print(s);
+	_hardware_serial_print(crlf);
 }
 void _hardware_serial2_println(char* data)
 {
 	static unsigned char s[] = "\r\n";
 	_hardware_serial2_print(data);
-	_hardware_serial2_print(s);
+	_hardware_serial2_print(crlf);
 }
 
