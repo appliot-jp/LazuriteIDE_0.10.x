@@ -1211,6 +1211,7 @@ void loop() {
 	// put your main code here, to run repeatedly:
 	uint32_t remain_time=0;
 
+	wdt_clear();
 	// switching tasks
 	mip.func_mode = functions[mip.func_mode]();
 	// sleep or wait event

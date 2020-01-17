@@ -270,6 +270,7 @@ static bool activate_update(TRX_RETRY *p) {
 	int i = 0;
 
 	while (1) {
+		wdt_clear();
 		SubGHz.begin(SUBGHZ_CH,p->gateway_panid,BAUD,PWR);
 		SubGHz.rxEnable(NULL);
 		digitalWrite(BLUE_LED,LOW);
@@ -280,6 +281,7 @@ static bool activate_update(TRX_RETRY *p) {
 		Serial.println("Waiting for receiving data...");
 #endif
 		while (1) {
+			wdt_clear();
 			rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
 			rx_buf[rx_len] = 0;											// null terminate
 			if (rx_len > 0) {
@@ -735,6 +737,7 @@ static void fw_update(void) {
 		prev_send_time = millis();
 
 		while (1) {
+			wdt_clear();
 			rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
 			rx_buf[rx_len] = 0;												// null terminate
 			if (rx_len > 0) {
