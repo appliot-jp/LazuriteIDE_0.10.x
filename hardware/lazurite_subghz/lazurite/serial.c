@@ -300,7 +300,7 @@ void _hardware_serial2_println_double(double data, UCHAR digit)
 void _hardware_serial_print_double(double data, UCHAR digit)
 {
 	char tmp_c[33];
-	unsigned char n;
+//	unsigned char n;
 	printFloat(tmp_c,data,digit);
 //	for(n = 0; n < 33; n++)
 //	{
@@ -311,7 +311,7 @@ void _hardware_serial_print_double(double data, UCHAR digit)
 void _hardware_serial2_print_double(double data, UCHAR digit)
 {
 	char tmp_c[33];
-	unsigned char n;
+//	unsigned char n;
 	printFloat(tmp_c,data,digit);
 //	for(n = 0; n < 33; n++)
 //	{
@@ -372,7 +372,6 @@ void _hardware_serial_println(char* data)
 }
 void _hardware_serial2_println(char* data)
 {
-	static unsigned char s[] = "\r\n";
 	_hardware_serial2_print(data);
 	_hardware_serial2_print(crlf);
 }
