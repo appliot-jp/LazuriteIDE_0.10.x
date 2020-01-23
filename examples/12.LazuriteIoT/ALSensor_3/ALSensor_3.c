@@ -72,10 +72,24 @@ void sensor_deactivate(void) {
  */
 void sensor_meas(SensorState s[]) {
 	SENSOR_VAL *val = &(s[0].sensor_val);
-	uint16_t ps_val;
 	float als_val;
+	uint8_t reg = 0x86, data[6];
+	uint16_t rawals[2];
 
-	rpr0521rs.get_oneShot(&ps_val, &als_val);
+//	rpr0521rs.get_oneShot(&ps_val, &als_val);
+
+	rpr0521rs.write(RPR0521RS_MODE_CONTROL, &reg, sizeof(reg));
+	sleep(100);			// measurement time
+
+	rpr0521rs.get_rawpsalsval(data);
+	
+	rawals[0] = ((unsigned short)data[3] << 8) | data[2];
+	rawals[1] = ((unsigned short)data[5] << 8) | data[4];
+
+	als_val = rpr0521rs.convert_lux(rawals);
+
+	reg = 0;
+	rpr0521rs.write(RPR0521RS_MODE_CONTROL, &reg, sizeof(reg));
 	val->data.double_val=als_val;  val->type = DOUBLE_VAL; val->digit = 2;
 	
 	return;

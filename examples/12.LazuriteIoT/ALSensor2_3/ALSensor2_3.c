@@ -1,6 +1,6 @@
-#include "ALSensor2_2_ide.h"		// Additional Header
+#include "ALSensor2_3_ide.h"		// Additional Header
 
-/* FILE NAME: ALSensor2_2.c
+/* FILE NAME: ALSensor2_3.c
  * The MIT License (MIT)
  *
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
@@ -33,8 +33,8 @@
 
 static int data_buf_index = 0;
 #define DATA_BUF_LENGTH  8
-#define BLUE_LED 25
-#define ORANGE_LED 26
+#define ORANGE_LED 25
+#define BLUE_LED 26
 static float data_buf[DATA_BUF_LENGTH];
 
 static void mstimer2_isr(void) {
@@ -44,6 +44,7 @@ static void mstimer2_isr(void) {
 
 char* sensor_init() {
 	static char filename[] = __FILE__;
+	//digitalWrite(ORANGE_LED,LOW);
 	Wire.begin();
 	return filename;
 }
@@ -54,7 +55,7 @@ char* sensor_init() {
  *         false: sensor_meas is called immidialtely
  */
 bool sensor_activate(void) {
-	uint8_t reg = 0xE6;
+	uint8_t reg = 0x86;
 	for(data_buf_index=0;data_buf_index < DATA_BUF_LENGTH; data_buf_index++) {
 		data_buf[data_buf_index] = 0;
 	}
@@ -70,6 +71,7 @@ bool sensor_activate(void) {
  */
 void sensor_deactivate(void) {
 	timer2.stop();
+	//digitalWrite(ORANGE_LED,HIGH);
 }
 
 /*
@@ -91,13 +93,13 @@ void sensor_meas(SensorState s[]) {
 	SENSOR_VAL *val = &(s[0].sensor_val);
 	float als_val;
 	int i;
-	uint8_t rawval[6];
+	uint8_t rawval[4];
 	uint16_t rawals[2];
 
-	rpr0521rs.read(RPR0521RS_PS_DATA_LSB, rawval, 6);
+	rpr0521rs.read(RPR0521RS_ALS_DATA0_LSB, rawval, 4);
 
-	rawals[0] = ((unsigned short)rawval[3] << 8) | rawval[2];
-	rawals[1] = ((unsigned short)rawval[5] << 8) | rawval[4];
+	rawals[0] = ((unsigned short)rawval[1] << 8) | rawval[0];
+	rawals[1] = ((unsigned short)rawval[3] << 8) | rawval[2];
 
 	als_val = rpr0521rs.convert_lux(rawals);
 	data_buf[data_buf_index] = als_val;
