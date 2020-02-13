@@ -602,7 +602,7 @@ void alert(char * msg) {
 	return;
 }
 
-static boolean vls_oneshot_check(uint8_t level)
+static uint8_t vls_oneshot_check(uint8_t level)
 {
 	clear_bit(ENVLS);				// VLS OFF
 	write_reg16(VLSMOD, 0x700);		// reset : NO, interrupt : NO, sampling : YES
@@ -612,7 +612,22 @@ static boolean vls_oneshot_check(uint8_t level)
 	while (VLSRF == 0) {}	// wait until check result becomes valid
 
 	clear_bit(ENVLS);				// VLS OFF
-	return VLSF;					// return 0 : if greator than, 1 : if less than
+	return (uint8_t)VLSF;					// return 0 : if greator than, 1 : if less than
+}
+
+// -1 : out of range, 0 : if greator than, 1 : if less than
+int voltage_check_oneshot(uint8_t level)
+{
+	uint8_t res;
+	if ((level >= VLS_1_898) && (level <= VLS_4_667))	// check the range of level
+	{
+		clear_bit(DVLS);			// enable VLS
+		res = vls_oneshot_check(level);
+		set_bit(DVLS);				// disable VLS
+		return (int)res;
+	} else {
+		return -1;
+	}
 }
 
 // starts checking from "level" assigned in argument.
@@ -626,7 +641,7 @@ uint8_t voltage_check(uint8_t level)
 	if ((level >= VLS_1_898) && (level <= VLS_4_667))	// check the range of level
 	{
 		clear_bit(DVLS);			// enable VLS
-		while (vls_oneshot_check(level))
+		while (vls_oneshot_check(level) == 1)
 		{
 			level--;
 			if (level < VLS_1_898) break;
@@ -636,3 +651,4 @@ uint8_t voltage_check(uint8_t level)
 	}
 	return ret;
 }
+

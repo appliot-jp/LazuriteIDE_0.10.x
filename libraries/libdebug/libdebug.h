@@ -27,6 +27,9 @@
 #ifdef BREAK_MODE
 	#define BREAK(m);		Serial.println(m);				\
 							while(Serial.read() != '\r');
+	#define BREAKS(m,a);	Serial.print(m);				\
+							Serial.println(a);				\
+							while(Serial.read() != '\r');
 	#define BREAKE(m,F);	Serial.println(m);				\
 							while(Serial.read() != '\r')	\
 							{								\
@@ -40,6 +43,8 @@
 							while(Serial.read() != '\r');
 #else
 	#define BREAK(m);		Serial.println(m);				
+	#define BREAKS(m,a);	Serial.print(m);				\
+							Serial.println(a);
 	#define BREAKE(m,E);	Serial.println(m);				
 	#define BREAKL(m,a,b);	Serial.print(m);				\
 							Serial.println_long(a,b);		
@@ -48,6 +53,7 @@
 #endif // BREAK_MODE
 #else	// LIB_DEBUG
 	#define BREAK(m)
+	#define BREAKS(m,a)
 	#define BREAKE(m,E)
 	#define BREAKL(m,a,b)
 	#define BREAKD(m,a,b)
