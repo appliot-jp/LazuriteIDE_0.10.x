@@ -15,14 +15,14 @@ OPTION_NAME=LAZURITE Sub-GHz
 OPTION_BUILD=hardware\\lazurite_subghz3\\build\\lazurite3_SubGHz.bld
 OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
 
-OPTION_NAME=LAZURITE Sub-GHz(Abroad)
-OPTION_BUILD=hardware\\lazurite_subghz3\\build\\lazurite3_SubGHz_abroad.bld
+OPTION_NAME=LAZURITE Sub-GHz(TW)
+OPTION_BUILD=hardware\\lazurite_subghz3\\build\\lazurite3_SubGHz_tw.bld
 OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
 
-OPTION_NAME=LAZURITE 4K
-OPTION_BUILD=hardware\\lazurite_subghz3\\build\\lazurite3_4k.bld
+OPTION_NAME=LAZURITE MK74040
+OPTION_BUILD=hardware\\lazurite_subghz3\\build\\lazurite3_mk74040.bld
 OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
 
-OPTION_NAME=LAZURITE 4K(Abroad)
-OPTION_BUILD=hardware\\lazurite_subghz3\\build\\lazurite3_4k_abroad.bld
+OPTION_NAME=LAZURITE MK74040(TW)
+OPTION_BUILD=hardware\\lazurite_subghz3\\build\\lazurite3_mk74040_tw.bld
 OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h

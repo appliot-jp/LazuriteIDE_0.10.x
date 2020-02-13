@@ -27,6 +27,7 @@
 #include "common.h"
 #include "lazurite.h"
 #include "driver_pin_assignment.h"
+#include "driver_extirq.h"
 #include "driver_irq.h"
 #include "driver_gpio.h"
 #include "mcu.h"
@@ -50,11 +51,6 @@ void isr_ext_irq5(void);
 void isr_ext_irq6(void);
 void isr_ext_irq7(void);
 
-typedef struct {
-	void (*func)(void);
-	int mode;
-	unsigned char pin;
-} EXT_IRQ_PARAM;
 
 EXT_IRQ_PARAM ext_irq_param[8];
 
@@ -108,31 +104,27 @@ const unsigned char ml620504f_exisel[ML620504F_MAX_PIN_NO+1] =
 void isr_ext_irq(unsigned char irqnum)
 {
 	unsigned long start_time = 0;
+	volatile uint8_t pinData;
 	
 	while(1)
 	{
 		ext_irq_param[irqnum].func();
-		if(ext_irq_param[irqnum].mode != LOW)
-		{
+		if(ext_irq_param[irqnum].mode != LOW) {
 			break;
+		} else {
+			pinData = drv_digitalRead(ext_irq_param[irqnum].pin);
+			if(pinData != LOW) {
+				break;
+			}
 		}
-		else if(drv_digitalRead(ext_irq_param[irqnum].pin)!=LOW)
-		{
-			break;
-		}
-		if(start_time == 0)
-		{
+		if(start_time == 0) {
 			start_time = millis();
-		}
-		else
-		{
+		} else {
 			unsigned long now = millis();
-			if((now - start_time)>1000)
-			{
+			if((now - start_time)>1000) {
 				__asm("brk\n");
 			}
 		}
-		
 	}
 }
 
@@ -152,81 +144,81 @@ void drv_attachInterrupt(unsigned char pin,unsigned char irqnum, void (*func)(vo
 	if(pin > ML620504F_MAX_PIN_NO) return;
 	if(func == NULL) return;
 	if(irqnum > ML620504F_MAX_EXTIRQ_NO) return;
-	
+
 	exisel = &EXI0SEL;
-	
+
 	IE1 &= ~num_to_bit[irqnum];			// disenable IRQ
 	IRQ1 &= ~num_to_bit[irqnum];		// clear IRQ
-	
+
 	ext_irq_param[irqnum].pin = pin;
 	ext_irq_param[irqnum].func = func;
 	ext_irq_param[irqnum].mode = mode;
-	
-	
+
+
 	// set interrupt handler
 	switch(irqnum)
 	{
-	case 0:
-		irq_sethandler(IRQ_NO_EXI0INT,isr_ext_irq0);	// set callback function
-		break;
-	case 1:
-		irq_sethandler(IRQ_NO_EXI1INT,isr_ext_irq1);	// set callback function
-		break;
-	case 2:
-		irq_sethandler(IRQ_NO_EXI2INT,isr_ext_irq2);	// set callback function
-		break;
-	case 3:
-		irq_sethandler(IRQ_NO_EXI3INT,isr_ext_irq3);	// set callback function
-		break;
-	case 4:
-		irq_sethandler(IRQ_NO_EXI4INT,isr_ext_irq4);	// set callback function
-		break;
-	case 5:
-		irq_sethandler(IRQ_NO_EXI5INT,isr_ext_irq5);	// set callback function
-		break;
-	case 6:
-		irq_sethandler(IRQ_NO_EXI6INT,isr_ext_irq6);	// set callback function
-		break;
-	case 7:
-		irq_sethandler(IRQ_NO_EXI7INT,isr_ext_irq7);	// set callback function
-		break;
-	default:
-		break;
+		case 0:
+			irq_sethandler(IRQ_NO_EXI0INT,isr_ext_irq0);	// set callback function
+			break;
+		case 1:
+			irq_sethandler(IRQ_NO_EXI1INT,isr_ext_irq1);	// set callback function
+			break;
+		case 2:
+			irq_sethandler(IRQ_NO_EXI2INT,isr_ext_irq2);	// set callback function
+			break;
+		case 3:
+			irq_sethandler(IRQ_NO_EXI3INT,isr_ext_irq3);	// set callback function
+			break;
+		case 4:
+			irq_sethandler(IRQ_NO_EXI4INT,isr_ext_irq4);	// set callback function
+			break;
+		case 5:
+			irq_sethandler(IRQ_NO_EXI5INT,isr_ext_irq5);	// set callback function
+			break;
+		case 6:
+			irq_sethandler(IRQ_NO_EXI6INT,isr_ext_irq6);	// set callback function
+			break;
+		case 7:
+			irq_sethandler(IRQ_NO_EXI7INT,isr_ext_irq7);	// set callback function
+			break;
+		default:
+			break;
 	}
-	
+
 	*(exisel+irqnum) = ml620504f_exisel[pin];						// set port number for ext irq.
-	
+
 	(sampling) ? (EXICON2 |= num_to_bit[irqnum]) : (EXICON2 &= ~num_to_bit[irqnum]);	// seting of sampling
 	(filter) ? (EXICON3 |= num_to_bit[irqnum]) : (EXICON3 &= ~num_to_bit[irqnum]);		// setting of filter
-	
+
 	switch(mode)
 	{
-	case LOW:		// FALLING EDGE
-		EXICON0 |= num_to_bit[irqnum];
-		EXICON1 &= ~num_to_bit[irqnum];
-		if(drv_digitalRead(pin) == LOW)
-		{
-			IRQ1 |= num_to_bit[irqnum];							// if pin is already LOW, set trigger of interrupt;
-		}
-		break;
-	case RISING:	// RISING EDGE
-		EXICON0 &= ~num_to_bit[irqnum];
-		EXICON1 |= num_to_bit[irqnum];
-		break;
-	case FALLING:	// FALLING EDGE
-		EXICON0 |= num_to_bit[irqnum];
-		EXICON1 &= ~num_to_bit[irqnum];
-		break;
-	case CHANGE:	// BOTH EDGE
-		EXICON0 |= num_to_bit[irqnum];
-		EXICON1 |= num_to_bit[irqnum];
-		break;
-	default:
-		break;
+		case LOW:		// FALLING EDGE
+			EXICON0 |= num_to_bit[irqnum];
+			EXICON1 &= ~num_to_bit[irqnum];
+			if(drv_digitalRead(pin) == LOW)
+			{
+				IRQ1 |= num_to_bit[irqnum];							// if pin is already LOW, set trigger of interrupt;
+			}
+			break;
+		case RISING:	// RISING EDGE
+			EXICON0 &= ~num_to_bit[irqnum];
+			EXICON1 |= num_to_bit[irqnum];
+			break;
+		case FALLING:	// FALLING EDGE
+			EXICON0 |= num_to_bit[irqnum];
+			EXICON1 &= ~num_to_bit[irqnum];
+			break;
+		case CHANGE:	// BOTH EDGE
+			EXICON0 |= num_to_bit[irqnum];
+			EXICON1 |= num_to_bit[irqnum];
+			break;
+		default:
+			break;
 	}
-	
+
 	IE1 |= num_to_bit[irqnum];			// disenable IRQ
-	
+
 }
 
 
