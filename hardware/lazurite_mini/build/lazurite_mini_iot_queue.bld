@@ -21,7 +21,7 @@ INCPATH=hardware\\lazurite_subghz\\LazDriver\\
 
 ###### Compiling source files
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\ml620504f_LP.asm
-PRJSRC=hardware\\lazurite_subghz\\main_iot_queue.c
+PRJSRC=hardware\\lazurite_subghz\\main_iot.c
 PRJSRC=hardware\\lazurite_subghz\\main.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\lazurite_system.c
 PRJSRC=hardware\\lazurite_subghz\\lazurite\\flash.c
@@ -78,6 +78,7 @@ CMPOPT=/DPWR_LED
 CMPOPT=/D_WDT
 CMPOPT=/DIOT
 CMPOPT=/DSUBGHZ_OTA
+CMPOPT=/DIOT_QUEUE
 
 OBJDIR=obj\\
 
