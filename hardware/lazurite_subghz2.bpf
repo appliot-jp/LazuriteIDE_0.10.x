@@ -31,6 +31,6 @@ OPTION_NAME=LAZURITE Sub-GHz IoT
 OPTION_BUILD=hardware\\lazurite_subghz\\build\\lazurite_SubGHz_iot.bld
 OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
 
-#OPTION_NAME=LAZURITE Sub-GHz(OTA)
-#OPTION_BUILD=hardware\\lazurite_subghz\\build\\lazurite_SubGHz_ota.bld
-#OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
+OPTION_NAME=LAZURITE Sub-GHz IoT (Queue)
+OPTION_BUILD=hardware\\lazurite_subghz\\build\\lazurite_SubGHz_iot_queue.bld
+OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h

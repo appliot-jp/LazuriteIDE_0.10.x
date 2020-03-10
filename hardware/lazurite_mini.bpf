@@ -24,13 +24,9 @@ OPTION_NAME=LAZURITE IoT
 OPTION_BUILD=hardware\\lazurite_mini\\build\\lazurite_mini_iot.bld
 OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
 
-#OPTION_NAME=LAZURITE mini series (OTA)
-#OPTION_BUILD=hardware\\lazurite_mini\\build\\lazurite_mini_ota.bld
-#OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
-
-#OPTION_NAME=LAZURITE IoT (Queue)
-#OPTION_BUILD=hardware\\lazurite_mini\\build\\lazurite_mini_iot_queue.bld
-#OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
+OPTION_NAME=LAZURITE IoT (Queue)
+OPTION_BUILD=hardware\\lazurite_mini\\build\\lazurite_mini_iot_queue.bld
+OPTION_HEADER=hardware\\lazurite_subghz\\lazurite\\lazurite.h
 
 #OPTION_NAME=LAZURITE mini series(BLE)
 #OPTION_BUILD=hardware\\lazurite_mini\\build\\lazurite_ble.bld

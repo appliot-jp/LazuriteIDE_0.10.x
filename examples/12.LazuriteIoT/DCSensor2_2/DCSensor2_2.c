@@ -1,6 +1,6 @@
-#include "DCSensor2_1_ide.h"		// Additional Header
+#include "DCSensor2_2_ide.h"		// Additional Header
 
-/* FILE NAME: DCSensor2_1.c
+/* FILE NAME: DCSensor2_2.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
@@ -27,6 +27,7 @@
 
 #define HALL_PIN				( 3 )
 #define HALL_INT				( 1 )
+#define DC_SENSOR_NUM		( 4 )
 
 void callback(void)
 {
@@ -41,6 +42,7 @@ void callback(void)
 char* sensor_init() {
 	static char filename[] = __FILE__;
 	analogReadResolution(12);
+	useInterruptFlag = true;
 
 	return filename;
 }
@@ -80,18 +82,23 @@ void sensor_deactivate(void) {
  * val->data.double_val=xxx;  val->type = DOUBLE_VAL; val->digit = d;
  */
 void sensor_meas(SensorState s[]) {
-	SENSOR_VAL *val = &(s[0].sensor_val);
-	uint16_t data;
+	SENSOR_VAL *val;
+	uint16_t data[DC_SENSOR_NUM];
+	int i;
 
-	data = analogRead(14);
+	for (i=0; i<DC_SENSOR_NUM; i++) {
+		val = &(s[i].sensor_val);
+		data[i] = analogRead((uint8_t)(14+i));
+		val->data.uint16_val = data[i];
+		val->type = UINT16_VAL;
+	}
 
-	val->data.uint16_val=data;
-	val->type = UINT16_VAL;
-
-	Serial.print("STX,");
-	Serial.print_long((long)data,DEC);
+	Serial.print("STX");
+	for (i=0; i<DC_SENSOR_NUM; i++) {
+		Serial.print(",");
+		Serial.print_long((long)data[i],DEC);
+	}
 	Serial.println(",ETX");
-
 	return;
 }
 

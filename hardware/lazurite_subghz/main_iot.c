@@ -638,10 +638,10 @@ static uint8_t sensor_genPayload(void) {
 		}
 		Print.p(",");
 		Print.p(vls_val[ptr->vls_level]);
+		Print.p(",");
 		if (((ptr->next_state == SENSOR_STATE_OFF_STABLE)
 					|| (ptr->next_state == SENSOR_STATE_OFF_UNSTABLE))
 				&& (ptr->reason != INVALID_REASON)) {
-			Print.p(",");
 			Print.l((long)ptr->reason,DEC);
 		}
 #ifdef IOT_QUEUE
