@@ -36,7 +36,7 @@
 //   local definitions
 //********************************************************************************
 typedef struct {
-	BOOLEAN	flag;			// flag of i2c isr
+//	BOOLEAN	flag;			// flag of i2c isr
 	UCHAR	*rx_buffer;		// buffer of RX
 	UINT16	rx_index;		// buffer pointer of RX
 	UINT16	rx_length;		// length to read
@@ -77,7 +77,6 @@ void i2c_init(UCHAR ch)
 	
 	// reset common flag
 	I2C[ch].status = I2C_MODE_IDLE;
-	I2C[ch].flag = false;
 	I2C[ch].err_code = 0;
 	
 	// Initializing hardware
@@ -171,7 +170,6 @@ void i2c_start(UCHAR ch, BOOLEAN write, BOOLEAN cont)
 	UCHAR start_code = 0;
 
 	if(ch>=2) return;
-	I2C[ch].flag = false;
 	I2C[ch].err_code = 0;
 
 // set register pointer
@@ -218,17 +216,6 @@ void i2c_start(UCHAR ch, BOOLEAN write, BOOLEAN cont)
 	return;
 }
 
-// I2C0 interrupt handler
-void i2c0_isr(void)
-{
-	I2C[0].flag = true;
-}
-
-// I2C1 interrupt handler
-void i2c1_isr(void)
-{
-	I2C[1].flag = true;
-}
 
 // I2C handler
 // 15.09.20 Naotaka Saito correct return value of endTransmission
@@ -240,9 +227,9 @@ void i2c_isr(UCHAR ch)
 	UCHAR startcode = 0;
 	UCHAR i2c_result = 0;
 	
-	if(	I2C[ch].flag == false) return;
+//	if(	I2C[ch].flag == false) return;
 	
-	I2C[ch].flag = false;
+//	I2C[ch].flag = false;
 // Get register pointer of I2C
 	switch(ch)
 	{
@@ -347,6 +334,17 @@ void i2c_isr(UCHAR ch)
 	if(startcode != 0) *reg_CON = startcode;
 	
 	return;
+}
+// I2C0 interrupt handler
+void i2c0_isr(void)
+{
+	i2c_isr(0);
+}
+
+// I2C1 interrupt handler
+void i2c1_isr(void)
+{
+	i2c_isr(1);
 }
 
 BOOLEAN i2c_check_read_last_data(UCHAR ch)
