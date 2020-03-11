@@ -24,7 +24,7 @@
 #endif
 /* --- Common Header --- */
 #include <mcu.h>
-#include <lazurite.h>
+#include "lazurite_system.h"
 
 static void (*fn_p[2])(void) = {setup, loop};
 
