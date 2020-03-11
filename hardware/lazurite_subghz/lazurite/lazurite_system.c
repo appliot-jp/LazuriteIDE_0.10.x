@@ -159,31 +159,26 @@ static void halt_event_isr(void)
 }
 void HALT_Until_Event(HALT_EVENT halt_event,uint16_t timeout)
 {
-	BOOLEAN cont;
-	cont = true;
+	bool cont = true;
+	uint8_t status;
 	halt_event_flag = false;
 	
-	if(timeout)
-	{
+	if((timeout != 0) &&(getMIE() == 1)) {
 		timer_16bit_set(6,0xE8,timeout,halt_event_isr);
 		timer_16bit_start(6);
 	}
 	while(cont)
 	{
-		CHAR status;
 		if(getMIE() == 0) {
 			di_wait();
 		} else {
 			lp_setHaltMode();
 		}
-		// process during waiting
-		i2c_isr(0);
-		i2c_isr(1);
 		switch(halt_event)
 		{
 		case HALT_I2C1_END:
 			status=i2c_get_status(1);
-			if((halt_event_flag)||((!timeout)&&(status == I2C_MODE_ERROR)))
+			if((halt_event_flag)||(status == I2C_MODE_ERROR))
 			{
 				i2c_force_stop(1);
 				cont = false;
@@ -194,7 +189,7 @@ void HALT_Until_Event(HALT_EVENT halt_event,uint16_t timeout)
 			break;
 		case HALT_I2C0_END:
 			status=i2c_get_status(0);
-			if((halt_event_flag)||((!timeout)&&(status == I2C_MODE_ERROR)))
+			if((halt_event_flag)||(status == I2C_MODE_ERROR))
 			{
 				i2c_force_stop(0);
 				cont = false;

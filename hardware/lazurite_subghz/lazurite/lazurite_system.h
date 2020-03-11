@@ -23,7 +23,6 @@
 #define _ARDUINO_SYSTEM_H_
 
 #include "common.h"
-#include "lazurite.h"
 
 //********************************************************************************
 //   global definitions

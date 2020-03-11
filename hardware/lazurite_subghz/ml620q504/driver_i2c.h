@@ -34,8 +34,8 @@
 #define I2C_MODE_DIS		0		// I2C is not available
 #define I2C_MODE_IDLE		1		// Initialized I2C hardware, but parameter is not
 #define I2C_MODE_READY		2
-#define I2C_MODE_STOPBIT	3
-#define I2C_MODE_ERROR		4
+#define I2C_MODE_ERROR		3
+#define I2C_MODE_STOPBIT	4
 #define I2C_MODE_ADDRESS	5
 #define I2C_MODE_TX			6
 #define I2C_MODE_RX_ADR		7
