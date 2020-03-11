@@ -55,7 +55,7 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define BLUE_LED				( 26 )
 #define SUBGHZ_CH				( 36 )
 #define DEFAULT_SLEEP_INTERVAL	( 5*1000ul )
-#define MAX_BUF_SIZE			( 256 )
+#define MAX_BUF_SIZE			( 240 )
 #define NO_SLEEP ( 0 )
 
 typedef enum {
@@ -430,6 +430,44 @@ static int sensor_saveQueue(SensorState *p_this) {
 	buf.id = p_this->id;
 	buf.reason = p_this->reason;
 	buf.sensor_val = p_this->sensor_val;
+#ifdef DEBUG
+	Serial.print_long((long)buf.id,DEC);
+	Serial.print(",");
+	switch(buf.sensor_val.type) {
+		case INT8_VAL:
+			Serial.print_long((long)buf.sensor_val.data.int8_val,DEC);
+			break;
+		case UINT8_VAL:
+			Serial.print_long((long)buf.sensor_val.data.uint8_val,DEC);
+			break;
+		case INT16_VAL:
+			Serial.print_long((long)buf.sensor_val.data.int16_val,DEC);
+			break;
+		case UINT16_VAL:
+			Serial.print_long((long)buf.sensor_val.data.uint16_val,DEC);
+			break;
+		case INT32_VAL:
+			Serial.print_long((long)buf.sensor_val.data.int32_val,DEC);
+			break;
+		case UINT32_VAL:
+			Serial.print_long((long)buf.sensor_val.data.uint32_val,DEC);
+			break;
+		case FLOAT_VAL:
+			Serial.print_double((double)buf.sensor_val.data.float_val,buf.sensor_val.digit);
+			break;
+		case DOUBLE_VAL:
+			Serial.print_double(buf.sensor_val.data.double_val,buf.sensor_val.digit);
+			break;
+		default:
+			break;
+	}
+	Serial.print(",");
+	Serial.print(vls_val[buf.vls_level]);
+	Serial.print(",");
+	Serial.print_long((long)buf.reason,DEC);
+	Serial.print(",");
+	Serial.println_long((long)buf.time,DEC);
+#endif
 	return queue_write(&buf);
 }
 
@@ -720,9 +758,6 @@ static void SensorState_initState(void) {
 		} else {
 			ssp->next_state = SENSOR_STATE_OFF_STABLE;
 		}
-#ifdef IOT_QUEUE
-		sensor_saveQueue(ssp);
-#endif
 	}
 }
 
@@ -1386,7 +1421,11 @@ void loop() {
 #ifdef IOT_QUEUE
 		// case 1. int flag false, sense_time over
 		if (useInterruptFlag == false) {
-			if (millis() - mip.last_sense_time < mip.sense_interval) return;
+			if (millis() - mip.last_sense_time >= mip.sense_interval) {
+				// call sensor_main()
+			} else {
+				return;
+			}
 		} else {
 			// case 2. int flag true, int event exist
 			if ((remain_time != 0) || (waitEventFlag == true)) {
