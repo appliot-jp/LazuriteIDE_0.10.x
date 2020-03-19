@@ -146,7 +146,7 @@ const uint8_t vls_val[][8] = {
 /* --------------------------------------------------------------------------------
  * Queue functions
  * -------------------------------------------------------------------------------- */
-#define MAX_QUEUE_LEN		( 32 )
+#define MAX_QUEUE_LEN		( 64 )
 #define QUEUE_ERR_EMPTY		( -1 )
 #define QUEUE_ERR_FULL		( -2 )
 #define QUEUE_ERR_PARAM		( -3 )
@@ -159,8 +159,6 @@ typedef struct {
 	uint8_t vls_level;
 	uint32_t time;
 } QUEUE_DATA;
-
-#define QUEUE_DATA_SIZE		( sizeof(QUEUE_DATA) )
 
 struct queue_t {
 	QUEUE_DATA data[MAX_QUEUE_LEN];

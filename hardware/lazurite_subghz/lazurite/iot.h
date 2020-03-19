@@ -44,7 +44,7 @@
 #define UINT32_VAL		( 6 )
 #define FLOAT_VAL		( 7 )
 #define DOUBLE_VAL		( 8 )
-#define MAX_SENSOR_NUM	( 4 )
+#define MAX_SENSOR_NUM	( 8 )
 #define INVALID_ID	( -1 )
 #define INVALID_REASON	( -1 )
 
