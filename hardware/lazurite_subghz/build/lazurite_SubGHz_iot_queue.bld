@@ -111,13 +111,12 @@ LNKOPT=/COMB(OTA_SEGCODE  $$lmulu8sw $$dildu8sw $$ndsubu8sw $$ndaddu8sw \
 			$$nddivu8sw $$dstoru8sw $$ddivu8sw $$cmpfu8sw $$cidimou8sw \
 			$$sidimou8sw $$slmodu8sw $$simodu8sw $$sldimou8sw $$sldivu8sw \
 			$$XNCODmemcpy_nn $$XNCODmemcmp_nn $$XNCODmemset_n $$XNCODstrcpy_nn \
-			$$XNCODstrlen_n $$XNCODstrncat_nn)
+			$$XNCODstrlen_n $$XNCODstrncat_nn )
 LNKOPT=/CODE($$content_of_init-6H $$NCODml620504fsw-76H 5800H OTA_SEGCODE )
 LNKOPT=/DATA(OTA_SETUP_LOOP-0D800H OTA_SEGINIT OTA_SEGNOINIT )
 LNKOPT=/TABLE(OTA_SETUP_LOOPTAB-400H $$init_info OTA_SEGCONST-5800H \
 			$$NTABdrv_pinMode$driver_gpio $$NTABi2c_isr$driver_i2c \
-			$$NTABdrv_attachInterrupt$driver_extirq  \
-			$$NTABsubghz_setDsssSize$subghz_api $$XFTABxctype)
+			$$NTABdrv_attachInterrupt$driver_extirq $$XFTABxctype )
 
 PRJLIB=bin\\u8dev\\Lib\\LU8100SW.lib
 PRJLIB=bin\\u8dev\\Lib\\LONGU8.lib
