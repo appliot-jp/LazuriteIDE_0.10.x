@@ -25,7 +25,7 @@
  * THE SOFTWARE.
 */
 
-#define SUBGHZ_CH	50
+#define SUBGHZ_CH	36
 #define SUBGHZ_PANID	0xABCD
 uint8_t rx_data[256];
 uint32_t last_recv_time = 0;

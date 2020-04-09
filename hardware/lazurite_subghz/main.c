@@ -28,6 +28,11 @@
 
 static void (*fn_p[2])(void) = {setup, loop};
 
+#asm
+	CSEG at 0F000h
+	DS	0C00h		; reserved area for isp
+#endasm
+
 /*******************************************************************************
 *
 * Function  :   Main

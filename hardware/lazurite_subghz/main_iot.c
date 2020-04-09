@@ -53,10 +53,10 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 
 #define ORANGE_LED				( 25 )
 #define BLUE_LED				( 26 )
-#define SUBGHZ_CH				( 36 )
+#define SUBGHZ_CH			( 36 )
 #define DEFAULT_SLEEP_INTERVAL	( 5*1000ul )
 #define MAX_BUF_SIZE			( 240 )
-#define NO_SLEEP ( 0 )
+#define MAX_QUEUE_LEN			( 64 )
 
 typedef enum {
 	STATE_TRIG_ACTIVATE = 0,
@@ -143,10 +143,10 @@ const uint8_t vls_val[][8] = {
 	"4.7"		//	"> 4.667V"
 };
 
+#ifdef IOT_QUEUE
 /* --------------------------------------------------------------------------------
  * Queue functions
  * -------------------------------------------------------------------------------- */
-#define MAX_QUEUE_LEN		( 64 )
 #define QUEUE_ERR_EMPTY		( -1 )
 #define QUEUE_ERR_FULL		( -2 )
 #define QUEUE_ERR_PARAM		( -3 )
@@ -247,6 +247,7 @@ static int queue_dequeue(uint8_t num) {
 #endif
 	return 0;
 }
+#endif
 
 /* --------------------------------------------------------------------------------
  * Sensor functions
@@ -264,11 +265,12 @@ static int queue_dequeue(uint8_t num) {
 #define EACK_ERR_FLAG			( 0x01 )
 #define EACK_ERR_INTERVAL		( 0x02 )
 #define EACK_ERR_SIZE			( 0x04 )
-#define PARSE_ERR_UNDEF_FORMAT ( -1 )
-#define PARSE_ERR_UNDEF_HEADER ( -2 )
-#define PAYLOAD_HEADER_SIZE ( 3 )
-#define PAYLOAD_PARAM_SIZE ( 5 )
-#define PAYLOAD_SINGLE_LEN ( PAYLOAD_HEADER_SIZE + PAYLOAD_PARAM_SIZE )
+#define PARSE_ERR_UNDEF_FORMAT	( -1 )
+#define PARSE_ERR_UNDEF_HEADER	( -2 )
+#define PAYLOAD_HEADER_SIZE		( 3 )
+#define PAYLOAD_PARAM_SIZE		( 5 )
+#define PAYLOAD_SINGLE_LEN		( PAYLOAD_HEADER_SIZE + PAYLOAD_PARAM_SIZE )
+#define NO_SLEEP 				( 0 )
 
 __packed typedef struct {
 	uint8_t eack_flag;
@@ -418,7 +420,7 @@ static int sensor_parsePayload(uint8_t *payload) {
 	if (changed == true) ret = 1;
 	return ret;
 }
-
+#ifdef IOT_QUEUE
 static int sensor_saveQueue(SensorState *p_this) {
 	QUEUE_DATA buf;
 
@@ -468,6 +470,7 @@ static int sensor_saveQueue(SensorState *p_this) {
 #endif
 	return queue_write(&buf);
 }
+#endif
 
 static void sensor_operJudge(SensorState *p_this) {
 	switch(p_this->sensor_val.type) {
@@ -680,8 +683,8 @@ static uint8_t sensor_genPayload(void) {
 				&& (ptr->reason != INVALID_REASON)) {
 			Print.l((long)ptr->reason,DEC);
 		}
-#ifdef IOT_QUEUE
 		Print.p(",");
+#ifdef IOT_QUEUE
 		diff = now - ptr->time;
 		if (diff > 10) {
 			Print.l(diff,DEC);
@@ -952,6 +955,8 @@ static MAIN_IOT_STATE func_initSensor(void) {
 
 static MAIN_IOT_STATE func_sendRealtime(void) {
 	MAIN_IOT_STATE mode = STATE_SEND_REALTIME;
+#ifdef IOT_QUEUE
+#else
 	SensorState *ssp;
 	SUBGHZ_MSG msg;
 	int i;
@@ -967,7 +972,7 @@ static MAIN_IOT_STATE func_sendRealtime(void) {
 		} else {
 			if (tx_param.fail == 0) {
 				sensor_genPayload();
-				BREAK(tx_buf);
+				BREAKS("tx_buf: ",tx_buf);
 				tx_param.panid = mip.gateway_panid;
 				tx_param.addr = mip.gateway_addr;
 				tx_param.str = tx_buf;
@@ -1002,11 +1007,13 @@ static MAIN_IOT_STATE func_sendRealtime(void) {
 			BREAKL("func_sendRealtime: mip.sleep_time = ",(long)mip.sleep_time,DEC);
 		}
 	}
+#endif
 	return mode;
 }
 
 static MAIN_IOT_STATE func_sendQueueData(void) {
 	MAIN_IOT_STATE mode = STATE_SEND_QUEUE_DATA;
+#ifdef IOT_QUEUE
 	SUBGHZ_MSG msg;
 	uint8_t num;
 
@@ -1034,9 +1041,11 @@ static MAIN_IOT_STATE func_sendQueueData(void) {
 		}
 		mip.sleep_time = NO_SLEEP;
 	}
+#endif
 	return mode;
 }
 
+#ifdef IOT_QUEUE
 /*
  * compareTimestamp - comparer between base_time and target_time
  *   input: base_time - base timestamp
@@ -1055,9 +1064,11 @@ static bool compareTimestamp(uint32_t base_time, uint32_t target_time) {
 	}
 	return ret;
 }
+#endif
 
 static MAIN_IOT_STATE func_trigReconnect(void) {
 	MAIN_IOT_STATE mode = STATE_TRIG_RECONNECT;
+#ifdef IOT_QUEUE
 	SUBGHZ_MSG msg;
 	static uint32_t backoff_interval=0;
 	uint32_t now=millis(),sense_time;
@@ -1104,11 +1115,13 @@ static MAIN_IOT_STATE func_trigReconnect(void) {
 			tx_param.set_backoff_time = true;
 		}
 	}
+#endif
 	return mode;
 }
 
 static MAIN_IOT_STATE func_waitReconnect(void) {
 	MAIN_IOT_STATE mode = STATE_WAIT_RECONNECT;
+#ifdef IOT_QUEUE
 	SUBGHZ_MAC_PARAM mac;
 	int rx_len,ret;
 
@@ -1138,6 +1151,7 @@ static MAIN_IOT_STATE func_waitReconnect(void) {
 			tx_param.retry = MAX_BACKOFF_COUNT;
 		}
 	}
+#endif
 	return mode;
 }
 
