@@ -277,7 +277,10 @@ __packed typedef struct {
 	uint16_t sleep_interval_sec;	// unit sec
 } EACK_DATA;
 
-static void SensorState_validateNextState(SensorState* p_this);
+static void SensorState_offStable(SensorState* p_this);
+static void SensorState_offUnstable(SensorState* p_this);
+static void SensorState_onStable(SensorState* p_this);
+static void SensorState_onUnstable(SensorState* p_this);
 
 SensorState Sensor[MAX_SENSOR_NUM];
 
@@ -501,14 +504,29 @@ static void sensor_operJudge(SensorState *p_this) {
 		default:
 			break;
 	}
-#if 0//#ifdef DEBUG
+#if 0//def DEBUG
 	Serial.print("id: ");
 	Serial.print_long((long)p_this->id,DEC);
 	Serial.print(", state: ");
 	Serial.print_long((long)p_this->next_state,DEC);
 	Serial.print(" -> ");
 #endif
-	SensorState_validateNextState(p_this);
+	switch (p_this->next_state) {
+		case SENSOR_STATE_OFF_STABLE:
+			SensorState_offStable(p_this);
+			break;
+		case SENSOR_STATE_OFF_UNSTABLE:
+			SensorState_offUnstable(p_this);
+			break;
+		case SENSOR_STATE_ON_STABLE:
+			SensorState_onStable(p_this);
+			break;
+		case SENSOR_STATE_ON_UNSTABLE:
+			SensorState_onUnstable(p_this);
+			break;
+		default:
+			break;
+	}
 #if 0//def DEBUG
 	Serial.println_long((long)p_this->next_state,DEC);
 #endif
@@ -635,7 +653,10 @@ static uint8_t sensor_genPayload(void) {
 #ifdef IOT_QUEUE
 		if (queue_peek(head_local,&ptr) != 0) return n;
 #else
-		if (ptr->save_request == false) continue;
+		if (ptr->save_request == false) {
+			ptr++;
+			continue;
+		}
 #endif
 		if (mip.sensor_type == SENSOR_TYPE_V2) { // for SENSOR_TYPE_V2
 			Print.p(",");
@@ -813,25 +834,6 @@ static void SensorState_onUnstable(SensorState* p_this) {
 			p_this->save_request = true;
 			p_this->next_state = SENSOR_STATE_OFF_STABLE;
 		}
-	}
-}
-
-static void SensorState_validateNextState(SensorState* p_this) {
-	switch (p_this->next_state) {
-		case SENSOR_STATE_OFF_STABLE:
-			SensorState_offStable(p_this);
-			break;
-		case SENSOR_STATE_OFF_UNSTABLE:
-			SensorState_offUnstable(p_this);
-			break;
-		case SENSOR_STATE_ON_STABLE:
-			SensorState_onStable(p_this);
-			break;
-		case SENSOR_STATE_ON_UNSTABLE:
-			SensorState_onUnstable(p_this);
-			break;
-		default:
-			break;
 	}
 }
 
