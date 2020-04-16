@@ -974,15 +974,14 @@ static MAIN_IOT_STATE func_sendRealtime(void) {
 		} else {
 			if (tx_param.fail == 0) {
 				sensor_genPayload();
-				BREAKS("tx_buf: ",tx_buf);
 				tx_param.panid = mip.gateway_panid;
 				tx_param.addr = mip.gateway_addr;
 				tx_param.str = tx_buf;
 				tx_param.rx_on = false;
 			}
+			BREAKS("tx_buf: ",tx_buf);
 			msg = subghzSend(&tx_param);
 			SubGHz.close();
-			BREAK("func_sendRealtime: send data");
 			if (msg == SUBGHZ_OK) {
 				mip.send_request = false;
 				// update last send time
@@ -994,9 +993,9 @@ static MAIN_IOT_STATE func_sendRealtime(void) {
 					}
 				}
 				// check enhance ack
+				tx_param.fail = 0; // clear
 				mip.sleep_time = sensor_checkEack(&mode);
 				if (mode != STATE_SEND_REALTIME) {
-					tx_param.fail = 0; // clear
 					sensor_deactivate();
 					mip.enable_sense = false;
 					mip.sleep_time = NO_SLEEP;
