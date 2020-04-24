@@ -351,6 +351,7 @@ static int sensor_parsePayload(uint8_t *payload) {
 	bool changed=false;
 	int i,ret=0;
 
+	BREAKS("parsePayload: ",payload);
 	for (i=0;;i++) {
 		if (i == 0) {
 			p[i] = strtok(payload, ",");
@@ -372,10 +373,12 @@ static int sensor_parsePayload(uint8_t *payload) {
 	//  (id),(thrs_on_val),(thrs_on_interval[sec]),(thrs_off_val),(thrs_off_interval[sec])"
 
 	if (i == PAYLOAD_SINGLE_LEN) {
-		BREAK("single sensor");
+		BREAK("single");
 		mip.sensor_type = SENSOR_TYPE_V1;
-	} else if (((i - PAYLOAD_HEADER_SIZE) % PAYLOAD_PARAM_SIZE == 0) && (mip.sensor_num <= MAX_SENSOR_NUM)) {
-		BREAKL("multi sensor: ",(long)mip.sensor_num,DEC);
+	} else if ((mip.sensor_num > 0) &&
+	  ((i - PAYLOAD_HEADER_SIZE) % PAYLOAD_PARAM_SIZE == 0) &&
+	  (mip.sensor_num <= MAX_SENSOR_NUM)) {
+		BREAKL("multi: ",(long)mip.sensor_num,DEC);
 		mip.sensor_type = SENSOR_TYPE_V2;
 	} else {
 		ret = PARSE_ERR_UNDEF_FORMAT; // undefined payload format
@@ -1005,7 +1008,7 @@ static MAIN_IOT_STATE func_sendRealtime(void) {
 				tx_param.fail++;
 				mip.sleep_time = TX_INTERVAL;
 			}
-			BREAKL("func_sendRealtime: mip.sleep_time = ",(long)mip.sleep_time,DEC);
+			//BREAKL("func_sendRealtime: mip.sleep_time = ",(long)mip.sleep_time,DEC);
 		}
 	}
 #endif

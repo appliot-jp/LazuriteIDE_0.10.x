@@ -1,5 +1,30 @@
 #include "FakeSensor_1_ide.h"		// Additional Header
 
+/* FILE NAME: FakeSensor_1.c
+ * The MIT License (MIT)
+ * 
+ * Copyright (c) 2020  Lapis Semiconductor Co.,Ltd.
+ * All rights reserved.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+*/
+
 /*
  * sensor value: 0 or 1 (default: random)
  * interval range(min): on [1 ~ 30], off [0.5 ～ 15]
@@ -69,9 +94,9 @@ void sensor_meas(SensorState s[]) {
 		val = &(s[i].sensor_val);
 		if (millis() - last[i] > interval[i]) {
 			last[i] = millis();
-			Serial.print("i=");
+			Serial.print("idx=");
 			Serial.print_long((long)i,DEC);
-			Serial.print(", last[i]: ");
+			Serial.print(", last: ");
 			Serial.print_long((long)last[i],DEC);
 			if (value[i] == 0) { // off -> on
 				interval[i] = ((rand() & (INT_ON_MAX - INT_ON_MIN)) + INT_ON_MIN) * 1000ul;
@@ -83,11 +108,11 @@ void sensor_meas(SensorState s[]) {
 				value[i] = 0;
 			}
 //			interval[i] = 15*1000L; // test, fixed interval
-			Serial.print(", interval[i]: ");
+			Serial.print(",\tint: ");
 			Serial.print_long((long)interval[i],DEC);
-			Serial.print(", value[i]: ");
+			Serial.print(",\tval: ");
 			Serial.println_long((long)value[i],DEC);
-			delay(1);
+			delay(5);
 		}
 		val->data.uint8_val = value[i];
 		val->type = UINT8_VAL;

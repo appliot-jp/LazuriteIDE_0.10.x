@@ -152,33 +152,26 @@ void lazurite_gpio_init(void)
 	#endif
 }
 
-static uint16_t halt_event_flag = false;
-static void halt_event_isr(void)
-{
-	halt_event_flag=true;
-}
+/* While waiting timeout, cpu halt mode and timer 6 is not used any more. (2020/04/24) */
 void HALT_Until_Event(HALT_EVENT halt_event,uint16_t timeout)
 {
-	bool cont = true;
+	bool cont = true, timeout_flag = false;
 	uint8_t status;
-	halt_event_flag = false;
+	uint32_t start_time = millis();
 	
-	if((timeout != 0) &&(getMIE() == 1)) {
-		timer_16bit_set(6,0xE8,timeout,halt_event_isr);
-		timer_16bit_start(6);
-	}
 	while(cont)
 	{
 		if(getMIE() == 0) {
 			di_wait();
-		} else {
-			lp_setHaltMode();
+		}
+		if ((timeout != 0) && (millis() - start_time > timeout)) {
+			timeout_flag = true;
 		}
 		switch(halt_event)
 		{
 		case HALT_I2C1_END:
 			status=i2c_get_status(1);
-			if((halt_event_flag)||(status == I2C_MODE_ERROR))
+			if (timeout_flag || (status == I2C_MODE_ERROR))
 			{
 				i2c_force_stop(1);
 				cont = false;
@@ -189,7 +182,7 @@ void HALT_Until_Event(HALT_EVENT halt_event,uint16_t timeout)
 			break;
 		case HALT_I2C0_END:
 			status=i2c_get_status(0);
-			if((halt_event_flag)||(status == I2C_MODE_ERROR))
+			if (timeout_flag || (status == I2C_MODE_ERROR))
 			{
 				i2c_force_stop(0);
 				cont = false;
@@ -199,14 +192,12 @@ void HALT_Until_Event(HALT_EVENT halt_event,uint16_t timeout)
 			}
 			break;
 		default:
-			if(halt_event_flag) {
+			if (timeout_flag) {
 				cont = false;
 			}
 			break;
 		}		
 	}
-	if(timeout)
-		timer_16bit_stop(6);
 	return;
 }
 
@@ -540,17 +531,17 @@ uint32_t wait_event_timeout(uint8_t *flag,uint32_t time)
 #ifdef SUBGHZ
 		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
 #else
-			if((uart_tx_sending == true) || (uartf_tx_sending == true))
+		if((uart_tx_sending == true) || (uartf_tx_sending == true))
 #endif
-			{
-				lp_setHaltMode();
-				wdt_clear();
-			}
-			else
-			{
-				lp_setHaltHMode();
-				wdt_clear();
-			}
+		{
+			lp_setHaltMode();
+			wdt_clear();
+		}
+		else
+		{
+			lp_setHaltHMode();
+			wdt_clear();
+		}
 	}
 	stop_long_timer();
 

@@ -27,6 +27,7 @@
 
 #include "common.h"
 #include "rdwr_reg.h"
+#include "driver_irq.h"
 #include "driver_uart.h"
 #include "serial.h"
 #include "wdt.h"

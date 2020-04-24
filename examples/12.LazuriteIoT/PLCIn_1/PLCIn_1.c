@@ -1,6 +1,6 @@
-#include "DCSensor2_2_ide.h"		// Additional Header
+#include "PLCIn_1_ide.h"		// Additional Header
 
-/* FILE NAME: DCSensor2_2.c
+/* FILE NAME: PLCIn_1.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2020  Lapis Semiconductor Co.,Ltd.
@@ -27,12 +27,6 @@
 
 #define PLC_IN_NUM			( 6 )
 #define PLC_IN0				( 8 )
-#define DC_SENSOR_NUM		( 2 )
-#define DC_SENSOR_AIN0		( 14 )
-
-#if DC_SENSOR_NUM+PLC_IN_NUM > MAX_SENSOR_NUM
-	#error The number of sensor exceeds MAX_SENSOR_NUM.
-#endif
 
 void callback(void)
 {
@@ -48,7 +42,6 @@ char* sensor_init() {
 	static char filename[] = __FILE__;
 	int i;
 
-	analogReadResolution(12);
 	useInterruptFlag = true;
 	for (i=0; i<PLC_IN_NUM; i++) {
 		pinMode((uint8_t)(PLC_IN0+i), INPUT);
@@ -93,29 +86,23 @@ void sensor_deactivate(void) {
  */
 void sensor_meas(SensorState s[]) {
 	SENSOR_VAL *val;
-	uint16_t data[DC_SENSOR_NUM+PLC_IN_NUM];
+	uint16_t data[PLC_IN_NUM];
 	int i;
 
-	for (i=0; i<DC_SENSOR_NUM; i++) {
+	for (i=0; i<PLC_IN_NUM; i++) {
 		val = &(s[i].sensor_val);
-		data[i] = analogRead((uint8_t)(DC_SENSOR_AIN0+i));
+		data[i] = digitalRead((uint8_t)(PLC_IN0+i)) == 0 ? 1 : 0; // invert, active low
 		val->data.uint16_val = data[i];
 		val->type = UINT16_VAL;
 	}
 
-	for (i=0; i<PLC_IN_NUM; i++) {
-		val = &(s[DC_SENSOR_NUM+i].sensor_val);
-		data[DC_SENSOR_NUM+i] = digitalRead((uint8_t)(PLC_IN0+i)) == 0 ? 1 : 0; // invert, active low
-		val->data.uint16_val = data[DC_SENSOR_NUM+i];
-		val->type = UINT16_VAL;
-	}
-
 	Serial.print("STX");
-	for (i=0; i<DC_SENSOR_NUM+PLC_IN_NUM; i++) {
+	for (i=0; i<PLC_IN_NUM; i++) {
 		Serial.print(",");
 		Serial.print_long((long)data[i],DEC);
 	}
 	Serial.println(",ETX");
+
 	return;
 }
 
