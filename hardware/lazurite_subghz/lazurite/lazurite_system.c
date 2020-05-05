@@ -319,6 +319,7 @@ void sleep_long(unsigned long ms)
 			if(getMIE() == 0) {
 				di_wait();
 			}
+			wdt_clear();
 		}
 		while(now - st_time < ms);
 	} else {
@@ -330,28 +331,25 @@ void sleep_long(unsigned long ms)
 		{
 			if(getMIE() == 0) {
 				di_wait();
-			}
+			} else {
 #ifdef SUBGHZ
-			if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
+				if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0)) {
 #else
-				if((uart_tx_sending == true) || (uartf_tx_sending == true))
+				if((uart_tx_sending == true) || (uartf_tx_sending == true)) {
 #endif
-				{
 					lp_setHaltMode();
-					wdt_clear();
-				}
-				else
-				{
+				} else {
 					lp_setHaltHMode();
-					wdt_clear();
 				}
+			}
+			wdt_clear();
 		}
 		stop_long_timer();
 
 #ifdef PWR_LED
 		drv_digitalWrite(11,LOW);		// PWR LED ON
 #endif
-	} 
+	}
 	return;
 }
 
@@ -429,7 +427,7 @@ void watch_dog_isr(void)
 }
 
 void wait_event(bool *flag)
-{	
+{
 #ifdef PWR_LED
 	drv_digitalWrite(11,HIGH);		// PWR LED OFF
 #endif
@@ -439,17 +437,17 @@ void wait_event(bool *flag)
 #ifdef SUBGHZ
 		if((uart_tx_sending == true) || (uartf_tx_sending == true) || (subghz_api_status != 0))
 #else
-			if((uart_tx_sending == true) || (uartf_tx_sending == true))
+		if((uart_tx_sending == true) || (uartf_tx_sending == true))
 #endif
-			{
-				lp_setHaltMode();
-				wdt_clear();
-			}
-			else
-			{
-				lp_setHaltHMode();
-				wdt_clear();
-			}
+		{
+			lp_setHaltMode();
+			wdt_clear();
+		}
+		else
+		{
+			lp_setHaltHMode();
+			wdt_clear();
+		}
 	}
 	*flag = false;
 #ifdef PWR_LED

@@ -85,7 +85,7 @@ static void s_handlerLTBC2INT( void );
 /*=== set Interrupt Vector ===*/
 /* If enables multiple interrupts,              */
 /* specify '2' in the INTERRUPT category field. */
-#pragma INTERRUPT   s_handlerWDTINT     0x0008  1
+#pragma INTERRUPT   s_handlerWDTINT     0x0008  2
 #pragma INTERRUPT   s_handlerEXI0INT    0x0010  1
 #pragma INTERRUPT   s_handlerEXI1INT    0x0012  1
 #pragma INTERRUPT   s_handlerEXI2INT    0x0014  1
@@ -150,9 +150,7 @@ static void s_handlerWDTINT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by WDTINT,         */
 	/* add to your aplication's code this.                                    */
-	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_WDTINT]();
-	di_flag &= ~DI_INTERRUPT;
 }
 
 static void s_handlerEXI0INT( void )
@@ -370,9 +368,9 @@ static void s_handlerCMP1INT( void )
 	/*===ToDo.===*/
 	/* If you need a aplication's interrupt handler called by CMP1INT,        */
 	/* add to your aplication's code this.                                    */
+	di_flag |= DI_INTERRUPT;
 	_sIrqHdr[IRQ_NO_CMP1INT]();
 	di_flag &= ~DI_INTERRUPT;
-	di_flag |= DI_INTERRUPT;
 }
 
 static void s_handlerTM0INT( void )
