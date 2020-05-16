@@ -32,24 +32,61 @@
 #include "driver_irq.h"
 #include "mcu.h"
 #include "rdwr_reg.h"
+#include <limits.h>
 
 #define LTBC_SLOT_NUM	( 8 )
-static int (*fn_p[LTBC_SLOT_NUM])(unsigned char count) = { (void *)0 };
-static unsigned char expires[LTBC_SLOT_NUM] = { 0x00 };
-static unsigned char slot_usage = 0x00;
+static unsigned short (*fn_p[LTBC_SLOT_NUM])(unsigned short count) = { (void *)0 };
+static unsigned short expires[LTBC_SLOT_NUM] = { 0x00 };
+static unsigned char slot_usage = 0x00, h_count = 0;
+
+static unsigned char ltbc_get_raw_count(void)
+{
+	unsigned char c0,c1;
+
+	c0 = LTBR;
+	while (1) {
+		c1 = LTBR;
+		if (c0 == c1) break;
+		else c0 = c1;
+	};
+	return c0;
+}
+
+/*
+ * expired count check
+ * output: true if count reached expire (<=)
+ *         false if count is not reached (>)
+ */
+static bool check_expire(uint16_t c, uint16_t e) {
+	bool ret;
+	if (c >= e) {
+		if (c - e < UINT_MAX/2) ret = true;
+		else ret = false;
+	} else {
+		if (e - c < UINT_MAX/2) ret = false;
+		else ret = true;
+	}
+	return ret;
+}
 
 static void ltbc_isr(void)
 {
-	int i,ret;
-	unsigned char count = LTBR;
+	int i;
+	unsigned short count,ret;
+	unsigned char l_count = ltbc_get_raw_count();
+
+	if (l_count == 0) {
+		h_count++;
+	}
+	count = (h_count << 8) + l_count;
 	if (slot_usage != 0) {
 		for (i=0; i<LTBC_SLOT_NUM; i++) {
-			if (((1 << i) & slot_usage) && (fn_p[i] != (void *)0) && (count == expires[i])) {
+			if (((1 << i) & slot_usage) && (fn_p[i] != (void *)0) && (check_expire(count,expires[i]) == true)) {
 				ret = fn_p[i](count);
 				if (ret == 0) {
 					ltbc_detach_handler((unsigned char)i);		// detach handler by myself
-				} else if ((ret > 0) && (ret <= 256)) {
-					expires[i] = (unsigned char)((count+ret+1)&0xfe);		// set next expire count
+				} else {
+					expires[i] = count + ret;
 				}
 			}
 		}
@@ -85,25 +122,24 @@ void ltbc_init(void)
 	return;
 }
 
-unsigned char ltbc_get_count(void)
+unsigned short ltbc_get_count(void)
 {
-	unsigned char c0,c1;
+	unsigned char l_count;
+	unsigned short ret;
 
-	c0 = LTBR;
-	while (1) {
-		c1 = LTBR;
-		if (c0 == c1) break;
-		else c0 = c1;
-	};
-	return c0;
+	dis_interrupts(DI_LTBC);
+	l_count = ltbc_get_raw_count();
+	ret = (h_count << 8) + l_count;
+	enb_interrupts(DI_LTBC);
+	return ret;
 }
 
-void ltbc_attach_handler(unsigned char num, unsigned char expire, int (*func)(unsigned char count))
+void ltbc_attach_handler(unsigned char num, unsigned short expire, unsigned short (*func)(unsigned short count))
 {
 	if ((num < LTBC_SLOT_NUM) && (func != (void *)0)) {
 		dis_interrupts(DI_LTBC);
 		if (slot_usage == 0) ltbc_enable_interrupt();
-		expires[num] = (unsigned char)((expire+1)&0xfe);	// odd number
+		expires[num] = expire;
 		fn_p[num] = func;
 		slot_usage |= (unsigned char)(1 << num);
 		enb_interrupts(DI_LTBC);
