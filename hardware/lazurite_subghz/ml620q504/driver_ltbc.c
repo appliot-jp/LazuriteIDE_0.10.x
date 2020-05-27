@@ -74,10 +74,12 @@ static void ltbc_isr(void)
 	int i;
 	unsigned short count,ret;
 	unsigned char l_count = ltbc_get_raw_count();
+	static unsigned char l_count_pre = 0;
 
-	if (l_count == 0) {
+	if (l_count < l_count_pre) {
 		h_count++;
 	}
+	l_count_pre = l_count;
 	count = (h_count << 8) + l_count;
 	if (slot_usage != 0) {
 		for (i=0; i<LTBC_SLOT_NUM; i++) {
@@ -97,6 +99,9 @@ static void ltbc_isr(void)
 static void ltbc_enable_interrupt(void)
 {
 	IE7 = 0;				// disable ie of LTBC
+	LTBR = 0;				// reset LTBR
+	__asm("nop");			// wait 1 cycle
+	h_count = 0;			// clear high byte
 	IRQ7 = 0;				// clear irq of LTBC
 	irq_sethandler((unsigned char)IRQ_NO_LTBC0INT,ltbc_isr);	// attach IRQ handler
 	IE7 = 1;				// enable ie of ELTBC0
@@ -122,7 +127,7 @@ void ltbc_init(void)
 	return;
 }
 
-unsigned short ltbc_get_count(void)
+static unsigned short ltbc_get_count(void)
 {
 	unsigned char l_count;
 	unsigned short ret;
@@ -139,7 +144,7 @@ void ltbc_attach_handler(unsigned char num, unsigned short expire, unsigned shor
 	if ((num < LTBC_SLOT_NUM) && (func != (void *)0)) {
 		dis_interrupts(DI_LTBC);
 		if (slot_usage == 0) ltbc_enable_interrupt();
-		expires[num] = expire;
+		expires[num] = ltbc_get_count()+expire;
 		fn_p[num] = func;
 		slot_usage |= (unsigned char)(1 << num);
 		enb_interrupts(DI_LTBC);

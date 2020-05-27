@@ -25,7 +25,6 @@
 #include "driver_irq.h"
 
 extern void ltbc_init(void);
-extern unsigned short ltbc_get_count(void);
 extern void ltbc_attach_handler(unsigned char num, unsigned short expire, unsigned short (*func)(unsigned short count));
 extern void ltbc_detach_handler(unsigned char num);
 
