@@ -1,6 +1,6 @@
-#include "MD311_2_ide.h"		// Additional Header
+#include "MD311_3_ide.h"		// Additional Header
 
-/* FILE NAME: MD311_2.c
+/* FILE NAME: MD311_3.c
  * The MIT License (MIT)
  *
  * Copyright (c) 2019  Lapis Semiconductor Co.,Ltd.
@@ -32,11 +32,13 @@
 #define REASON_INT_PIN1			( 11 )
 #define REASON_INT_PIN2			( 12 )
 #define REASON_INT_PIN3			( 13 )
+#define REASON_INT_PIN4			( 10 )
 
 void reason_init(void) {
 	pinMode(REASON_INT_PIN1,INPUT_PULLUP);	// Active LOW
 	pinMode(REASON_INT_PIN2,INPUT_PULLUP);	// Active LOW
 	pinMode(REASON_INT_PIN3,INPUT_PULLUP);	// Active LOW
+	pinMode(REASON_INT_PIN4,INPUT_PULLUP);	// Active LOW
 }
 
 /*
@@ -87,8 +89,9 @@ void sensor_deactivate(void) {
  */
 void sensor_meas(SensorState s[]) {
 	SENSOR_VAL *val = &(s[0].sensor_val);
-	int *reason = &(s[0].reason), reason_val;
-	unsigned long  st_time,en_time;
+	int *reason = &(s[0].reason);
+	int reason_val;
+	unsigned long st_time,en_time;
 	double amps;
 	volatile int st_voltage,en_voltage,dif_vol;
 	digitalWrite(MEAS,HIGH);
@@ -119,6 +122,7 @@ void sensor_meas(SensorState s[]) {
 	reason_val = digitalRead(REASON_INT_PIN1) ? 0 : 1;
 	reason_val |= digitalRead(REASON_INT_PIN2) ? 0 : 1 << 1;
 	reason_val |= digitalRead(REASON_INT_PIN3) ? 0 : 1 << 2;
+	reason_val |= digitalRead(REASON_INT_PIN4) ? 0 : 1 << 3;
 	if (reason_val) {
 		*reason = reason_val;
 	} else {
