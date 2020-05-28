@@ -37,7 +37,7 @@
 #define LTBC_SLOT_NUM	( 8 )
 static unsigned short (*fn_p[LTBC_SLOT_NUM])(unsigned short count) = { (void *)0 };
 static unsigned short expires[LTBC_SLOT_NUM] = { 0x00 };
-static unsigned char slot_usage = 0x00, h_count = 0;
+static unsigned char slot_usage = 0x00, h_count = 0, l_count_pre = 0;
 
 static unsigned char ltbc_get_raw_count(void)
 {
@@ -74,7 +74,6 @@ static void ltbc_isr(void)
 	int i;
 	unsigned short count,ret;
 	unsigned char l_count = ltbc_get_raw_count();
-	static unsigned char l_count_pre = 0;
 
 	if (l_count < l_count_pre) {
 		h_count++;
@@ -102,6 +101,7 @@ static void ltbc_enable_interrupt(void)
 	LTBR = 0;				// reset LTBR
 	__asm("nop");			// wait 1 cycle
 	h_count = 0;			// clear high byte
+	l_count_pre = 0;		// clear previous low byte
 	IRQ7 = 0;				// clear irq of LTBC
 	irq_sethandler((unsigned char)IRQ_NO_LTBC0INT,ltbc_isr);	// attach IRQ handler
 	IE7 = 1;				// enable ie of ELTBC0
