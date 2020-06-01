@@ -34,7 +34,7 @@
 #define SCAN_ST_RUNNING	( 1 )
 #define SCAN_ST_DONE 	( 2 )
 
-SUBGHZ_SCAN_LIST mac_list[LIST_SIZE];
+SUBGHZ_SCAN_LIST scan_list[LIST_SIZE];
 uint8_t scan_state,scan_count;
 unsigned char send_data[] = {"Welcome to Lazurite SubGHz"};
 
@@ -81,7 +81,7 @@ void loop() {
 
 	if (scan_state == SCAN_ST_START) {
 		scan_state = SCAN_ST_RUNNING;
-		SubGHz.scan(SUBGHZ_PANID,mac_list,LIST_SIZE,callback);
+		SubGHz.scan(SUBGHZ_PANID,scan_list,LIST_SIZE,callback);
 		digitalWrite(ORANGE_LED,HIGH);
 	} else if (scan_state == SCAN_ST_RUNNING) {
 		sleep(500);
@@ -95,11 +95,10 @@ void loop() {
 			digitalWrite(ORANGE_LED,LOW);
 		} else {
 			Serial.println("-- List --\nmac address      : rssi ave (oldest <-> latest)");
-			for (i=0; i<scan_count; i++) print_addr_rssi(&mac_list[i]);
+			for (i=0; i<scan_count; i++) print_addr_rssi(&scan_list[i]);
 			Serial.println("-- End of list --\nSend test data to the host (top of the list)");
 			digitalWrite(BLUE_LED,LOW);
-			//SubGHz.send64le(mac_list[0].addr,send_data,sizeof(send_data),NULL);
-			SubGHz.send(SUBGHZ_PANID,mac_list[0].addr[0]+(mac_list[0].addr[1]<<8),send_data,sizeof(send_data),NULL);
+			SubGHz.send(SUBGHZ_PANID,scan_list[0].addr[0]|(scan_list[0].addr[1]<<8),send_data,sizeof(send_data),NULL);
 			digitalWrite(BLUE_LED,HIGH);
 		}
 		sleep(5000);
