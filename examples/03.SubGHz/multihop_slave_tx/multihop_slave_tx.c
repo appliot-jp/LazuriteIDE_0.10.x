@@ -27,7 +27,7 @@
 
 #define SUBGHZ_CH	SUBGHZ_HOPPING_TS_S
 #define SUBGHZ_PANID	0xABCD
-#define SUBGHZ_DST		0x8e6d
+#define SUBGHZ_DST		0x008d
 //#define SUBGHZ_DST		0x7fb2
 uint8_t rx_data[256];
 uint32_t last_recv_time = 0;
@@ -93,7 +93,7 @@ void setup(void)
 	digitalWrite(BLUE_LED,HIGH);
 	
 	pinMode(ORANGE_LED,OUTPUT);
-	digitalWrite(BLUE_LED,HIGH);
+	digitalWrite(ORANGE_LED,HIGH);
 	
 	return;
 }
