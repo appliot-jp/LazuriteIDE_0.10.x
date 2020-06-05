@@ -57,6 +57,7 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define DEFAULT_SLEEP_INTERVAL	( 5*1000ul )
 #define MAX_BUF_SIZE			( 240 )
 #define MAX_QUEUE_LEN			( 64 )
+#define MAX_SCAN_LIST 		( 5 )
 
 typedef enum {
 	STATE_TRIG_ACTIVATE = 0,
@@ -69,15 +70,20 @@ typedef enum {
 	STATE_TRIG_UPD_PARAM,
 	STATE_WAIT_UPD_PARAM,
 	STATE_TRIG_FW_UPD,
-	STATE_WAIT_FW_UPD
+	STATE_WAIT_FW_UPD,
+	STATE_TRIG_SCAN_GW,
+	STATE_WAIT_SCAN_GW
 } MAIN_IOT_STATE;
 
 typedef struct {
 	MAIN_IOT_STATE func_mode;
+	SUBGHZ_SCAN_LIST scan_list[MAX_SCAN_LIST];
 	uint8_t sensor_type;
+	uint8_t scan_num;
 	int sensor_num;
 	bool enable_sense;
 	bool send_request;
+	bool scan_done;
 	uint32_t last_sense_time; // last timestamp of getting sensor data
 	uint32_t sense_interval; // paramater gotten from device config via EACK
 	uint32_t sleep_time; // control sleep interval in loop()
@@ -88,7 +94,7 @@ typedef struct {
 
 typedef struct {
 	uint16_t panid;
-	uint16_t addr;
+	uint16_t addr;		// short addr
 	uint8_t *str;
 	bool rx_on; // true:rxEnable, false:rxDisable
 	uint32_t tx_time; // last timestamp of tx ok
@@ -96,6 +102,9 @@ typedef struct {
 	uint8_t retry; // to count up retry for waiting
 	uint32_t backoff_time; // timestamp which back-off send is permitted
 	bool set_backoff_time; // request to calculate back-off interval
+	uint8_t addr64[8]; // 64bit addr
+	bool ack_req; // true:ack request, false:ack not request
+	bool tx64; // true:tx64, false:tx16
 } TX_PARAM;
 
 /* --------------------------------------------------------------------------------
@@ -110,7 +119,7 @@ bool waitEventFlag = false;
 bool useInterruptFlag = false;
 static uint8_t rx_buf[MAX_BUF_SIZE];
 static uint8_t tx_buf[MAX_BUF_SIZE];
-static TX_PARAM tx_param = {0xffff,0xffff,"",false,0,0,0,0,false};
+static TX_PARAM tx_param = {0xffff,0xffff,"",false,0,0,0,0,false,{0xff},false,false};
 MAIN_IOT_PARAM mip = {STATE_TRIG_ACTIVATE,0,0,false,false,0,DEFAULT_SLEEP_INTERVAL,DEFAULT_SLEEP_INTERVAL,0xffff,0xffff,0xffff};
 
 OTA_PARAM ota_param = {
@@ -866,12 +875,17 @@ static SUBGHZ_MSG subghzSend(TX_PARAM *ptx) {
 	SUBGHZ_MSG msg;
 
 	SubGHz.begin(SUBGHZ_CH,ptx->panid,SUBGHZ_100KBPS,SUBGHZ_PWR_20MW);
+	SubGHz.setAckReq(ptx->ack_req);
 	if (ptx->rx_on == true) SubGHz.rxEnable(NULL);
 	else SubGHz.rxDisable();
 #ifdef USE_DEBUG_LED
 	digitalWrite(BLUE_LED,LOW);
 #endif
-	msg = SubGHz.send(ptx->panid,ptx->addr,ptx->str,strlen(ptx->str),NULL);
+	if (ptx->tx64) {
+		msg = SubGHz.send64le(ptx->addr64,ptx->str,strlen(ptx->str),NULL);
+	} else {
+		msg = SubGHz.send(ptx->panid,ptx->addr,ptx->str,strlen(ptx->str),NULL);
+	}
 #ifdef USE_DEBUG_LED
 	digitalWrite(BLUE_LED,HIGH);
 #endif
@@ -883,10 +897,11 @@ static MAIN_IOT_STATE func_trigActivate(void) {
 	SUBGHZ_MSG msg;
 
 //	if (voltage_check_oneshot(VLS_2_800) == 0) { // for harvesting board
-		tx_param.panid = 0xffff;
-		tx_param.addr = 0xffff;
+		tx_param.tx64 = true;
+		memcpy(tx_param.addr64,mip.scan_list[0].addr,8);
 		tx_param.str = activate_str;
 		tx_param.rx_on = true;
+		tx_param.ack_req = false;
 		msg = subghzSend(&tx_param);
 		if (msg == SUBGHZ_OK) {
 			mode = STATE_WAIT_ACTIVATE;
@@ -930,13 +945,14 @@ static MAIN_IOT_STATE func_waitActivate(void) {
 			tx_param.retry = 0; // clear
 		}
 	} else if (millis() - tx_param.tx_time > RX_INTERVAL) { // timeout
-		mode = STATE_TRIG_ACTIVATE;
 		SubGHz.close();
 		tx_param.retry++;
 		BREAKL("tx_param.retry: ",(long)tx_param.retry,DEC);
 		if (tx_param.retry <= MAX_ACTIVATE_RETRY) {
+			mode = STATE_TRIG_ACTIVATE;
 			mip.sleep_time = RETRY_INTERVAL;
 		} else {
+			mode = STATE_TRIG_SCAN_GW;
 			tx_param.retry = 0; // clear
 			mip.sleep_time = ACTIVATE_RETRY_INTERVAL;
 		}
@@ -977,10 +993,12 @@ static MAIN_IOT_STATE func_sendRealtime(void) {
 		} else {
 			if (tx_param.fail == 0) {
 				sensor_genPayload();
+				tx_param.tx64 = false;
 				tx_param.panid = mip.gateway_panid;
 				tx_param.addr = mip.gateway_addr;
 				tx_param.str = tx_buf;
 				tx_param.rx_on = false;
+				tx_param.ack_req = true;
 			}
 			BREAKS("tx_buf: ",tx_buf);
 			msg = subghzSend(&tx_param);
@@ -1026,10 +1044,12 @@ static MAIN_IOT_STATE func_sendQueueData(void) {
 	} else {
 		num = sensor_genPayload();
 		BREAK(tx_buf);
+		tx_param.tx64 = false;
 		tx_param.panid = mip.gateway_panid;
 		tx_param.addr = mip.gateway_addr;
 		tx_param.str = tx_buf;
 		tx_param.rx_on = false;
+		tx_param.ack_req = true;
 		msg = subghzSend(&tx_param);
 		SubGHz.close();
 		if (msg == SUBGHZ_OK) {
@@ -1104,10 +1124,11 @@ static MAIN_IOT_STATE func_trigReconnect(void) {
 	}
 	// try to reconnect if the backoff time has been gone over
 	if (compareTimestamp(tx_param.backoff_time,now)) {
-		tx_param.panid = 0xffff;
-		tx_param.addr = 0xffff;
+		tx_param.tx64 = true;
+		memcpy(tx_param.addr64,mip.scan_list[0].addr,8);
 		tx_param.str = activate_str;
 		tx_param.rx_on = true;
+		tx_param.ack_req = false;
 		msg = subghzSend(&tx_param);
 		if (msg == SUBGHZ_OK) {
 			mode = STATE_WAIT_RECONNECT;
@@ -1164,10 +1185,12 @@ static MAIN_IOT_STATE func_trigUpdParam(void) {
 	uint8_t update_str[] = "update";
 	SUBGHZ_MSG msg;
 
+	tx_param.tx64 = false;
 	tx_param.panid = mip.gateway_panid;
 	tx_param.addr = mip.gateway_addr;
 	tx_param.str = update_str;
 	tx_param.rx_on = true;
+	tx_param.ack_req = true;
 	msg = subghzSend(&tx_param);
 	if (msg == SUBGHZ_OK) {
 		mode = STATE_WAIT_UPD_PARAM;
@@ -1265,10 +1288,12 @@ static MAIN_IOT_STATE func_trigFwUpd(void) {
 	uint8_t ota_str[] = "ota-ready";
 	SUBGHZ_MSG msg;
 
+	tx_param.tx64 = false;
 	tx_param.panid = mip.gateway_panid;
 	tx_param.addr = mip.gateway_addr;
 	tx_param.str = ota_str;
 	tx_param.rx_on = false;
+	tx_param.ack_req = true;
 	msg = subghzSend(&tx_param);
 	SubGHz.close();
 	if (msg == SUBGHZ_OK) {
@@ -1332,6 +1357,85 @@ static MAIN_IOT_STATE func_waitFwUpd(void) {
 	return mode;
 }
 
+#ifdef DEBUG
+static void print_addr_rssi(SUBGHZ_SCAN_LIST *list) {
+	int j;
+
+	for (j=7; j>=0; j--) {
+		if (list->addr[j] < 0x10) Serial.print("0");
+		Serial.print_long((long)list->addr[j],HEX);
+	}
+	Serial.print(" : ");
+	Serial.print_long((long)list->rssi,DEC); // average
+	Serial.print(" (");
+	Serial.print_long((long)list->raw_rssi.byte_data[3],DEC); // oldest
+	Serial.print(",");
+	Serial.print_long((long)list->raw_rssi.byte_data[2],DEC);
+	Serial.print(",");
+	Serial.print_long((long)list->raw_rssi.byte_data[1],DEC);
+	Serial.print(",");
+	Serial.print_long((long)list->raw_rssi.byte_data[0],DEC); // latest
+	Serial.println(")");
+}
+#endif
+
+static void scan_callback(uint8_t num) {
+#ifdef USE_DEBUG_LED
+	digitalWrite(BLUE_LED,HIGH);
+#endif
+	mip.scan_done = true;
+	mip.scan_num = num;
+}
+
+static MAIN_IOT_STATE func_trigScanGw(void) {
+	MAIN_IOT_STATE mode = STATE_TRIG_SCAN_GW;
+	SUBGHZ_MSG msg;
+
+#ifdef USE_DEBUG_LED
+	digitalWrite(BLUE_LED,LOW);
+#endif
+	SubGHz.close();
+	SubGHz.begin(SUBGHZ_CH,0xffff,SUBGHZ_100KBPS,SUBGHZ_PWR_20MW);
+	msg = SubGHz.scan(0xffff,mip.scan_list,MAX_SCAN_LIST,scan_callback);
+	if (msg == SUBGHZ_OK) {
+		mip.sleep_time = NO_SLEEP;
+		mode = STATE_WAIT_SCAN_GW;
+	} else {
+		mip.scan_done = false;
+		mip.sleep_time = DEFAULT_SLEEP_INTERVAL;
+#ifdef DEBUG
+		SubGHz.msgOut(msg);
+		Serial.println("Scan failed to start.");
+#endif
+	}
+	return mode;
+}
+
+static MAIN_IOT_STATE func_waitScanGw(void) {
+	MAIN_IOT_STATE mode = STATE_WAIT_SCAN_GW;
+	if (mip.scan_done) {
+		mip.scan_done = false;
+		if (mip.scan_num != 0) {
+			mode = STATE_TRIG_ACTIVATE; // go to next state
+#ifdef DEBUG
+		{
+			int i;
+			Serial.println("-- List --\nmac address      : rssi ave (oldest <-> latest)");
+			for (i=0; i<mip.scan_num; i++) print_addr_rssi(&mip.scan_list[i]);
+			Serial.println("-- End of list --");
+		}
+#endif
+		} else {
+			mode = STATE_TRIG_SCAN_GW;
+			mip.sleep_time = DEFAULT_SLEEP_INTERVAL;
+#ifdef DEBUG
+			Serial.println("Hosts not found.");
+#endif
+		}
+	}
+	return mode;
+}
+
 static MAIN_IOT_STATE (*functions[])(void) = {
 	func_trigActivate,
 	func_waitActivate,
@@ -1343,7 +1447,9 @@ static MAIN_IOT_STATE (*functions[])(void) = {
 	func_trigUpdParam,
 	func_waitUpdParam,
 	func_trigFwUpd,
-	func_waitFwUpd
+	func_waitFwUpd,
+	func_trigScanGw,
+	func_waitScanGw
 };
 
 /* --------------------------------------------------------------------------------
@@ -1418,6 +1524,7 @@ void setup() {
 #endif
 	sensor_construct();
 //	mip.sleep_time = 30*1000ul; // for harvesting board
+	mip.func_mode = STATE_TRIG_SCAN_GW; // override initial state
 }
 
 void loop() {
