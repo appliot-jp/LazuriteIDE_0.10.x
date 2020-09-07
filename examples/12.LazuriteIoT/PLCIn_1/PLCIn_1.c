@@ -52,10 +52,12 @@ char* sensor_init() {
 
 /*
  * callback function of activation
+ * argument interval: sense interval during initialization
  * return  true : sensor_meas is called after interval
  *         false: sensor_meas is called immidialtely
  */
-bool sensor_activate(void) {
+bool sensor_activate(uint32_t *interval) {
+	*interval = 5000ul; // dummy
 	timer2.set(100L,callback);
 	timer2.start();
 	Serial.begin(115200);

@@ -89,7 +89,7 @@ typedef struct {
 
 extern char* sensor_init(void);
 extern void sensor_meas(SensorState s[]);
-extern bool sensor_activate(void);
+extern bool sensor_activate(uint32_t *interval);
 extern void sensor_deactivate(void);
 extern bool waitEventFlag;
 extern bool useInterruptFlag;

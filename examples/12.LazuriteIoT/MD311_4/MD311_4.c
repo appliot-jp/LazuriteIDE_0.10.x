@@ -1,9 +1,9 @@
-#include "ALSensor_4_ide.h"		// Additional Header
+#include "MD311_4_ide.h"		// Additional Header
 
-/* FILE NAME: ALSensor_4.c
+/* FILE NAME: MD311_4.c
  * The MIT License (MIT)
  *
- * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
+ * Copyright (c) 2019  Lapis Semiconductor Co.,Ltd.
  * All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,6 +25,22 @@
  * THE SOFTWARE.
 */
 
+#include <driver_gpio.h>
+
+#define CHB						( 2 )
+#define MEAS 					( 3 )
+#define REASON_INT_PIN1			( 11 )
+#define REASON_INT_PIN2			( 12 )
+#define REASON_INT_PIN3			( 13 )
+#define REASON_INT_PIN4			( 10 )
+
+void reason_init(void) {
+	pinMode(REASON_INT_PIN1,INPUT_PULLUP);	// Active LOW
+	pinMode(REASON_INT_PIN2,INPUT_PULLUP);	// Active LOW
+	pinMode(REASON_INT_PIN3,INPUT_PULLUP);	// Active LOW
+	pinMode(REASON_INT_PIN4,INPUT_PULLUP);	// Active LOW
+}
+
 /*
  * initializaing function
  * this function is called in initalizing process
@@ -32,17 +48,20 @@
  */
 char* sensor_init() {
 	static char filename[] = __FILE__;
-	Wire.begin();
-	rpr0521rs.init();
+	pinMode(CHB,OUTPUT);
+	pinMode(MEAS,OUTPUT);
+	analogReadResolution(12);
+	reason_init();
 	return filename;
 }
-
 /*
  * callback function of activation
+ * argument interval: sense interval during initialization
  * return  true : sensor_meas is called after interval
  *         false: sensor_meas is called immidialtely
  */
-bool sensor_activate(void) {
+bool sensor_activate(uint32_t *interval) {
+	*interval = 5000ul;
 	return false;
 }
 /*
@@ -72,23 +91,44 @@ void sensor_deactivate(void) {
  */
 void sensor_meas(SensorState s[]) {
 	SENSOR_VAL *val = &(s[0].sensor_val);
-	float als_val;
-	uint8_t reg = 0x86, data[6];
-	uint16_t rawals[2];
-
-	rpr0521rs.write(RPR0521RS_MODE_CONTROL, &reg, sizeof(reg));
-	sleep(100);			// measurement time
-
-	rpr0521rs.get_rawpsalsval(data);
-	
-	rawals[0] = ((unsigned short)data[3] << 8) | data[2];
-	rawals[1] = ((unsigned short)data[5] << 8) | data[4];
-
-	als_val = rpr0521rs.convert_lux(rawals);
-
-	reg = 0;
-	rpr0521rs.write(RPR0521RS_MODE_CONTROL, &reg, sizeof(reg));
-	val->data.double_val=als_val;  val->type = DOUBLE_VAL; val->digit = 2;
-	
+	int *reason = &(s[0].reason);
+	int reason_val;
+	unsigned long st_time,en_time;
+	double amps;
+	volatile int st_voltage,en_voltage,dif_vol;
+	digitalWrite(MEAS,HIGH);
+	digitalWrite(CHB,HIGH);
+	st_voltage = analogRead(A0);
+	sleep(1);
+	st_voltage = analogRead(A0);
+	sleep(1);
+	st_voltage = analogRead(A0);
+	sleep(1);
+	st_voltage = analogRead(A0);
+	st_time = millis();
+	do {
+		sleep(1);
+		en_voltage = analogRead(A0);
+		en_time = millis();
+	} while(((en_time - st_time) < 1000) && (en_voltage < 1024));
+	digitalWrite(CHB,LOW);
+	digitalWrite(MEAS,LOW);
+	amps = 3.3*1.1;
+	dif_vol = en_voltage-st_voltage;
+	dif_vol = (dif_vol < 0) ? 0 : dif_vol;
+	amps = amps * dif_vol /4.096/(en_time - st_time);
+	val->data.double_val = amps;
+	val->type = DOUBLE_VAL;
+	val->digit = 2;
+	// check reason
+	reason_val = digitalRead(REASON_INT_PIN1) ? 0 : 1;
+	reason_val |= digitalRead(REASON_INT_PIN2) ? 0 : 1 << 1;
+	reason_val |= digitalRead(REASON_INT_PIN3) ? 0 : 1 << 2;
+	reason_val |= digitalRead(REASON_INT_PIN4) ? 0 : 1 << 3;
+	if (reason_val) {
+		*reason = reason_val;
+	} else {
+		*reason = INVALID_REASON;
+	}
 	return;
 }

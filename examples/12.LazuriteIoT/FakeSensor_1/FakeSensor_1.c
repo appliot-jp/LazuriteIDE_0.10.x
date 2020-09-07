@@ -29,9 +29,9 @@
  * sensor value: 0 or 1 (default: random)
  * interval range(min): on [1 ~ 30], off [0.5 ～ 15]
  */
-#define INT_ON_MIN ( 1*60 )
-#define INT_ON_MAX ( 30*60 )
-#define INT_OFF_MIN ( 30 )
+#define INT_ON_MIN ( 15 )
+#define INT_ON_MAX ( 5*60 )
+#define INT_OFF_MIN ( 60 )
 #define INT_OFF_MAX ( 15*60 )
 uint8_t value[MAX_SENSOR_NUM];
 uint32_t last[MAX_SENSOR_NUM]={0},interval[MAX_SENSOR_NUM]={0};
@@ -47,13 +47,15 @@ char* sensor_init() {
 }
 /*
  * callback function of activation
+ * argument interval: sense interval during initialization
  * return  true : sensor_meas is called after interval
  *         false: sensor_meas is called immidialtely
  */
-bool sensor_activate(void) {
+bool sensor_activate(uint32_t *interval) {
 	SUBGHZ_STATUS rx;
 	int i;
 
+	*interval = 5000ul; // dummy
 	Serial.begin(115200);
 	SubGHz.getStatus(NULL,&rx);
 	srand(rand()+rx.rssi);
@@ -107,7 +109,7 @@ void sensor_meas(SensorState s[]) {
 				interval[i] *= fabs(cos((double)interval[i]));
 				value[i] = 0;
 			}
-//			interval[i] = 15*1000L; // test, fixed interval
+			//interval[i] = 30*1000L; // test, fixed interval
 			Serial.print(",\tint: ");
 			Serial.print_long((long)interval[i],DEC);
 			Serial.print(",\tval: ");

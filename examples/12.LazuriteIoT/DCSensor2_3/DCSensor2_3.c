@@ -1,21 +1,21 @@
-#include "ALSensor2_4_ide.h"		// Additional Header
+#include "DCSensor2_3_ide.h"		// Additional Header
 
-/* FILE NAME: ALSensor2_4.c
+/* FILE NAME: DCSensor2_3.c
  * The MIT License (MIT)
- *
- * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
+ * 
+ * Copyright (c) 2020  Lapis Semiconductor Co.,Ltd.
  * All rights reserved.
- *
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,43 +25,50 @@
  * THE SOFTWARE.
 */
 
+#define PLC_IN_NUM			( 6 )
+#define PLC_IN0				( 8 )
+#define DC_SENSOR_NUM		( 2 )
+#define DC_SENSOR_AIN0		( 14 )
+
+#if DC_SENSOR_NUM+PLC_IN_NUM > MAX_SENSOR_NUM
+	#error The number of sensor exceeds MAX_SENSOR_NUM.
+#endif
+
+void callback(void)
+{
+	waitEventFlag = true;
+}
+
 /*
  * initializaing function
  * this function is called in initalizing process
  * return filename
  */
-
-static int data_buf_index = 0;
-#define DATA_BUF_LENGTH  8
-static float data_buf[DATA_BUF_LENGTH];
-
-static void mstimer2_isr(void) {
-	waitEventFlag = true;
-	return;
-}
-
 char* sensor_init() {
 	static char filename[] = __FILE__;
+	int i;
+
+	analogReadResolution(12);
 	useInterruptFlag = true;
-	Wire.begin();
+	for (i=0; i<PLC_IN_NUM; i++) {
+		pinMode((uint8_t)(PLC_IN0+i), INPUT);
+	}
+
 	return filename;
 }
 
 /*
  * callback function of activation
+ * argument interval: sense interval during initialization
  * return  true : sensor_meas is called after interval
  *         false: sensor_meas is called immidialtely
  */
-bool sensor_activate(void) {
-	uint8_t reg = 0x86;
-	for(data_buf_index=0;data_buf_index < DATA_BUF_LENGTH; data_buf_index++) {
-		data_buf[data_buf_index] = 0;
-	}
-	data_buf_index=0;
-	timer2.set(100L,mstimer2_isr);
+bool sensor_activate(uint32_t *interval) {
+	*interval = 5000ul; // dummy
+	timer2.set(100L,callback);
 	timer2.start();
-	rpr0521rs.write(RPR0521RS_MODE_CONTROL, &reg, sizeof(reg));
 	Serial.begin(115200);
+
 	return false;
 }
 /*
@@ -87,33 +94,30 @@ void sensor_deactivate(void) {
  * val->data.double_val=xxx;  val->type = DOUBLE_VAL; val->digit = d;
  */
 void sensor_meas(SensorState s[]) {
-	SENSOR_VAL *val = &(s[0].sensor_val);
-	float als_val;
+	SENSOR_VAL *val;
+	uint16_t data[DC_SENSOR_NUM+PLC_IN_NUM];
 	int i;
-	uint8_t rawval[4];
-	uint16_t rawals[2];
 
-	rpr0521rs.read(RPR0521RS_ALS_DATA0_LSB, rawval, 4);
-
-	rawals[0] = ((unsigned short)rawval[1] << 8) | rawval[0];
-	rawals[1] = ((unsigned short)rawval[3] << 8) | rawval[2];
-
-	als_val = rpr0521rs.convert_lux(rawals);
-	data_buf[data_buf_index] = als_val;
-	data_buf_index++;
-
-	if(data_buf_index >= 8) data_buf_index = 0;
-
-	als_val = 0;
-	for(i=0;i<DATA_BUF_LENGTH;i++) {
-		als_val += data_buf[i];
+	for (i=0; i<DC_SENSOR_NUM; i++) {
+		val = &(s[i].sensor_val);
+		data[i] = analogRead((uint8_t)(DC_SENSOR_AIN0+i));
+		val->data.uint16_val = data[i];
+		val->type = UINT16_VAL;
 	}
-	als_val = als_val/DATA_BUF_LENGTH;
-	val->data.double_val=als_val;  val->type = DOUBLE_VAL; val->digit = 2;
 
-	Serial.print("STX,");
-	Serial.print_double((double)als_val,2);
+	for (i=0; i<PLC_IN_NUM; i++) {
+		val = &(s[DC_SENSOR_NUM+i].sensor_val);
+		data[DC_SENSOR_NUM+i] = digitalRead((uint8_t)(PLC_IN0+i)) == 0 ? 1 : 0; // invert, active low
+		val->data.uint16_val = data[DC_SENSOR_NUM+i];
+		val->type = UINT16_VAL;
+	}
+
+	Serial.print("STX");
+	for (i=0; i<DC_SENSOR_NUM+PLC_IN_NUM; i++) {
+		Serial.print(",");
+		Serial.print_long((long)data[i],DEC);
+	}
 	Serial.println(",ETX");
-
 	return;
 }
+

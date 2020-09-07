@@ -48,11 +48,13 @@ char* sensor_init() {
 	return filename;
 }
 /*
- *  callback of activation
- *  return:  true waiting time before first sensor_meas
- *           false ensor_meas immidiatery after activation
+ * callback of activation
+ * argument interval: sense interval during initialization
+ * return  true : sensor_meas is called after interval
+ *         false: sensor_meas is called immidialtely
  */
-bool sensor_activate() {
+bool sensor_activate(uint32_t *interval) {
+	*interval = 5000ul;
 	return false;
 }
 
