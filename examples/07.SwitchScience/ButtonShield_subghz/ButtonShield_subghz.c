@@ -53,7 +53,8 @@ const char vls_val[][8] ={
 	"4.7"		//	"> 4.667V"
 };
 static uint8_t level=0;
-static uint8_t last_button;
+volatile static uint8_t last_button;
+static uint32_t event_time = 0;
 void isr_button(void)
 {
   button_pressed = true;
@@ -62,19 +63,27 @@ void isr_button(void)
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
+  Serial.println("hello");
   SubGHz.init();
 
   pinMode(2, INPUT);
   attachInterrupt(0, isr_button, CHANGE);
   last_button = digitalRead(2);
+  event_time = millis();
 }
 
 void loop() {
-	// put your main code here, to run repeatedly:
-	if(last_button == digitalRead(2)) {
-		wait_event(&button_pressed);	
-	}
+	volatile uint8_t button_on_change;
+	wait_event(&button_pressed);
+	do {
+		button_on_change = digitalRead(2);
+		sleep(50);
+	} while (button_on_change != digitalRead(2));
 	
+	if(last_button == button_on_change) {
+		return;
+	}
+	last_button = button_on_change;
 	if(level < 2) {
 		level = voltage_check(VLS_4_667);
 	} else {
@@ -82,7 +91,6 @@ void loop() {
 	}
 	
 	Print.init(txdata,sizeof(txdata));
-	last_button = digitalRead(2);
 	if (last_button) {
 		Print.p("0");
 	} else {
