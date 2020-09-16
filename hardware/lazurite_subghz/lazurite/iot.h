@@ -45,7 +45,7 @@
 #define FLOAT_VAL		( 7 )
 #define DOUBLE_VAL		( 8 )
 #define MAX_SENSOR_NUM	( 8 )
-#define INVALID_ID	( -1 )
+#define INVALID_ID		( -1 )
 #define INVALID_REASON	( -1 )
 
 typedef struct {
@@ -85,6 +85,7 @@ typedef struct {
 	uint8_t vls_level;
 	uint32_t last_save_time; // last timestamp of sending sensor data including keep alive
 	bool save_request; // flag of requesting to send sensor data
+	uint8_t init_state; // initialized status (start/started/done)
 } SensorState;
 
 extern char* sensor_init(void);

@@ -375,7 +375,18 @@ static void sensor_construct(void) {
 		ssp->vls_level = 0;
 		ssp->last_save_time = 0;
 		ssp->save_request = false;
+		ssp->init_state = SENSOR_INIT_START;
 	}
+}
+
+static void sensor_state_init(void) {
+	int i;
+	SensorState *ssp = &Sensor[0];
+
+	for (i=0; i<MAX_SENSOR_NUM; i++,ssp++) {
+		ssp->init_state = SENSOR_INIT_START;
+	}
+	mip.sensor_init_state = SENSOR_INIT_START;
 }
 
 /*
@@ -522,8 +533,8 @@ static int sensor_saveQueue(SensorState *p_this) {
 
 static void sensor_operJudge(SensorState *p_this) {
 	p_this->sensor_comp_val = sensor_getDoubleData(&p_this->sensor_val);
-	if (mip.sensor_init_state == SENSOR_INIT_START) {
-		mip.sensor_init_state = SENSOR_INIT_STARTING;
+	if (p_this->init_state == SENSOR_INIT_START) {
+		p_this->init_state = SENSOR_INIT_STARTING;
 		mip.sleep_time = mip.sense_interval;
 		if (p_this->sensor_comp_val < p_this->thrs_off_val) {
 			p_this->thrs_off_start = mip.last_sense_time;
@@ -760,6 +771,7 @@ static uint8_t sensor_genPayload(void) {
 static void sensor_main(void) {
 	SensorState *ssp = &Sensor[0];
 	int i;
+	bool init_done = true;
 
 	sensor_meas(Sensor);
 	mip.last_sense_time = millis();
@@ -784,7 +796,9 @@ static void sensor_main(void) {
 			}
 #endif
 		}
+		if (ssp->init_state != SENSOR_INIT_DONE) init_done = false;
 	}
+	if (init_done == true) mip.sensor_init_state = SENSOR_INIT_DONE;
 }
 
 /* --------------------------------------------------------------------------------
@@ -809,15 +823,15 @@ static void SensorState_offUnstable(SensorState* p_this) {
 	p_this->next_state = SENSOR_STATE_OFF_UNSTABLE;
 
 	if (p_this->sensor_comp_val <= p_this->thrs_on_val) {
-		if (mip.sensor_init_state == SENSOR_INIT_DONE) {
+		if (p_this->init_state == SENSOR_INIT_DONE) {
 			p_this->next_state = SENSOR_STATE_OFF_STABLE;
 		} else if (mip.last_sense_time-p_this->thrs_off_start >= p_this->thrs_off_interval) {
 			p_this->save_request = true;
 		p_this->next_state = SENSOR_STATE_OFF_STABLE;
-			mip.sensor_init_state = SENSOR_INIT_DONE;
+			p_this->init_state = SENSOR_INIT_DONE;
 		}
 	} else {
-		if (mip.sensor_init_state == SENSOR_INIT_DONE) {
+		if (p_this->init_state == SENSOR_INIT_DONE) {
 			if (mip.last_sense_time-p_this->thrs_on_start >= p_this->thrs_on_interval) {
 			p_this->save_request = true;
 			p_this->next_state = SENSOR_STATE_ON_STABLE;
@@ -829,7 +843,7 @@ static void SensorState_offUnstable(SensorState* p_this) {
 			} else {
 				p_this->save_request = true;
 				p_this->next_state = SENSOR_STATE_ON_STABLE;
-				mip.sensor_init_state = SENSOR_INIT_DONE;
+				p_this->init_state = SENSOR_INIT_DONE;
 			}
 		}
 	}
@@ -853,15 +867,15 @@ static void SensorState_onUnstable(SensorState* p_this) {
 	p_this->next_state = SENSOR_STATE_ON_UNSTABLE;
 
 	if (p_this->sensor_comp_val >= p_this->thrs_off_val) {
-		if (mip.sensor_init_state == SENSOR_INIT_DONE) {
+		if (p_this->init_state == SENSOR_INIT_DONE) {
 			p_this->next_state = SENSOR_STATE_ON_STABLE;
 		} else if (mip.last_sense_time-p_this->thrs_on_start >= p_this->thrs_on_interval) {
 			p_this->save_request = true;
 		p_this->next_state = SENSOR_STATE_ON_STABLE;
-			mip.sensor_init_state = SENSOR_INIT_DONE;
+			p_this->init_state = SENSOR_INIT_DONE;
 		}
 	} else {
-		if (mip.sensor_init_state == SENSOR_INIT_DONE) {
+		if (p_this->init_state == SENSOR_INIT_DONE) {
 			if (mip.last_sense_time-p_this->thrs_off_start >= p_this->thrs_off_interval) {
 			p_this->save_request = true;
 			p_this->next_state = SENSOR_STATE_OFF_STABLE;
@@ -873,7 +887,7 @@ static void SensorState_onUnstable(SensorState* p_this) {
 			} else {
 				p_this->save_request = true;
 				p_this->next_state = SENSOR_STATE_OFF_STABLE;
-				mip.sensor_init_state = SENSOR_INIT_DONE;
+				p_this->init_state = SENSOR_INIT_DONE;
 			}
 		}
 	}
@@ -977,7 +991,7 @@ static MAIN_IOT_STATE func_waitActivate(void) {
 				mip.sleep_time = NO_SLEEP;
 			}
 			mip.enable_sense = true;
-			mip.sensor_init_state = SENSOR_INIT_START;
+			sensor_state_init();
 			tx_param.retry = 0; // clear
 		}
 	} else if (millis() - tx_param.tx_time > RX_INTERVAL) { // timeout
@@ -1180,7 +1194,7 @@ static MAIN_IOT_STATE func_waitReconnect(void) {
 		if (ret < 0) {
 			BREAKL("parse error: ",(long)ret,DEC);
 		} else {
-			if (ret == PARSE_PARAM_CHANGE) mip.sensor_init_state = SENSOR_INIT_START;
+			if (ret == PARSE_PARAM_CHANGE) sensor_state_init();
 			mode = STATE_SEND_QUEUE_DATA;
 			SubGHz.close();
 			if (mip.my_short_addr != 0xffff) SubGHz.setMyAddress(mip.my_short_addr);
@@ -1257,7 +1271,7 @@ static MAIN_IOT_STATE func_waitUpdParam(void) {
 				mip.sleep_time = NO_SLEEP;
 			}
 			mip.enable_sense = true;
-			mip.sensor_init_state = SENSOR_INIT_START;
+			sensor_state_init();
 			tx_param.retry = 0; // clear
 		}
 	} else if (millis() - tx_param.tx_time > RX_INTERVAL) { // timeout
