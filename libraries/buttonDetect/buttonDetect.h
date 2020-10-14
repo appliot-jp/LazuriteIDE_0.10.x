@@ -45,6 +45,6 @@ struct button_config {
 	struct button* btn;
 };
 
-extern void buttonDetect(struct button_config* params);
+extern void buttonDetect(struct button_config* params,void (*callback)(void));
 
 #endif

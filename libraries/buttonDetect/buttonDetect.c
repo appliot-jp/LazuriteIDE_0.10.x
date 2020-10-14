@@ -28,6 +28,8 @@ static struct button_config* btn_cfg;
 
 
 static void irq_btn(int mode);
+static void (*callback)(void);
+
 static void extirq_btn() {
 	irq_btn(0);
 }
@@ -39,6 +41,7 @@ static void irq_btn(int mode) {
 	uint32_t now;
 	uint8_t needTimer = false;
 	int i;
+	bool cb = false;
 	now = millis();
 	for(i=0;i<btn_cfg->num;i++) {
 		uint8_t pin = (uint8_t)digitalRead(btn_cfg->btn[i].pin);
@@ -58,6 +61,7 @@ static void irq_btn(int mode) {
 									btn_cfg->btn[i].state = 2;
 									bitSet(btn_cfg->event,btn_cfg->btn[i].extirq);
 									btn_cfg->wait_flag = true;
+									cb = true;
 								}
 							}
 							break;
@@ -77,6 +81,7 @@ static void irq_btn(int mode) {
 									btn_cfg->btn[i].count=0;
 									bitSet(btn_cfg->event,btn_cfg->btn[i].extirq);
 									btn_cfg->wait_flag = true;
+									cb = true;
 								}
 							}
 							break;
@@ -87,6 +92,7 @@ static void irq_btn(int mode) {
 				} else {
 					if(btn_cfg->btn[i].state>=2) {
 						btn_cfg->wait_flag = true;
+						cb = true;
 					}
 					btn_cfg->btn[i].state = 0;
 				}
@@ -118,6 +124,7 @@ static void irq_btn(int mode) {
 					if(btn_cfg->btn[i].state >= 2) {
 						bitSet(btn_cfg->event,btn_cfg->btn[i].extirq);
 						btn_cfg->wait_flag = true;
+						cb = true;
 					}
 					btn_cfg->btn[i].state = 0;
 					btn_cfg->btn[i].count = 0;
@@ -135,9 +142,12 @@ static void irq_btn(int mode) {
 		msTimer2Enb = false;
 		timer2.stop();
 	}
+	if((cb == true) && (callback != NULL)) {
+		callback();
+	}
 }
 
-void buttonDetect(struct button_config* params) {
+void buttonDetect(struct button_config* params,void (*func)(void)) {
 	int i;
 	btn_cfg = params;
 	btn_cfg->event = 0;
@@ -148,5 +158,6 @@ void buttonDetect(struct button_config* params) {
 		btn_cfg->btn[i].state = 0;
 		btn_cfg->btn[i].count = 0;
 	}
+	callback = func;
 }
 

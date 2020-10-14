@@ -19,15 +19,20 @@ struct button_config btn = {
 	btn0
 };
 
+bool buttonEvent = false;
+void callback() {
+	buttonEvent = true;
+}
 void setup() {
   // put your setup code here, to run once:
 	Serial.begin(115200);  
-	buttonDetect(&btn);
+	buttonDetect(&btn,callback);
 }
 
 void loop() {
-	wait_event(&btn.wait_flag);
+	wait_event(&buttonEvent);
 	if(btn.event != 0) {
 		Serial.println_long(btn.event,HEX);
+		btn.event = 0;
 	}	
 }

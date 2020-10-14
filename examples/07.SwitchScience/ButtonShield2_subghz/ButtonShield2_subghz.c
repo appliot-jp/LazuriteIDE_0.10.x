@@ -79,7 +79,7 @@ void setup() {
   // put your setup code here, to run once:
 	SubGHz.init();
 	Serial.begin(115200);  
-	buttonDetect(&btn);
+	buttonDetect(&btn,NULL);
 	pinMode(BLUE_LED,OUTPUT);
 	digitalWrite(BLUE_LED,HIGH);
 	pinMode(ORANGE_LED,OUTPUT);
