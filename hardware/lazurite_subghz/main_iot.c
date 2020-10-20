@@ -60,6 +60,8 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 #define SENSOR_INIT_START		( 0 )
 #define SENSOR_INIT_STARTING	( 1 )
 #define SENSOR_INIT_DONE		( 2 )
+#define SENSOR_METHOD_LEVEL		( 0 )
+#define SENSOR_METHOD_PULSE		( 1 )
 
 typedef enum {
 	STATE_TRIG_ACTIVATE = 0,
@@ -78,6 +80,7 @@ typedef struct {
 	bool enable_sense;
 	bool send_request;
 	uint8_t sensor_type;
+	uint8_t sensor_method;
 	uint8_t sensor_init_state; // sensor initialized status (start/started/done)
 	int sensor_num;
 	uint16_t gateway_panid;
@@ -128,6 +131,7 @@ MAIN_IOT_PARAM mip = {
 	false,					// bool enable_sense;
 	false,					// bool send_request;
 	0,						// uint8_t sensor_type;
+	SENSOR_METHOD_LEVEL,	// uint8_t sensor_method;
 	SENSOR_INIT_START,		// uint8_t sensor_init_state; // sensor initialized status (start/started/done)
 	0,						// int sensor_num;
 	0xffff,					// uint16_t gateway_panid;
@@ -297,6 +301,7 @@ static int queue_dequeue(uint8_t num) {
 #define PAYLOAD_HEADER_SIZE		( 3 )
 #define PAYLOAD_PARAM_SIZE		( 5 )
 #define PAYLOAD_SINGLE_LEN		( PAYLOAD_HEADER_SIZE + PAYLOAD_PARAM_SIZE )
+#define PAYLOAD_SINGLE_LEN_PULSE	( PAYLOAD_HEADER_SIZE + PAYLOAD_PARAM_SIZE+1 )
 #define NO_SLEEP 				( 0 )
 
 __packed typedef struct {
@@ -413,6 +418,11 @@ static int sensor_parsePayload(uint8_t *payload) {
 	if (i == PAYLOAD_SINGLE_LEN) {
 		BREAK("single");
 		mip.sensor_type = SENSOR_TYPE_V1;
+	} else if (i == PAYLOAD_SINGLE_LEN_PULSE) {
+		BREAK("single pulse");
+		mip.sensor_type = SENSOR_TYPE_V1;
+		mip.sensor_method = (uint8_t)strtoul(p[i-1],NULL,0);
+		BREAKL("sensor_method: ",mip.sensor_method,DEC);
 	} else if ((mip.sensor_num > 0) &&
 	  ((i - PAYLOAD_HEADER_SIZE) % PAYLOAD_PARAM_SIZE == 0) &&
 	  (mip.sensor_num <= MAX_SENSOR_NUM)) {
@@ -516,7 +526,10 @@ static int sensor_saveQueue(SensorState *p_this) {
 }
 #endif
 
-static void sensor_operJudge(SensorState *p_this) {
+static bool sensor_operJudge(SensorState *p_this) {
+	bool ret = false;
+	uint8_t init_state;
+
 	p_this->sensor_comp_val = sensor_getDoubleData(&p_this->sensor_val);
 	if (p_this->init_state == SENSOR_INIT_START) {
 		p_this->init_state = SENSOR_INIT_STARTING;
@@ -539,15 +552,35 @@ static void sensor_operJudge(SensorState *p_this) {
 	switch (p_this->next_state) {
 		case SENSOR_STATE_OFF_STABLE:
 			SensorState_offStable(p_this);
+ 			if (p_this->next_state == SENSOR_STATE_ON_STABLE) ret = true;
 			break;
 		case SENSOR_STATE_OFF_UNSTABLE:
+			init_state = p_this->init_state;
 			SensorState_offUnstable(p_this);
+			if (p_this->next_state == SENSOR_STATE_OFF_STABLE) {
+				if (init_state == SENSOR_INIT_STARTING) {
+					p_this->init_state = SENSOR_INIT_DONE;
+					ret = true;
+				}
+			} else if (p_this->next_state == SENSOR_STATE_ON_STABLE) {
+				ret = true;
+			}
 			break;
 		case SENSOR_STATE_ON_STABLE:
 			SensorState_onStable(p_this);
+ 			if (p_this->next_state == SENSOR_STATE_OFF_STABLE) ret = true;
 			break;
 		case SENSOR_STATE_ON_UNSTABLE:
+			init_state = p_this->init_state;
 			SensorState_onUnstable(p_this);
+			if (p_this->next_state == SENSOR_STATE_ON_STABLE) {
+				if (init_state == SENSOR_INIT_STARTING) {
+					p_this->init_state = SENSOR_INIT_DONE;
+					ret = true;
+				}
+			} else if (p_this->next_state == SENSOR_STATE_OFF_STABLE) {
+				ret = true;
+			}
 			break;
 		default:
 			break;
@@ -555,6 +588,7 @@ static void sensor_operJudge(SensorState *p_this) {
 #if 0//def DEBUG
 	Serial.println_long((long)p_this->next_state,DEC);
 #endif
+	return ret;
 }
 
 static uint32_t sensor_checkEack(MAIN_IOT_STATE *mode) {
@@ -688,7 +722,7 @@ static uint8_t sensor_genPayload(void) {
 			Print.l((long)ptr->id,DEC);
 			Print.p(",");
 		}
-		if ((ptr->next_state == SENSOR_STATE_ON_STABLE) || (ptr->next_state == SENSOR_STATE_ON_UNSTABLE)) {
+		if (ptr->next_state == SENSOR_STATE_ON_STABLE) {
 			Print.p("on,");
 		} else {
 			Print.p("off,");
@@ -756,21 +790,39 @@ static uint8_t sensor_genPayload(void) {
 static void sensor_main(void) {
 	SensorState *ssp = &Sensor[0];
 	int i;
-	bool init_done = true;
+	bool init_done = true, change_to_stable = false, vol_check_done = false;
+	uint8_t vls_level = 0;
 
 	sensor_meas(Sensor);
 	mip.last_sense_time = millis();
 	for (i=0; i<mip.sensor_num; i++,ssp++) {
-		// operation change judgement
-		sensor_operJudge(ssp);
-		// keep alive condition judgement
-		if (mip.last_sense_time-ssp->last_save_time >= KEEP_ALIVE_INTERVAL) {
-			BREAK("keep alive");
-			ssp->save_request = true;
+		change_to_stable = sensor_operJudge(ssp);
+		if (mip.sensor_method == SENSOR_METHOD_PULSE) {
+			// operation change judgement
+			if ((change_to_stable == true)
+				&& (ssp->next_state == SENSOR_STATE_OFF_STABLE)) {
+				ssp->save_request = true;
+			}
+		} else {
+			// operation change judgement
+			if (change_to_stable == true) {
+				ssp->save_request = true;
+			// keep alive condition judgement
+			} else if ((ssp->last_save_time != 0)
+				&& (mip.last_sense_time-ssp->last_save_time >= KEEP_ALIVE_INTERVAL)
+				&& ((ssp->next_state == SENSOR_STATE_OFF_STABLE)
+					|| (ssp->next_state == SENSOR_STATE_ON_STABLE))) {
+				BREAK("keep alive");
+				ssp->save_request = true;
+			}
 		}
 		if (ssp->save_request == true) {
 			mip.send_request = true;
-			ssp->vls_level = voltage_check(VLS_3_068);
+			if (vol_check_done == false) {
+				vol_check_done = true;
+				vls_level = voltage_check(VLS_3_068);
+			}
+			ssp->vls_level = vls_level;
 #ifdef IOT_QUEUE
 			// save to queue
 			ssp->save_request = false;
@@ -798,7 +850,6 @@ static void SensorState_offStable(SensorState* p_this) {
 			p_this->thrs_on_start = mip.last_sense_time;
 			p_this->next_state = SENSOR_STATE_OFF_UNSTABLE;
 		} else {
-			p_this->save_request = true;
 			p_this->next_state = SENSOR_STATE_ON_STABLE;
 		}
 	}
@@ -811,14 +862,11 @@ static void SensorState_offUnstable(SensorState* p_this) {
 		if (p_this->init_state == SENSOR_INIT_DONE) {
 			p_this->next_state = SENSOR_STATE_OFF_STABLE;
 		} else if (mip.last_sense_time-p_this->thrs_off_start >= p_this->thrs_off_interval) {
-			p_this->save_request = true;
 			p_this->next_state = SENSOR_STATE_OFF_STABLE;
-			p_this->init_state = SENSOR_INIT_DONE;
 		}
 	} else {
 		if (p_this->init_state == SENSOR_INIT_DONE) {
 			if (mip.last_sense_time-p_this->thrs_on_start >= p_this->thrs_on_interval) {
-				p_this->save_request = true;
 				p_this->next_state = SENSOR_STATE_ON_STABLE;
 			}
 		} else {
@@ -826,9 +874,7 @@ static void SensorState_offUnstable(SensorState* p_this) {
 				p_this->thrs_on_start = mip.last_sense_time;
 				p_this->next_state = SENSOR_STATE_ON_UNSTABLE;
 			} else {
-				p_this->save_request = true;
 				p_this->next_state = SENSOR_STATE_ON_STABLE;
-				p_this->init_state = SENSOR_INIT_DONE;
 			}
 		}
 	}
@@ -842,7 +888,6 @@ static void SensorState_onStable(SensorState* p_this) {
 			p_this->thrs_off_start = mip.last_sense_time;
 			p_this->next_state = SENSOR_STATE_ON_UNSTABLE;
 		} else {
-			p_this->save_request = true;
 			p_this->next_state = SENSOR_STATE_OFF_STABLE;
 		}
 	}
@@ -855,14 +900,11 @@ static void SensorState_onUnstable(SensorState* p_this) {
 		if (p_this->init_state == SENSOR_INIT_DONE) {
 			p_this->next_state = SENSOR_STATE_ON_STABLE;
 		} else if (mip.last_sense_time-p_this->thrs_on_start >= p_this->thrs_on_interval) {
-			p_this->save_request = true;
 			p_this->next_state = SENSOR_STATE_ON_STABLE;
-			p_this->init_state = SENSOR_INIT_DONE;
 		}
 	} else {
 		if (p_this->init_state == SENSOR_INIT_DONE) {
 			if (mip.last_sense_time-p_this->thrs_off_start >= p_this->thrs_off_interval) {
-				p_this->save_request = true;
 				p_this->next_state = SENSOR_STATE_OFF_STABLE;
 			}
 		} else {
@@ -870,9 +912,7 @@ static void SensorState_onUnstable(SensorState* p_this) {
 				p_this->thrs_off_start = mip.last_sense_time;
 				p_this->next_state = SENSOR_STATE_OFF_UNSTABLE;
 			} else {
-				p_this->save_request = true;
 				p_this->next_state = SENSOR_STATE_OFF_STABLE;
-				p_this->init_state = SENSOR_INIT_DONE;
 			}
 		}
 	}
