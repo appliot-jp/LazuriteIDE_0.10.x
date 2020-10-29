@@ -964,8 +964,8 @@ static MAIN_IOT_STATE func_trigActivate(void) {
 			}
 			BREAKL("tx fail: ",(long)tx_param.fail,DEC);
 		}
-//	}
-	return mode;
+		//	}
+		return mode;
 }
 
 static MAIN_IOT_STATE func_waitActivate(void) {
@@ -1310,7 +1310,7 @@ static int otaPayloadCheck(uint8_t *payload, uint8_t *hw_type, uint8_t *ver)
 		*hw_type = (uint8_t)strtol(d,NULL,0);
 
 		if ((OTA.getHwType() == *hw_type) && \
-			(strncmp(n,ota_param.name,OTA_PRGM_NAME_SIZE) == 0)) {
+				(strncmp(n,ota_param.name,OTA_PRGM_NAME_SIZE) == 0)) {
 			if (strncmp(s,"config",6) == 0) {
 				result = PARSE_CONFIG;
 			} else if (strncmp(s,"start",5) == 0) {
@@ -1458,15 +1458,19 @@ static MAIN_IOT_STATE func_waitScanGw(void) {
 	if (mip.scan_done) {
 		mip.scan_done = false;
 		if (mip.scan_num != 0) {
+			struct mac_addr addr;
 			mode = STATE_TRIG_ACTIVATE; // go to next state
 #ifdef DEBUG
-		{
-			int i;
-			Serial.println("-- List --\nmac address      : rssi ave (oldest <-> latest)");
-			for (i=0; i<mip.scan_num; i++) print_addr_rssi(&mip.scan_list[i]);
-			Serial.println("-- End of list --");
-		}
+			{
+				int i;
+				Serial.println("-- List --\nmac address      : rssi ave (oldest <-> latest)");
+				for (i=0; i<mip.scan_num; i++) print_addr_rssi(&mip.scan_list[i]);
+				Serial.println("-- End of list --");
+			}
 #endif
+			addr.pan_coord = false;
+			memcpy(addr.ieee_addr,mip.scan_list[0].addr,8);
+			SubGHz.setHost(&addr);
 		} else {
 			mode = STATE_TRIG_SCAN_GW;
 			mip.sleep_time = DEFAULT_SLEEP_INTERVAL;
@@ -1564,7 +1568,7 @@ void setup() {
 	queue_init();
 #endif
 	sensor_construct();
-//	mip.sleep_time = 30*1000ul; // for harvesting board
+	//	mip.sleep_time = 30*1000ul; // for harvesting board
 }
 
 void loop() {
@@ -1583,20 +1587,20 @@ void loop() {
 	if (mip.enable_sense == true) { // sensor is enabled
 #ifdef IOT_QUEUE
 		if (mip.sensor_init_state == SENSOR_INIT_DONE) {
-		// case 1. int flag false, sense_time over
-		if (useInterruptFlag == false) {
-			if (millis() - mip.last_sense_time >= mip.sense_interval) {
-				// call sensor_main()
+			// case 1. int flag false, sense_time over
+			if (useInterruptFlag == false) {
+				if (millis() - mip.last_sense_time >= mip.sense_interval) {
+					// call sensor_main()
+				} else {
+					return;
+				}
 			} else {
-				return;
-			}
-		} else {
-			// case 2. int flag true, int event exist
-			if ((remain_time != 0) || (waitEventFlag == true)) {
-				waitEventFlag = false;
-				// call sensor_main()
-			} else {
-				return;
+				// case 2. int flag true, int event exist
+				if ((remain_time != 0) || (waitEventFlag == true)) {
+					waitEventFlag = false;
+					// call sensor_main()
+				} else {
+					return;
 				}
 			}
 		}
