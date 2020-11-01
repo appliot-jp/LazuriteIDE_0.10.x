@@ -53,37 +53,51 @@ const uint8_t ota_aes_key[OTA_AES_KEY_SIZE] = {
 
 #define ORANGE_LED				( 25 )
 #define BLUE_LED				( 26 )
-#define SUBGHZ_CH			( 0xF1 )
+#ifdef HOPPING
+	#define SUBGHZ_CH			( 0xF1 )
+	#define MAX_SCAN_LIST 		( 5 )
+#else
+	#define SUBGHZ_CH			( 36 )
+#endif
 #define DEFAULT_SLEEP_INTERVAL	( 5*1000ul )
 #define MAX_BUF_SIZE			( 240 )
 #define MAX_QUEUE_LEN			( 64 )
 #define SENSOR_INIT_START		( 0 )
 #define SENSOR_INIT_STARTING	( 1 )
 #define SENSOR_INIT_DONE		( 2 )
-#define MAX_SCAN_LIST 		( 5 )
+#define SENSOR_METHOD_LEVEL		( 0 )
+#define SENSOR_METHOD_PULSE		( 1 )
 
 typedef enum {
 	STATE_TRIG_ACTIVATE = 0,
 	STATE_WAIT_ACTIVATE,
 	STATE_SEND_REALTIME,
+#ifdef IOT_QUEUE
 	STATE_SEND_QUEUE_DATA,
+#endif
 	STATE_TRIG_RECONNECT,
 	STATE_WAIT_RECONNECT,
 	STATE_TRIG_UPD_PARAM,
 	STATE_WAIT_UPD_PARAM,
 	STATE_TRIG_FW_UPD,
 	STATE_WAIT_FW_UPD,
+#ifdef HOPPING
 	STATE_TRIG_SCAN_GW,
-	STATE_WAIT_SCAN_GW
+	STATE_WAIT_SCAN_GW,
+#endif
+	STATE_DUMMY
 } MAIN_IOT_STATE;
 
 typedef struct {
+#ifdef HOPPING
+	bool scan_done;
+	uint8_t scan_num;
+#endif
 	bool enable_sense;
 	bool send_request;
-	bool scan_done;
 	uint8_t sensor_type;
+	uint8_t sensor_method;
 	uint8_t sensor_init_state; // sensor initialized status (start/started/done)
-	uint8_t scan_num;
 	int sensor_num;
 	uint16_t gateway_panid;
 	uint16_t gateway_addr;
@@ -91,13 +105,14 @@ typedef struct {
 	uint32_t last_sense_time; // last timestamp of getting sensor data
 	uint32_t sense_interval; // paramater gotten from device config via EACK
 	uint32_t sleep_time; // control sleep interval in loop()
+#ifdef HOPPING
 	SUBGHZ_SCAN_LIST scan_list[MAX_SCAN_LIST];
+#endif
 	MAIN_IOT_STATE func_mode;
 } MAIN_IOT_PARAM;
 
 typedef struct {
-	uint16_t panid;
-	uint16_t addr;		// short addr
+	struct mac_addr host;	// host address
 	uint8_t *str;
 	bool rx_on; // true:rxEnable, false:rxDisable
 	uint32_t tx_time; // last timestamp of tx ok
@@ -105,9 +120,7 @@ typedef struct {
 	uint8_t retry; // to count up retry for waiting
 	uint32_t backoff_time; // timestamp which back-off send is permitted
 	bool set_backoff_time; // request to calculate back-off interval
-	uint8_t addr64[8]; // 64bit addr
-	bool ack_req; // true:ack request, false:ack not request
-	bool tx64; // true:tx64, false:tx16
+	bool ack_req; 		// true:ack request, false:ack not request
 } TX_PARAM;
 
 /* --------------------------------------------------------------------------------
@@ -123,8 +136,13 @@ bool useInterruptFlag = false;
 static uint8_t rx_buf[MAX_BUF_SIZE];
 static uint8_t tx_buf[MAX_BUF_SIZE];
 static TX_PARAM tx_param = {
-	0xffff,	// uint16_t panid;
-	0xffff,	// uint16_t addr;		// short addr
+	{
+		false,		// bool		pan_coord;				// common
+		0,			// uint8_t		lddn_addr;			// for lazurite
+		0xFFFF,		// uint16_t	pan_id;					// for lazurite
+		0xFFFF,		// uint16_t	short_addr;				// for lazurite
+		{0,0,0,0,0,0,0,0},			//uint8_t		ieee_addr[8];			// for lazurite
+	},		// struct mac_addr host
 	"",		// uint8_t *str;
 	false,	// bool rx_on; // true:rxEnable, false:rxDisable
 	0,		// uint32_t tx_time; // last timestamp of tx ok
@@ -132,17 +150,18 @@ static TX_PARAM tx_param = {
 	0,		// uint8_t retry; // to count up retry for waiting
 	0,		// uint32_t backoff_time; // timestamp which back-off send is permitted
 	false,	// bool set_backoff_time; // request to calculate back-off interval
-	{0xff},	// uint8_t addr64[8]; // 64bit addr
-	false,	// bool ack_req; // true:ack request, false:ack not request
-	false	// bool tx64; // true:tx64, false:tx16
+	false	// bool ack_req; // true:ack request, false:ack not request
 };
 MAIN_IOT_PARAM mip = {
+#ifdef HOPPING
+	false,					// bool scan_done;
+	0,						// uint8_t scan_num;
+#endif
 	false,					// bool enable_sense;
 	false,					// bool send_request;
-	false,					// bool scan_done;
 	0,						// uint8_t sensor_type;
+	SENSOR_METHOD_LEVEL,	// uint8_t sensor_method;
 	SENSOR_INIT_START,		// uint8_t sensor_init_state; // sensor initialized status (start/started/done)
-	0,						// uint8_t scan_num;
 	0,						// int sensor_num;
 	0xffff,					// uint16_t gateway_panid;
 	0xffff,					// uint16_t gateway_addr;
@@ -150,8 +169,12 @@ MAIN_IOT_PARAM mip = {
 	0,						// uint32_t last_sense_time; // last timestamp of getting sensor data
 	DEFAULT_SLEEP_INTERVAL,	// uint32_t sense_interval; // paramater gotten from device config via EACK
 	DEFAULT_SLEEP_INTERVAL,	// uint32_t sleep_time; // control sleep interval in loop()
+#ifdef HOPPING
 	{0x00},					// SUBGHZ_SCAN_LIST scan_list[MAX_SCAN_LIST];
 	STATE_TRIG_SCAN_GW		// MAIN_IOT_STATE func_mode;
+#else
+	STATE_TRIG_ACTIVATE		// MAIN_IOT_STATE func_mode;
+#endif
 };
 OTA_PARAM ota_param = {
 	0,					// uint8_t hw_type;
@@ -194,7 +217,6 @@ const uint8_t vls_val[][8] = {
 typedef struct {
 	int id;
 	SENSOR_VAL sensor_val;
-	int reason;
 	SENSOR_STATE next_state;
 	uint8_t vls_level;
 	uint32_t time;
@@ -312,6 +334,7 @@ static int queue_dequeue(uint8_t num) {
 #define PAYLOAD_HEADER_SIZE		( 3 )
 #define PAYLOAD_PARAM_SIZE		( 5 )
 #define PAYLOAD_SINGLE_LEN		( PAYLOAD_HEADER_SIZE + PAYLOAD_PARAM_SIZE )
+#define PAYLOAD_SINGLE_LEN_PULSE	( PAYLOAD_HEADER_SIZE + PAYLOAD_PARAM_SIZE+1 )
 #define NO_SLEEP 				( 0 )
 
 __packed typedef struct {
@@ -325,6 +348,7 @@ static void SensorState_onStable(SensorState* p_this);
 static void SensorState_onUnstable(SensorState* p_this);
 
 SensorState Sensor[MAX_SENSOR_NUM];
+int SensorReason[MAX_SENSOR_NUM];
 
 static double sensor_getDoubleData(SENSOR_VAL *val) {
 	switch(val->type) {
@@ -376,6 +400,7 @@ static void sensor_construct(void) {
 		ssp->last_save_time = 0;
 		ssp->save_request = false;
 		ssp->init_state = SENSOR_INIT_START;
+		SensorReason[i] = INVALID_REASON;
 	}
 }
 
@@ -428,6 +453,11 @@ static int sensor_parsePayload(uint8_t *payload) {
 	if (i == PAYLOAD_SINGLE_LEN) {
 		BREAK("single");
 		mip.sensor_type = SENSOR_TYPE_V1;
+	} else if (i == PAYLOAD_SINGLE_LEN_PULSE) {
+		BREAK("single pulse");
+		mip.sensor_type = SENSOR_TYPE_V1;
+		mip.sensor_method = (uint8_t)strtoul(p[i-1],NULL,0);
+		BREAKL("sensor_method: ",mip.sensor_method,DEC);
 	} else if ((mip.sensor_num > 0) &&
 	  ((i - PAYLOAD_HEADER_SIZE) % PAYLOAD_PARAM_SIZE == 0) &&
 	  (mip.sensor_num <= MAX_SENSOR_NUM)) {
@@ -531,7 +561,10 @@ static int sensor_saveQueue(SensorState *p_this) {
 }
 #endif
 
-static void sensor_operJudge(SensorState *p_this) {
+static bool sensor_operJudge(SensorState *p_this) {
+	bool ret = false;
+	uint8_t init_state;
+
 	p_this->sensor_comp_val = sensor_getDoubleData(&p_this->sensor_val);
 	if (p_this->init_state == SENSOR_INIT_START) {
 		p_this->init_state = SENSOR_INIT_STARTING;
@@ -544,7 +577,7 @@ static void sensor_operJudge(SensorState *p_this) {
 			p_this->next_state = SENSOR_STATE_ON_UNSTABLE;
 		}
 	}
-#if 0//def DEBUG
+#ifdef DEBUG
 	Serial.print("id: ");
 	Serial.print_long((long)p_this->id,DEC);
 	Serial.print(", state: ");
@@ -554,22 +587,43 @@ static void sensor_operJudge(SensorState *p_this) {
 	switch (p_this->next_state) {
 		case SENSOR_STATE_OFF_STABLE:
 			SensorState_offStable(p_this);
+ 			if (p_this->next_state == SENSOR_STATE_ON_STABLE) ret = true;
 			break;
 		case SENSOR_STATE_OFF_UNSTABLE:
+			init_state = p_this->init_state;
 			SensorState_offUnstable(p_this);
+			if (p_this->next_state == SENSOR_STATE_OFF_STABLE) {
+				if (init_state == SENSOR_INIT_STARTING) {
+					p_this->init_state = SENSOR_INIT_DONE;
+					ret = true;
+				}
+			} else if (p_this->next_state == SENSOR_STATE_ON_STABLE) {
+				ret = true;
+			}
 			break;
 		case SENSOR_STATE_ON_STABLE:
 			SensorState_onStable(p_this);
+ 			if (p_this->next_state == SENSOR_STATE_OFF_STABLE) ret = true;
 			break;
 		case SENSOR_STATE_ON_UNSTABLE:
+			init_state = p_this->init_state;
 			SensorState_onUnstable(p_this);
+			if (p_this->next_state == SENSOR_STATE_ON_STABLE) {
+				if (init_state == SENSOR_INIT_STARTING) {
+					p_this->init_state = SENSOR_INIT_DONE;
+					ret = true;
+				}
+			} else if (p_this->next_state == SENSOR_STATE_OFF_STABLE) {
+				ret = true;
+			}
 			break;
 		default:
 			break;
 	}
-#if 0//def DEBUG
+#ifdef DEBUG
 	Serial.println_long((long)p_this->next_state,DEC);
 #endif
+	return ret;
 }
 
 static uint32_t sensor_checkEack(MAIN_IOT_STATE *mode) {
@@ -637,8 +691,9 @@ static uint32_t sensor_checkEack(MAIN_IOT_STATE *mode) {
 			Print.p(" [size]");
 		}
 		BREAK(tx_buf);
-		tx_param.panid = mip.gateway_panid;
-		tx_param.addr = mip.gateway_addr;
+		tx_param.host.pan_coord = true;
+		tx_param.host.pan_id = mip.gateway_panid;
+		tx_param.host.short_addr = mip.gateway_addr;
 		tx_param.str = tx_buf;
 		tx_param.rx_on = false;
 		subghzSend(&tx_param);
@@ -703,7 +758,7 @@ static uint8_t sensor_genPayload(void) {
 			Print.l((long)ptr->id,DEC);
 			Print.p(",");
 		}
-		if ((ptr->next_state == SENSOR_STATE_ON_STABLE) || (ptr->next_state == SENSOR_STATE_ON_UNSTABLE)) {
+		if (ptr->next_state == SENSOR_STATE_ON_STABLE) {
 			Print.p("on,");
 		} else {
 			Print.p("off,");
@@ -771,21 +826,44 @@ static uint8_t sensor_genPayload(void) {
 static void sensor_main(void) {
 	SensorState *ssp = &Sensor[0];
 	int i;
-	bool init_done = true;
+	bool init_done = true, change_to_stable = false, vol_check_done = false;
+	uint8_t vls_level = 0;
 
 	sensor_meas(Sensor);
 	mip.last_sense_time = millis();
 	for (i=0; i<mip.sensor_num; i++,ssp++) {
+		change_to_stable = sensor_operJudge(ssp);
+		if (mip.sensor_method == SENSOR_METHOD_PULSE) {
+			// operation change judgement
+			if ((change_to_stable == true)
+				&& (ssp->next_state == SENSOR_STATE_OFF_STABLE)) {
+				ssp->save_request = true;
+			}
+		} else {
 		// operation change judgement
-		sensor_operJudge(ssp);
+			if (change_to_stable == true) {
+				ssp->save_request = true;
+				SensorReason[i] = ssp->reason;
 		// keep alive condition judgement
-		if (mip.last_sense_time-ssp->last_save_time >= KEEP_ALIVE_INTERVAL) {
+			} else if ((ssp->last_save_time != 0)
+				&& (mip.last_sense_time-ssp->last_save_time >= KEEP_ALIVE_INTERVAL)
+				&& ((ssp->next_state == SENSOR_STATE_OFF_STABLE)
+					|| (ssp->next_state == SENSOR_STATE_ON_STABLE))) {
 			BREAK("keep alive");
 			ssp->save_request = true;
+			} else if((SensorReason[i] != ssp->reason) &&
+					(ssp->next_state == SENSOR_STATE_OFF_STABLE)) {
+				SensorReason[i] = ssp->reason;
+				ssp->save_request = true;
+			}
 		}
 		if (ssp->save_request == true) {
 			mip.send_request = true;
-			ssp->vls_level = voltage_check(VLS_3_068);
+			if (vol_check_done == false) {
+				vol_check_done = true;
+				vls_level = voltage_check(VLS_3_068);
+			}
+			ssp->vls_level = vls_level;
 #ifdef IOT_QUEUE
 			// save to queue
 			ssp->save_request = false;
@@ -813,7 +891,6 @@ static void SensorState_offStable(SensorState* p_this) {
 			p_this->thrs_on_start = mip.last_sense_time;
 			p_this->next_state = SENSOR_STATE_OFF_UNSTABLE;
 		} else {
-			p_this->save_request = true;
 			p_this->next_state = SENSOR_STATE_ON_STABLE;
 		}
 	}
@@ -826,14 +903,11 @@ static void SensorState_offUnstable(SensorState* p_this) {
 		if (p_this->init_state == SENSOR_INIT_DONE) {
 			p_this->next_state = SENSOR_STATE_OFF_STABLE;
 		} else if (mip.last_sense_time-p_this->thrs_off_start >= p_this->thrs_off_interval) {
-			p_this->save_request = true;
 		p_this->next_state = SENSOR_STATE_OFF_STABLE;
-			p_this->init_state = SENSOR_INIT_DONE;
 		}
 	} else {
 		if (p_this->init_state == SENSOR_INIT_DONE) {
 			if (mip.last_sense_time-p_this->thrs_on_start >= p_this->thrs_on_interval) {
-			p_this->save_request = true;
 			p_this->next_state = SENSOR_STATE_ON_STABLE;
 		}
 		} else {
@@ -841,9 +915,7 @@ static void SensorState_offUnstable(SensorState* p_this) {
 				p_this->thrs_on_start = mip.last_sense_time;
 				p_this->next_state = SENSOR_STATE_ON_UNSTABLE;
 			} else {
-				p_this->save_request = true;
 				p_this->next_state = SENSOR_STATE_ON_STABLE;
-				p_this->init_state = SENSOR_INIT_DONE;
 			}
 		}
 	}
@@ -857,7 +929,6 @@ static void SensorState_onStable(SensorState* p_this) {
 			p_this->thrs_off_start = mip.last_sense_time;
 			p_this->next_state = SENSOR_STATE_ON_UNSTABLE;
 		} else {
-			p_this->save_request = true;
 			p_this->next_state = SENSOR_STATE_OFF_STABLE;
 		}
 	}
@@ -870,14 +941,11 @@ static void SensorState_onUnstable(SensorState* p_this) {
 		if (p_this->init_state == SENSOR_INIT_DONE) {
 			p_this->next_state = SENSOR_STATE_ON_STABLE;
 		} else if (mip.last_sense_time-p_this->thrs_on_start >= p_this->thrs_on_interval) {
-			p_this->save_request = true;
 		p_this->next_state = SENSOR_STATE_ON_STABLE;
-			p_this->init_state = SENSOR_INIT_DONE;
 		}
 	} else {
 		if (p_this->init_state == SENSOR_INIT_DONE) {
 			if (mip.last_sense_time-p_this->thrs_off_start >= p_this->thrs_off_interval) {
-			p_this->save_request = true;
 			p_this->next_state = SENSOR_STATE_OFF_STABLE;
 		}
 		} else {
@@ -885,9 +953,7 @@ static void SensorState_onUnstable(SensorState* p_this) {
 				p_this->thrs_off_start = mip.last_sense_time;
 				p_this->next_state = SENSOR_STATE_OFF_UNSTABLE;
 			} else {
-				p_this->save_request = true;
 				p_this->next_state = SENSOR_STATE_OFF_STABLE;
-				p_this->init_state = SENSOR_INIT_DONE;
 			}
 		}
 	}
@@ -918,17 +984,17 @@ const uint16_t pow_arr[MAX_BACKOFF_COUNT+1] = {1,2,4,8,16,32,64,128,256};
 static SUBGHZ_MSG subghzSend(TX_PARAM *ptx) {
 	SUBGHZ_MSG msg;
 
-	SubGHz.begin(SUBGHZ_CH,ptx->panid,SUBGHZ_100KBPS,SUBGHZ_PWR_20MW);
+	SubGHz.begin(SUBGHZ_CH,ptx->host.pan_id,SUBGHZ_100KBPS,SUBGHZ_PWR_20MW);
 	SubGHz.setAckReq(ptx->ack_req);
 	if (ptx->rx_on == true) SubGHz.rxEnable(NULL);
 	else SubGHz.rxDisable();
 #ifdef USE_DEBUG_LED
 	digitalWrite(BLUE_LED,LOW);
 #endif
-	if (ptx->tx64) {
-		msg = SubGHz.send64le(ptx->addr64,ptx->str,strlen(ptx->str),NULL);
+	if (ptx->host.pan_coord == false) {
+		msg = SubGHz.send64le(ptx->host.ieee_addr,ptx->str,strlen(ptx->str),NULL);
 	} else {
-		msg = SubGHz.send(ptx->panid,ptx->addr,ptx->str,strlen(ptx->str),NULL);
+		msg = SubGHz.send(ptx->host.pan_id,ptx->host.short_addr,ptx->str,strlen(ptx->str),NULL);
 	}
 #ifdef USE_DEBUG_LED
 	digitalWrite(BLUE_LED,HIGH);
@@ -940,10 +1006,17 @@ static MAIN_IOT_STATE func_trigActivate(void) {
 	MAIN_IOT_STATE mode = STATE_TRIG_ACTIVATE;
 	SUBGHZ_MSG msg;
 
+	//Serial.println("func_trigActivate");
 //	if (voltage_check_oneshot(VLS_2_800) == 0) { // for harvesting board
+#ifdef HOPPING
 		tx_param.ack_req = false;
-		tx_param.tx64 = true;
-		memcpy(tx_param.addr64,mip.scan_list[0].addr,8);
+		tx_param.host.pan_coord = false;
+		memcpy(tx_param.host.ieee_addr,mip.scan_list[0].addr,8);
+#else
+		tx_param.host.pan_coord = true;
+		tx_param.host.pan_id = 0xffff;
+		tx_param.host.short_addr = 0xffff;
+#endif
 		tx_param.str = activate_str;
 		tx_param.rx_on = true;
 		msg = subghzSend(&tx_param);
@@ -973,6 +1046,7 @@ static MAIN_IOT_STATE func_waitActivate(void) {
 	SUBGHZ_MAC_PARAM mac;
 	int rx_len;
 
+	//Serial.println("func_waitActivate");
 	rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
 	if (rx_len > 0) { // receive
 		rx_buf[rx_len] = 0;
@@ -1002,7 +1076,11 @@ static MAIN_IOT_STATE func_waitActivate(void) {
 			mode = STATE_TRIG_ACTIVATE;
 			mip.sleep_time = RETRY_INTERVAL;
 		} else {
+#ifdef HOPPING
 			mode = STATE_TRIG_SCAN_GW;
+#else
+			mode = STATE_TRIG_ACTIVATE;
+#endif
 			tx_param.retry = 0; // clear
 			mip.sleep_time = ACTIVATE_RETRY_INTERVAL;
 		}
@@ -1018,6 +1096,7 @@ static MAIN_IOT_STATE func_sendRealtime(void) {
 	SUBGHZ_MSG msg;
 	int i;
 
+	//Serial.println("func_sendRealtime");
 	if (mip.send_request == true) {
 		if (tx_param.fail > MAX_REALTIME_TX_FAIL_COUNT) {
 			mode = STATE_TRIG_ACTIVATE;
@@ -1030,9 +1109,9 @@ static MAIN_IOT_STATE func_sendRealtime(void) {
 			if (tx_param.fail == 0) {
 				sensor_genPayload();
 				tx_param.ack_req = true;
-				tx_param.tx64 = false;
-				tx_param.panid = mip.gateway_panid;
-				tx_param.addr = mip.gateway_addr;
+				tx_param.host.pan_coord = true;
+				tx_param.host.pan_id = mip.gateway_panid;
+				tx_param.host.short_addr = mip.gateway_addr;
 				tx_param.str = tx_buf;
 				tx_param.rx_on = false;
 			}
@@ -1068,22 +1147,22 @@ static MAIN_IOT_STATE func_sendRealtime(void) {
 #endif
 	return mode;
 }
-
+#ifdef IOT_QUEUE
 static MAIN_IOT_STATE func_sendQueueData(void) {
 	MAIN_IOT_STATE mode = STATE_SEND_QUEUE_DATA;
-#ifdef IOT_QUEUE
 	SUBGHZ_MSG msg;
 	uint8_t num;
 
+	//Serial.println("func_sendQueueData");
 	if (queue_length() == 0) {
 		mip.sleep_time = mip.sense_interval;
 	} else {
 		num = sensor_genPayload();
 		BREAK(tx_buf);
 		tx_param.ack_req = true;
-		tx_param.tx64 = false;
-		tx_param.panid = mip.gateway_panid;
-		tx_param.addr = mip.gateway_addr;
+		tx_param.host.pan_coord = true;
+		tx_param.host.pan_id = mip.gateway_panid;
+		tx_param.host.ieee_addr = mip.gateway_addr;
 		tx_param.str = tx_buf;
 		tx_param.rx_on = false;
 		msg = subghzSend(&tx_param);
@@ -1101,11 +1180,8 @@ static MAIN_IOT_STATE func_sendQueueData(void) {
 		}
 		mip.sleep_time = NO_SLEEP;
 	}
-#endif
 	return mode;
 }
-
-#ifdef IOT_QUEUE
 /*
  * compareTimestamp - comparer between base_time and target_time
  *   input: base_time - base timestamp
@@ -1134,6 +1210,7 @@ static MAIN_IOT_STATE func_trigReconnect(void) {
 	uint32_t now=millis(),sense_time;
 	double tmp;
 
+	//Serial.println("func_trigReconnect");
 	sense_time = mip.last_sense_time + mip.sense_interval;
 	// set backoff timestamp to reconnect
 	if (tx_param.set_backoff_time == true) {
@@ -1160,9 +1237,13 @@ static MAIN_IOT_STATE func_trigReconnect(void) {
 	}
 	// try to reconnect if the backoff time has been gone over
 	if (compareTimestamp(tx_param.backoff_time,now)) {
+#ifdef HOPPING
 		tx_param.ack_req = false;
-		tx_param.tx64 = true;
-		memcpy(tx_param.addr64,mip.scan_list[0].addr,8);
+		tx_param.host.pan_coord = false;
+#else
+		tx_param.panid = 0xffff;
+		tx_param.addr = 0xffff;
+#endif
 		tx_param.str = activate_str;
 		tx_param.rx_on = true;
 		msg = subghzSend(&tx_param);
@@ -1186,6 +1267,7 @@ static MAIN_IOT_STATE func_waitReconnect(void) {
 	SUBGHZ_MAC_PARAM mac;
 	int rx_len,ret;
 
+	//Serial.println("func_waitReconnect");
 	rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
 	if (rx_len > 0) { // receive
 		rx_buf[rx_len] = 0;
@@ -1221,10 +1303,12 @@ static MAIN_IOT_STATE func_trigUpdParam(void) {
 	uint8_t update_str[] = "update";
 	SUBGHZ_MSG msg;
 
+	//Serial.println("func_trigUpdParam");
 	tx_param.ack_req = true;
-	tx_param.tx64 = false;
-	tx_param.panid = mip.gateway_panid;
-	tx_param.addr = mip.gateway_addr;
+	tx_param.host.pan_coord = true;
+	tx_param.host.pan_id = mip.gateway_panid;
+	tx_param.host.short_addr = mip.gateway_addr;
+	
 	tx_param.str = update_str;
 	tx_param.rx_on = true;
 	msg = subghzSend(&tx_param);
@@ -1253,6 +1337,7 @@ static MAIN_IOT_STATE func_waitUpdParam(void) {
 	SUBGHZ_MAC_PARAM mac;
 	int rx_len;
 
+	//Serial.println("func_waitUpdParam");
 	rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
 	if (rx_len > 0) { // receive
 		rx_buf[rx_len] = 0;
@@ -1330,10 +1415,11 @@ static MAIN_IOT_STATE func_trigFwUpd(void) {
 	uint8_t ota_str[] = "ota-ready";
 	SUBGHZ_MSG msg;
 
+	//Serial.println("func_trigFwUpd");
 	tx_param.ack_req = true;
-	tx_param.tx64 = false;
-	tx_param.panid = mip.gateway_panid;
-	tx_param.addr = mip.gateway_addr;
+	tx_param.host.pan_coord = true;
+	tx_param.host.pan_id = mip.gateway_panid;
+	tx_param.host.short_addr = mip.gateway_addr;
 	tx_param.str = ota_str;
 	tx_param.rx_on = false;
 	msg = subghzSend(&tx_param);
@@ -1366,6 +1452,7 @@ static MAIN_IOT_STATE func_waitFwUpd(void) {
 	uint8_t hw_type, ver;
 	int rx_len,result;
 
+	//Serial.println("func_waitFwUpd");
 	rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
 	if (rx_len > 0) { // receive
 		rx_buf[rx_len] = 0;
@@ -1433,6 +1520,7 @@ static MAIN_IOT_STATE func_trigScanGw(void) {
 	MAIN_IOT_STATE mode = STATE_TRIG_SCAN_GW;
 	SUBGHZ_MSG msg;
 
+	//Serial.println("func_trigScanGw");
 #ifdef USE_DEBUG_LED
 	digitalWrite(BLUE_LED,LOW);
 #endif
@@ -1455,10 +1543,11 @@ static MAIN_IOT_STATE func_trigScanGw(void) {
 
 static MAIN_IOT_STATE func_waitScanGw(void) {
 	MAIN_IOT_STATE mode = STATE_WAIT_SCAN_GW;
+
+	//Serial.println("func_waitScanGw");
 	if (mip.scan_done) {
 		mip.scan_done = false;
 		if (mip.scan_num != 0) {
-			struct mac_addr addr;
 			mode = STATE_TRIG_ACTIVATE; // go to next state
 #ifdef DEBUG
 			{
@@ -1468,9 +1557,9 @@ static MAIN_IOT_STATE func_waitScanGw(void) {
 				Serial.println("-- End of list --");
 			}
 #endif
-			addr.pan_coord = false;
-			memcpy(addr.ieee_addr,mip.scan_list[0].addr,8);
-			SubGHz.setHost(&addr);
+			tx_param.host.pan_coord = false;
+			memcpy(tx_param.host.ieee_addr,mip.scan_list[0].addr,8);
+			SubGHz.setHost(&tx_param.host);
 		} else {
 			mode = STATE_TRIG_SCAN_GW;
 			mip.sleep_time = DEFAULT_SLEEP_INTERVAL;
@@ -1481,20 +1570,32 @@ static MAIN_IOT_STATE func_waitScanGw(void) {
 	}
 	return mode;
 }
+static MAIN_IOT_STATE func_dummy(void) {
+#ifdef HOPPING
+	return STATE_TRIG_SCAN_GW;
+#else
+	return STATE_TRIG_ACTIVATE;
+#endif
+}
 
 static MAIN_IOT_STATE (*functions[])(void) = {
 	func_trigActivate,
 	func_waitActivate,
 	func_sendRealtime,
+#ifdef IOT_QUEUE
 	func_sendQueueData,
+#endif
 	func_trigReconnect,
 	func_waitReconnect,
 	func_trigUpdParam,
 	func_waitUpdParam,
 	func_trigFwUpd,
 	func_waitFwUpd,
+#ifdef HOPPING
 	func_trigScanGw,
-	func_waitScanGw
+	func_waitScanGw,
+#endif
+	func_dummy
 };
 
 /* --------------------------------------------------------------------------------
@@ -1561,9 +1662,9 @@ void setup() {
 	Print.p(ota_param.name);
 	Print.p(",");
 	Print.l((long)ota_param.ver,DEC);
-#ifndef DEBUG
+//#ifndef DEBUG
 	Serial.end();
-#endif
+//#endif
 #ifdef IOT_QUEUE
 	queue_init();
 #endif
