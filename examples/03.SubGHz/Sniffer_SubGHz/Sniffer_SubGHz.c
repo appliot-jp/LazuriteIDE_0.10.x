@@ -198,7 +198,10 @@ void loop(void)
     Serial.print_long((long)rx.rssi, DEC);
     Serial.print("\t");
 
-    if ((mac.mac_header.fc16 == 0x2002)||(mac.mac_header.fc_bit.sec_enb == 1)) {
+    if ((mac.mac_header.fc16 == 0x2002)||
+    (mac.mac_header.fc_bit.sec_enb == 1)||
+    (mac.mac_header.fc_bit.frame_type == 3)
+    ) {
       int i;
       for (i = 0; i < mac.payload_len; i++) {
         print_hex_func(mac.payload[i]);
