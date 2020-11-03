@@ -61,6 +61,7 @@ typedef struct {
 	} data;
 	uint8_t type;
 	uint8_t digit;
+	int reason;
 } SENSOR_VAL;
 
 typedef enum {

@@ -348,7 +348,7 @@ static void SensorState_onStable(SensorState* p_this);
 static void SensorState_onUnstable(SensorState* p_this);
 
 SensorState Sensor[MAX_SENSOR_NUM];
-int SensorReason[MAX_SENSOR_NUM];
+//int SensorReason[MAX_SENSOR_NUM];
 
 static double sensor_getDoubleData(SENSOR_VAL *val) {
 	switch(val->type) {
@@ -387,6 +387,7 @@ static void sensor_construct(void) {
 	SensorState *ssp = &Sensor[0];
 
 	for (i=0; i<MAX_SENSOR_NUM; i++,ssp++) {
+		ssp->sensor_val.reason = INVALID_REASON;
 		ssp->id = INVALID_ID;
 		ssp->thrs_on_val = 0.1;
 		ssp->thrs_off_val = 0.1;
@@ -400,7 +401,6 @@ static void sensor_construct(void) {
 		ssp->last_save_time = 0;
 		ssp->save_request = false;
 		ssp->init_state = SENSOR_INIT_START;
-		SensorReason[i] = INVALID_REASON;
 	}
 }
 
@@ -843,7 +843,7 @@ static void sensor_main(void) {
 		// operation change judgement
 			if (change_to_stable == true) {
 				ssp->save_request = true;
-				SensorReason[i] = ssp->reason;
+				ssp->reason = ssp->sensor_val.reason;
 		// keep alive condition judgement
 			} else if ((ssp->last_save_time != 0)
 				&& (mip.last_sense_time-ssp->last_save_time >= KEEP_ALIVE_INTERVAL)
@@ -851,9 +851,9 @@ static void sensor_main(void) {
 					|| (ssp->next_state == SENSOR_STATE_ON_STABLE))) {
 			BREAK("keep alive");
 			ssp->save_request = true;
-			} else if((SensorReason[i] != ssp->reason) &&
+			} else if((ssp->reason != ssp->sensor_val.reason) &&
 					(ssp->next_state == SENSOR_STATE_OFF_STABLE)) {
-				SensorReason[i] = ssp->reason;
+				ssp->reason = ssp->sensor_val.reason;
 				ssp->save_request = true;
 			}
 		}
@@ -983,11 +983,13 @@ const uint16_t pow_arr[MAX_BACKOFF_COUNT+1] = {1,2,4,8,16,32,64,128,256};
 
 static SUBGHZ_MSG subghzSend(TX_PARAM *ptx) {
 	SUBGHZ_MSG msg;
-
 	SubGHz.begin(SUBGHZ_CH,ptx->host.pan_id,SUBGHZ_100KBPS,SUBGHZ_PWR_20MW);
 	SubGHz.setAckReq(ptx->ack_req);
-	if (ptx->rx_on == true) SubGHz.rxEnable(NULL);
-	else SubGHz.rxDisable();
+	if (ptx->rx_on == true) {
+		SubGHz.rxEnable(NULL);
+	} else {
+		SubGHz.rxDisable();
+	}
 #ifdef USE_DEBUG_LED
 	digitalWrite(BLUE_LED,LOW);
 #endif
@@ -1007,38 +1009,38 @@ static MAIN_IOT_STATE func_trigActivate(void) {
 	SUBGHZ_MSG msg;
 
 	//Serial.println("func_trigActivate");
-//	if (voltage_check_oneshot(VLS_2_800) == 0) { // for harvesting board
+	//	if (voltage_check_oneshot(VLS_2_800) == 0) { // for harvesting board
 #ifdef HOPPING
-		tx_param.ack_req = false;
-		tx_param.host.pan_coord = false;
-		memcpy(tx_param.host.ieee_addr,mip.scan_list[0].addr,8);
+	tx_param.ack_req = false;
+	tx_param.host.pan_coord = false;
+	memcpy(tx_param.host.ieee_addr,mip.scan_list[0].addr,8);
 #else
-		tx_param.host.pan_coord = true;
-		tx_param.host.pan_id = 0xffff;
-		tx_param.host.short_addr = 0xffff;
+	tx_param.host.pan_coord = true;
+	tx_param.host.pan_id = 0xffff;
+	tx_param.host.short_addr = 0xffff;
 #endif
-		tx_param.str = activate_str;
-		tx_param.rx_on = true;
-		msg = subghzSend(&tx_param);
-		if (msg == SUBGHZ_OK) {
-			mode = STATE_WAIT_ACTIVATE;
-			BREAK("waiting...");
-			tx_param.tx_time = millis();
+	tx_param.str = activate_str;
+	tx_param.rx_on = true;
+	msg = subghzSend(&tx_param);
+	if (msg == SUBGHZ_OK) {
+		mode = STATE_WAIT_ACTIVATE;
+		BREAK("waiting...");
+		tx_param.tx_time = millis();
+		tx_param.fail = 0;
+		mip.sleep_time = NO_SLEEP;
+	} else {
+		SubGHz.close();
+		if (tx_param.fail >= MAX_TRIG_TX_FAIL_COUNT) {
 			tx_param.fail = 0;
-			mip.sleep_time = NO_SLEEP;
+			mip.sleep_time = DEFAULT_SLEEP_INTERVAL;
 		} else {
-			SubGHz.close();
-			if (tx_param.fail >= MAX_TRIG_TX_FAIL_COUNT) {
-				tx_param.fail = 0;
-				mip.sleep_time = DEFAULT_SLEEP_INTERVAL;
-			} else {
-				tx_param.fail++;
-				mip.sleep_time = TX_INTERVAL;
-			}
-			BREAKL("tx fail: ",(long)tx_param.fail,DEC);
+			tx_param.fail++;
+			mip.sleep_time = TX_INTERVAL;
 		}
-		//	}
-		return mode;
+		BREAKL("tx fail: ",(long)tx_param.fail,DEC);
+	}
+	//	}
+	return mode;
 }
 
 static MAIN_IOT_STATE func_waitActivate(void) {
@@ -1308,7 +1310,7 @@ static MAIN_IOT_STATE func_trigUpdParam(void) {
 	tx_param.host.pan_coord = true;
 	tx_param.host.pan_id = mip.gateway_panid;
 	tx_param.host.short_addr = mip.gateway_addr;
-	
+
 	tx_param.str = update_str;
 	tx_param.rx_on = true;
 	msg = subghzSend(&tx_param);
@@ -1610,11 +1612,14 @@ void setup() {
 	volatile char* tmp;
 	volatile char* cpVersion;
 
+	//digitalWrite(4,HIGH);
+	pinMode(4,OUTPUT);
 	SubGHz.init();
+
 	digitalWrite(ORANGE_LED,HIGH);
+	digitalWrite(BLUE_LED,HIGH);
 	pinMode(ORANGE_LED,OUTPUT);
 	pinMode(BLUE_LED,OUTPUT);
-	digitalWrite(BLUE_LED,HIGH);
 
 	Serial.begin(115200);
 	addr16 = SubGHz.getMyAddress();
@@ -1662,9 +1667,9 @@ void setup() {
 	Print.p(ota_param.name);
 	Print.p(",");
 	Print.l((long)ota_param.ver,DEC);
-//#ifndef DEBUG
+#ifndef DEBUG
 	Serial.end();
-//#endif
+#endif
 #ifdef IOT_QUEUE
 	queue_init();
 #endif

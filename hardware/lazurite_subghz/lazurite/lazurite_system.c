@@ -67,7 +67,7 @@ void watch_dog_isr(void);
 static void lazurite_gpio_init(void);
 static void init_timer(void);
 static void delay_isr(void);
-static volatile bool delay_flag;
+volatile bool delay_flag;
 static void start_long_timer(unsigned long ms);
 static void stop_long_timer(void);
 
@@ -80,6 +80,9 @@ static void stop_long_timer(void);
 //********************************************************************************
 //   local functions
 //********************************************************************************
+void _ldo_stable_isr(void) {
+	delay_flag = true;
+}
 void init(void)
 {
     /* --- MIE Disable --- */
@@ -106,50 +109,70 @@ void init(void)
 	wdt_init( WDTMOD_WDT1 | WDTMOD_WDT0);
 	wdt_disHaltCount();	
 	
-	// Initializing GPIO
-	lazurite_gpio_init();
-	
 	// Initializing timer
 	init_timer();
-	
+
 	/* MIE Enable */
 	rst_interrupts();
 	__EI();
+
+	// Initializing GPIO
+	lazurite_gpio_init();
+	
 	return;
 }
 
 void lazurite_gpio_init(void)
 {
 	// please see design note for details.
-	write_reg8(P0D,0x10);
-	write_reg8(P1D,0x01);
-	write_reg8(P2D,0x00);
-	write_reg8(P3D,0x00);
 	write_reg8(P4D,0x00);
-	write_reg8(P5D,0x42);
-	write_reg8(P0DIR,0x00);
-	write_reg16(P0CON,0x3535);
-	write_reg16(P0MOD,0x0500);
-	write_reg8(P1DIR,0x10);
-	write_reg16(P1CON,0x0303);
-	write_reg8(P2DIR,0x00);
-	write_reg16(P2CON,0x0000);
-	write_reg16(P2MOD,0x0000);
-	write_reg8(P3DIR,0x00);
-	write_reg16(P3CON,0x0000);
-	write_reg16(P3MOD,0x0000);
 	write_reg8(P4DIR,0x80);
 	write_reg16(P4CON,0x0303);
 	write_reg16(P4MOD,0x0003);
+	
+	pinMode(4,OUTPUT);
+	//digitalWrite(4,HIGH);
+
+	write_reg8(P0D,0x10);
+	write_reg8(P0DIR,0x00);
+	write_reg16(P0CON,0x3535);
+	write_reg16(P0MOD,0x0500);
+
+	write_reg8(P1D,0x01);
+	write_reg8(P1DIR,0x10);
+	write_reg16(P1CON,0x0303);
+
+	//digitalWrite(4,LOW);
+
+	wdt_clear();
+	delay_flag = false;
+	timer_16bit_set(6,0xE8,(uint16_t)3,_ldo_stable_isr);
+	timer_16bit_start(6);
+	while(delay_flag == false) {
+		lp_setHaltMode();
+	}
+
+	//digitalWrite(4,HIGH);
+
+	write_reg8(P2D,0x00);
+	write_reg8(P2DIR,0x00);
+	write_reg16(P2CON,0x0000);
+	write_reg16(P2MOD,0x0000);
+
+	write_reg8(P3D,0x00);
+	write_reg8(P3DIR,0x00);
+	write_reg16(P3CON,0x0000);
+	write_reg16(P3MOD,0x0000);
+
+	write_reg8(P5D,0x42);
 	write_reg8(P5DIR,0x00);
 	write_reg16(P5CON,0x0000);
 	write_reg16(P5MOD,0x0000);
 
-	
-	#ifdef PWR_LED
+#ifdef PWR_LED
 	drv_pinMode(11,OUTPUT);			//PWR LED ON
 	drv_digitalWrite(11,LOW);
-	#endif
+#endif
 }
 
 /* While waiting timeout, cpu halt mode and timer 6 is not used any more. (2020/04/24) */
@@ -158,7 +181,7 @@ void HALT_Until_Event(HALT_EVENT halt_event,uint16_t timeout)
 	bool cont = true, timeout_flag = false;
 	uint8_t status;
 	uint32_t start_time = millis();
-	
+
 	while(cont)
 	{
 		if(getMIE() == 0) {
@@ -169,33 +192,33 @@ void HALT_Until_Event(HALT_EVENT halt_event,uint16_t timeout)
 		}
 		switch(halt_event)
 		{
-		case HALT_I2C1_END:
-			status=i2c_get_status(1);
-			if (timeout_flag || (status == I2C_MODE_ERROR))
-			{
-				i2c_force_stop(1);
-				cont = false;
-			} else if(status < I2C_MODE_ERROR)
-			{
-				cont = false;
-			}
-			break;
-		case HALT_I2C0_END:
-			status=i2c_get_status(0);
-			if (timeout_flag || (status == I2C_MODE_ERROR))
-			{
-				i2c_force_stop(0);
-				cont = false;
-			} else if(status < I2C_MODE_ERROR)
-			{
-				cont = false;
-			}
-			break;
-		default:
-			if (timeout_flag) {
-				cont = false;
-			}
-			break;
+			case HALT_I2C1_END:
+				status=i2c_get_status(1);
+				if (timeout_flag || (status == I2C_MODE_ERROR))
+				{
+					i2c_force_stop(1);
+					cont = false;
+				} else if(status < I2C_MODE_ERROR)
+				{
+					cont = false;
+				}
+				break;
+			case HALT_I2C0_END:
+				status=i2c_get_status(0);
+				if (timeout_flag || (status == I2C_MODE_ERROR))
+				{
+					i2c_force_stop(0);
+					cont = false;
+				} else if(status < I2C_MODE_ERROR)
+				{
+					cont = false;
+				}
+				break;
+			default:
+				if (timeout_flag) {
+					cont = false;
+				}
+				break;
 		}		
 	}
 	return;
@@ -207,17 +230,17 @@ void delay_isr(void)
 	noInterrupts();
 	interrupts();
 #endif
-	
+
 	// check end of timer
 	if(delay_time.target_h == 0)
 	{
 		delay_flag = true;
 		return;
 	}
-	
+
 	// decriment high part of timer
 	delay_time.target_h--;
-	
+
 	// update timer data
 	if(delay_time.target_h == 0)
 	{
@@ -230,34 +253,34 @@ void delay_isr(void)
 		{
 			T6OST = 1;
 			TM67D = delay_time.target_l;
-			
+
 			delay_time.target_l = 0;
 		}
 	}
-	#ifdef _DEBUG
+#ifdef _DEBUG
 	Serial.print("TimerH:");
 	Serial.print_long(delay_time.target_h,DEC);
 	Serial.print("\tTimerL:");
 	Serial.println_long(delay_time.target_l,DEC);
-	#endif
+#endif
 	return;
 }
 
 static void start_long_timer(unsigned long ms)
 {
 	unsigned long tmp_target_l;
-	
+
 	delay_flag = false;
 	tmp_target_l = ((ms % 64000)<<8)/250;
 	delay_time.target_l = (unsigned short)tmp_target_l;
 	delay_time.target_h = ms / 64000;
-	
+
 #ifdef _DEBUG
 	Serial.print_long(delay_time.target_h,HEX);
 	Serial.print("\t");
 	Serial.println_long(delay_time.target_l,HEX);
 #endif
-	
+
 	if(delay_time.target_h==0)
 	{
 		timer_16bit_set(6,0xE8,(unsigned short)tmp_target_l,delay_isr);
@@ -267,7 +290,7 @@ static void start_long_timer(unsigned long ms)
 	{
 		timer_16bit_set(6,0x68,0xFFFF,delay_isr);
 	}
-	
+
 	// setup timer
 	timer_16bit_start(6);
 }
