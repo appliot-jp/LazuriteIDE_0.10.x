@@ -1,4 +1,5 @@
-#include "CTSensorTW2_test_ide.h"		// Additional Header
+#include "CtButton_0_ide.h"		// Additional Header
+
 
 /* FILE NAME: CTSensorTW2_10.c
  * The MIT License (MIT)
@@ -166,14 +167,13 @@ void sensor_meas(SensorState s[]) {
 	volatile int st_voltage,en_voltage,dif_vol;
 	digitalWrite(MEAS,HIGH);
 	digitalWrite(CHB,HIGH);
-/*
+
 	st_voltage = analogRead(A0);
 	sleep(1);
 	st_voltage = analogRead(A0);
 	sleep(1);
 	st_voltage = analogRead(A0);
 	sleep(1);
-*/
 	st_voltage = analogRead(A0);
 	st_time = millis();
 	do {
