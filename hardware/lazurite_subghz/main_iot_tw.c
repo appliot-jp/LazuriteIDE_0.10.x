@@ -348,7 +348,6 @@ static void SensorState_onStable(SensorState* p_this);
 static void SensorState_onUnstable(SensorState* p_this);
 
 SensorState Sensor[MAX_SENSOR_NUM];
-//int SensorReason[MAX_SENSOR_NUM];
 
 static double sensor_getDoubleData(SENSOR_VAL *val) {
 	switch(val->type) {
