@@ -1029,14 +1029,17 @@ static MAIN_IOT_STATE func_trigActivate(void) {
 		mip.sleep_time = NO_SLEEP;
 	} else {
 		SubGHz.close();
+		BREAKL("tx fail: ",(long)tx_param.fail,DEC);
 		if (tx_param.fail >= MAX_TRIG_TX_FAIL_COUNT) {
+#ifdef HOPPING
+			mode = STATE_TRIG_SCAN_GW;
+#endif
 			tx_param.fail = 0;
 			mip.sleep_time = DEFAULT_SLEEP_INTERVAL;
 		} else {
 			tx_param.fail++;
 			mip.sleep_time = TX_INTERVAL;
 		}
-		BREAKL("tx fail: ",(long)tx_param.fail,DEC);
 	}
 	//	}
 	return mode;
@@ -1321,14 +1324,17 @@ static MAIN_IOT_STATE func_trigUpdParam(void) {
 		mip.sleep_time = NO_SLEEP;
 	} else {
 		SubGHz.close();
+		BREAKL("tx fail: ",(long)tx_param.fail,DEC);
 		if (tx_param.fail >= MAX_TRIG_TX_FAIL_COUNT) {
+#ifdef HOPPING
+			mode = STATE_TRIG_SCAN_GW;
+#endif
 			tx_param.fail = 0;
 			mip.sleep_time = DEFAULT_SLEEP_INTERVAL;
 		} else {
 			tx_param.fail++;
 			mip.sleep_time = TX_INTERVAL;
 		}
-		BREAKL("tx fail: ",(long)tx_param.fail,DEC);
 	}
 	return mode;
 }
@@ -1435,14 +1441,17 @@ static MAIN_IOT_STATE func_trigFwUpd(void) {
 		tx_param.fail = 0;
 		mip.sleep_time = NO_SLEEP;
 	} else {
+		BREAKL("tx fail: ",(long)tx_param.fail,DEC);
 		if (tx_param.fail >= MAX_TRIG_TX_FAIL_COUNT) {
+#ifdef HOPPING
+			mode = STATE_TRIG_SCAN_GW;
+#endif
 			tx_param.fail = 0;
 			mip.sleep_time = DEFAULT_SLEEP_INTERVAL;
 		} else {
 			tx_param.fail++;
 			mip.sleep_time = TX_INTERVAL;
 		}
-		BREAKL("tx fail: ",(long)tx_param.fail,DEC);
 	}
 	return mode;
 }
@@ -1528,6 +1537,9 @@ static MAIN_IOT_STATE func_trigScanGw(void) {
 #endif
 	SubGHz.close();
 	SubGHz.begin(SUBGHZ_CH,0xffff,SUBGHZ_100KBPS,SUBGHZ_PWR_20MW);
+#ifdef DEBUG
+	Serial.println("Start scanning...");
+#endif
 	msg = SubGHz.scan(0xffff,mip.scan_list,MAX_SCAN_LIST,scan_callback);
 	if (msg == SUBGHZ_OK) {
 		mip.sleep_time = NO_SLEEP;
