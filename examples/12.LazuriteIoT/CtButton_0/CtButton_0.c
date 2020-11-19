@@ -166,14 +166,14 @@ void sensor_meas(SensorState s[]) {
 	volatile int st_voltage,en_voltage,dif_vol;
 	digitalWrite(MEAS,HIGH);
 	digitalWrite(CHB,HIGH);
-/*
+
 	st_voltage = analogRead(A0);
 	sleep(1);
 	st_voltage = analogRead(A0);
 	sleep(1);
 	st_voltage = analogRead(A0);
 	sleep(1);
-*/
+
 	st_voltage = analogRead(A0);
 	st_time = millis();
 	do {

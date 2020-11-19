@@ -219,6 +219,7 @@ typedef struct {
 	SENSOR_VAL sensor_val;
 	SENSOR_STATE next_state;
 	uint8_t vls_level;
+	int reason;
 	uint32_t time;
 } QUEUE_DATA;
 
@@ -1166,7 +1167,7 @@ static MAIN_IOT_STATE func_sendQueueData(void) {
 		tx_param.ack_req = true;
 		tx_param.host.pan_coord = true;
 		tx_param.host.pan_id = mip.gateway_panid;
-		tx_param.host.ieee_addr = mip.gateway_addr;
+		tx_param.host.short_addr = mip.gateway_addr;
 		tx_param.str = tx_buf;
 		tx_param.rx_on = false;
 		msg = subghzSend(&tx_param);
@@ -1245,8 +1246,9 @@ static MAIN_IOT_STATE func_trigReconnect(void) {
 		tx_param.ack_req = false;
 		tx_param.host.pan_coord = false;
 #else
-		tx_param.panid = 0xffff;
-		tx_param.addr = 0xffff;
+		tx_param.host.pan_coord = true;
+		tx_param.host.pan_id = 0xffff;
+		tx_param.host.short_addr = 0xffff;
 #endif
 		tx_param.str = activate_str;
 		tx_param.rx_on = true;
