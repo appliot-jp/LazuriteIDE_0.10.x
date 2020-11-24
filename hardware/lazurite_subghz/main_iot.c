@@ -1498,7 +1498,7 @@ static MAIN_IOT_STATE func_waitFwUpd(void) {
 	return mode;
 }
 
-#ifdef DEBUG
+#if _defined(DEBUG) && _defined(HOPPING)
 static void print_addr_rssi(SUBGHZ_SCAN_LIST *list) {
 	int j;
 
