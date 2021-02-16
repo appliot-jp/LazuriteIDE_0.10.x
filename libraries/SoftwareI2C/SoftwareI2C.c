@@ -12,7 +12,7 @@ static uint8_t* p_scl;
 static uint8_t* p_sda;
 static uint8_t  b_scl;
 static uint8_t  b_sda;
-static uint32_t  interval;
+static uint32_t  interval = 5;
 static uint8_t transmit;
 
 extern const unsigned char digital_pin_to_port[];
@@ -286,6 +286,10 @@ end:
 	return rc;
 }
 
+static void setTimeout(uint16_t ms) {
+	// not implemented
+}
+
 const TwoWire Wire ={
 	begin,
 	requestFrom,
@@ -294,7 +298,8 @@ const TwoWire Wire ={
 	beginTransmission,
 	write_byte,
 	write,
-	endTransmission
-//	setTimeout
+	endTransmission,
+	setTimeout,
+	setClock
 };
 

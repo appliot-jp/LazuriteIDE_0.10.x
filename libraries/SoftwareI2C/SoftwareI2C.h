@@ -40,6 +40,7 @@ typedef struct {
 	size_t (*write)(const uint8_t *data, size_t quantity);
 	uint8_t (*endTransmission)(uint8_t sendStop);
 	void (*setTimeout)(uint16_t ms);
+	void (*setClock)(uint32_t freq);
 }TwoWire;
 
 extern const TwoWire Wire;
