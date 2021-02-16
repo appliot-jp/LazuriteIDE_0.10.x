@@ -1,4 +1,4 @@
-#include "SiglTower4_1_ide.h"		// Additional Header
+#include "SigTower4_1_ide.h"		// Additional Header
 
 /* FILE NAME: SignalTower_1.c
  * The MIT License (MIT)
