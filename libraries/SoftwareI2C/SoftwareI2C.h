@@ -32,7 +32,7 @@
 // to match API with arduino 
 typedef struct {
 	void (*begin)(uint8_t sda,uint8_t scl);
-	size_t (*requestFrom)(UCHAR address,UCHAR quantity, UCHAR sendStop);
+	size_t (*requestFrom)(uint8_t address,uint16_t size, uint8_t sendStop);
 	int (*available)(void);
 	int (*read)(void);
 	void (*beginTransmission)(uint8_t address);

@@ -22,31 +22,42 @@ extern const unsigned char ml620504f_pin_to_bit[];
 #define ACK		0
 #define NACK	1
 
-#define LIB_DEBUG
-#include "libdebug.h"
+//#define LIB_DEBUG
+//#include "libdebug.h"
 
+/* port set template
+ *p_scl &= ~b_scl;											// SCL set to L
+ *(p_scl+1) &= ~b_scl;										// SCL set to OUTPUT
+
+ *(p_scl+1) |= b_scl;										// SCL set to Hi-Z
+ while((*p_scl&b_scl)==0);									// SCL wait to H
+
+ *p_sda &= ~b_sda;											// SDA set to L
+ *(p_sda+1) &= ~b_sda;										// SDA set to OUTPUT
+
+ *(p_sda+1) |= b_sda;										// SDA set to Hi-Z
+ while((*p_sda&b_sda)==0);									// SCA wait to H
+
+*/
 static uint8_t i2c_start(void)
 {
 	// start condition
-	*p_sda &= ~b_sda;			// SDA -> 0
+	*(p_sda+1) &= ~b_sda;										// SDA set to OUTPUT
 	delayMicroseconds(10);
-	*p_scl &= ~b_scl;			// SCL -> 0
+	*p_scl &= ~b_scl;											// SCL set to L
+	*(p_scl+1) &= ~b_scl;										// SCL set to OUTPUT
 	delayMicroseconds(3);
 	return 0;
 }
 
 
-// retval: true   ACK
-//         false  NACK
-static uint8_t i2c_read(uint8_t *data)
+static void i2c_read(uint8_t *data,bool cont)
 {
 	int i;
-	bool ack;
 	uint8_t rcv=0;
 
-	*(p_sda+1) |= b_sda;											// SDA set to inpuut
-	*p_scl &= ~b_scl;												// SCL -> 0(should be 0 in default)
-	
+	*(p_sda+1) |= b_sda;										// SDA set to input
+
 	for(i=0;i<8;i++) {
 		delayMicroseconds(interval);								// tHIGH
 		*(p_scl+1) |= b_scl;										// SCL HIGH as input
@@ -55,17 +66,21 @@ static uint8_t i2c_read(uint8_t *data)
 		delayMicroseconds(interval);								// tLOW
 		*(p_scl+1) &= ~b_scl;										// SCL LOW as output
 	}
-	*(p_sda+1) |= b_sda;											// SDA set to INPUT
+	*data = rcv;
+	*(p_sda+1) &= ~b_sda;											// SDA set to OUTPUT
+	if(cont == true) {
+		*(p_sda+1) &= ~b_sda;										// SDA set to OUTPUT
+	} else {
+		*(p_sda+1) |= b_sda;										// SDA set to Hi-Z
+		while((*p_sda&b_sda)==0);									// SCA wait to H
+	}
 	delayMicroseconds(interval);										// tLOW
 	*(p_scl+1) |= b_scl;											// SCL -> 1 as input
 	while(!(*p_scl & b_scl));										// strecher
-	ack = (*p_sda & b_sda) ? NACK: ACK;								// SDA -> Hi-Z
 	delayMicroseconds(interval);										// tLOW
-	*(p_scl+1) &= ~b_scl;											// SCL -> 1 as input
-	*p_sda &= ~b_sda;												// SDA -> 0
-	*(p_sda+1) &= ~b_sda;											// SDA set to OUTPUT
-	*data = rcv;
-	return ack;
+	*(p_scl+1) &= ~b_scl;										// SCL LOW as output
+	*(p_sda+1) |= b_sda;										// SDA set to input
+	return ;
 }
 
 // retval: true   ACK
@@ -76,14 +91,18 @@ static bool i2c_write(uint8_t data)
 	bool ack;
 	*(p_sda+1) &= ~b_sda;												// SDA output mode
 	for(i=0;i<8;i++) {
-		(data & 0x80) ?  (*p_sda |= b_sda ) :(*p_sda &= ~b_sda);		// SDA
+		if(data & 0x80) {
+			*(p_sda+1) |= b_sda;										// SDA set to Hi-Z
+			while((*p_sda&b_sda)==0);									// SCA wait to H
+		} else {
+			*(p_sda+1) &= ~b_sda;										// SDA set to OUTPUT
+		}
 		delayMicroseconds(interval);									// tLOW
 		data <<= 1;
 		*(p_scl+1) |= b_scl;											// SCL set to pullup input
 		while(!(*p_scl & b_scl));										// strecher
 		delayMicroseconds(interval);									// tHIGH
 		*(p_scl+1) &= ~b_scl;											// SCL set to LOW
-		*p_scl &= ~b_scl;											// SCL -> 0
 	}
 	*(p_sda+1) |= b_sda;											// SDA set to INPUT
 	delayMicroseconds(interval);										// tLOW
@@ -91,9 +110,7 @@ static bool i2c_write(uint8_t data)
 	while(!(*p_scl & b_scl));										// strecher
 	ack = (*p_sda & b_sda) ? NACK: ACK;								// SDA -> Hi-Z
 	delayMicroseconds(interval);										// tLOW
-	*(p_scl+1) &= ~b_scl;											// SCL -> 1 as input
-	*p_sda &= ~b_sda;												// SDA -> 0
-	*(p_sda+1) &= ~b_sda;											// SDA set to OUTPUT
+	*(p_scl+1) &= ~b_scl;											// SCL set to LOW
 	return ack;
 }
 
@@ -107,14 +124,20 @@ static void begin(uint8_t sda,uint8_t scl)
 	transmit = false;
 	pinMode(scl,OPEN_DRAIN);
 	pinMode(sda,OPEN_DRAIN);
-	
-	*p_scl &= ~b_scl;
-	*p_sda &= ~b_sda;
+
+	*p_scl &= ~b_scl;											// SCL set to L
+	*(p_scl+1) &= ~b_scl;										// SCL set to OUTPUT
+
+	*p_sda &= ~b_sda;											// SDA set to L
+	*(p_sda+1) &= ~b_sda;										// SDA set to OUTPUT
+
+	*(p_scl+1) |= b_scl;										// SCL set to Hi-Z
+	while((*p_scl&b_scl)==0);									// SCL wait to H
+
 	delayMicroseconds(interval);
-	*p_scl |= b_scl;
-	delayMicroseconds(interval);
-	*p_sda |= b_sda;
-	delayMicroseconds(interval);
+
+	*(p_sda+1) |= b_sda;										// SDA set to Hi-Z
+	while((*p_sda&b_sda)==0);									// SCA wait to H
 }
 
 static void end(void)
@@ -126,29 +149,31 @@ static void setClock(uint32_t freq)
 {
 	interval = 1000000 / (freq*2) + 1;
 }
-
 static uint8_t stopCondition(bool sendStop)
 {
-	bool flag;
 	if(sendStop) {
-		*p_scl |= b_scl;											// SDA -> Hi-Z
-		*(p_scl+1) |= b_scl;										// SDA Hi-Z as input
+		*(p_sda+1) &= ~b_sda;										// SDA set to OUTPUT
+		*(p_scl+1) |= b_scl;										// SCL set to Hi-Z
+		while((*p_scl&b_scl)==0);									// SCL wait to H
+		delayMicroseconds(interval);								// tLOW
+		*(p_sda+1) |= b_sda;										// SDA set to Hi-Z
+		while((*p_sda&b_sda)==0);									// SCA wait to H
+		delayMicroseconds(interval);								// tLOW
+
+		delayMicroseconds(interval);								// tLOW
+		*(p_scl+1) |= b_scl;										// SCL set to Hi-Z
 		while((*p_scl&b_scl)==0);
 		delayMicroseconds(interval);								// tLOW
-		*p_sda |= b_sda;												// SCL -> Hi-Z
+		*(p_sda+1) |= b_sda;										// SDA Hi-Z as input
 		delayMicroseconds(interval);								// tLOW
-		*(p_scl+1) &= ~b_scl;										// SDA set to output
 	} else {
-		*p_sda |= b_sda;													// SDA -> Hi-Z
 		*(p_sda+1) |= b_sda;												// SDA Hi-Z as input
 		while((*p_sda&b_sda)==0);
 		delayMicroseconds(interval);									// tLOW
-		*p_scl |= b_scl;												// SCL -> Hi-Z
 		*(p_scl+1) |= b_scl;											// SCL Hi-Z as input
 		while((*p_scl&b_scl)==0);
 		delayMicroseconds(interval);									// tLOW
 		*(p_sda+1) &= ~b_sda;											// SDA -> Hi-Z
-		*(p_scl+1) &= ~b_scl;											// SCL Hi-Z as input
 	}
 	return 0;
 }
@@ -159,14 +184,14 @@ static byte beginTransmission(uint8_t address)
 	buf_index = 0;
 	buf_length = 0;
 	i2c_address = address;
-	
+
 	// send stop condition when state is transmit
 	if(transmit == true)
 	{
 		rc = stopCondition(true);
 	}
 	delayMicroseconds(interval);										// tLOW
-	
+
 	return rc;
 }
 
@@ -175,11 +200,11 @@ static uint8_t endTransmission(uint8_t sendStop)
 {
 	byte rc;
 	buf_index = 0;
-	
+
 	if(!transmit){
 		stopCondition(true);
 	}
-	
+
 	transmit = true;
 	// send start condition
 	rc = i2c_start();
@@ -188,14 +213,14 @@ static uint8_t endTransmission(uint8_t sendStop)
 		rc = I2C_RESULT_ERROR;
 		goto err;
 	}
-	
+
 	// send i2c slave address in write mode
 	rc = i2c_write((i2c_address << 1)& 0xFE);
 	if(rc != 0) {
 		rc = I2C_RESULT_ANACK;
 		goto err;
 	}
-	
+
 	for(buf_index=0;buf_index<buf_length;buf_index++)
 	{
 		rc = i2c_write(buf[buf_index]);
@@ -261,24 +286,20 @@ static size_t available(void)
 
 static size_t requestFrom(uint8_t address, uint16_t size, uint8_t bStop)
 {
+	uint16_t i;
 	byte rc;
 	buf_index = 0;
-	buf_length = 0;
+	buf_length = size;
 	i2c_start();
 	rc = i2c_write((address<<1) | 0x01);
 	if(rc != 0)
 	{
 		goto end;
 	}
-	
-	for(buf_length = 0; buf_length < size; buf_length++)
+
+	for(i = 0; i < size; i++)
 	{
-		rc = i2c_read(&buf[buf_length]);
-		if(rc==NACK)
-		{
-			buf_length++;
-			break;
-		}
+		i2c_read(&buf[i],(i < size-1));
 	}
 	delayMicroseconds(10);
 	stopCondition(bStop);
