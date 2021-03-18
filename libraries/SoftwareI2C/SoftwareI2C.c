@@ -61,7 +61,7 @@ static void i2c_read(uint8_t *data,bool cont)
 	for(i=0;i<8;i++) {
 		delayMicroseconds(interval);								// tHIGH
 		*(p_scl+1) |= b_scl;										// SCL HIGH as input
-		while(!(*p_scl&b_scl)){} 									// clock strecher
+		while(!(~(*p_scl)&b_scl)){} 									// clock strecher
 		rcv = (rcv<<1) | ((*p_sda & b_sda )? 1 : 0);				// get SDA
 		delayMicroseconds(interval);								// tLOW
 		*(p_scl+1) &= ~b_scl;										// SCL LOW as output
@@ -137,7 +137,7 @@ static void begin(uint8_t sda,uint8_t scl)
 	delayMicroseconds(interval);
 
 	*(p_sda+1) |= b_sda;										// SDA set to Hi-Z
-	while((*p_sda&b_sda)==0);									// SCA wait to H
+	while(((~(*p_sda))&b_sda)==0);									// SCA wait to H
 }
 
 static void end(void)

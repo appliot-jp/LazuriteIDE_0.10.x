@@ -39,7 +39,7 @@
 
 #include "..\..\libraries\libdebug\libdebug.h"
 #if defined(LIB_DEBUG) && !defined(DEBUG)
-	#error Missing DEBUG macro.
+#error Missing DEBUG macro.
 #endif
 
 
@@ -237,7 +237,7 @@ static void queue_init() {
 static int queue_write(QUEUE_DATA *buf) {
 	int next_tail;
 
-		mode = STATE_TRIG_ACTIVATE;
+	//mip.func_mode = STATE_TRIG_ACTIVATE;
 	next_tail = queue_next(queue.tail);
 	// queue is full if next index of tail equals current head
 	if (next_tail == queue.head) return QUEUE_ERR_FULL;
@@ -959,13 +959,13 @@ static void SensorState_onUnstable(SensorState* p_this) {
  * State control functions
  * -------------------------------------------------------------------------------- */
 #ifdef SCAN
-	#define RX_INTERVAL ( 2*1000ul )				// 
-	#define TX_INTERVAL ( rand()&1000 )
-	#define RETRY_INTERVAL ( 10*1000ul+ (rand()&500) )
+#define RX_INTERVAL ( 2*1000ul )				// 
+#define TX_INTERVAL ( rand()&1000 )
+#define RETRY_INTERVAL ( 10*1000ul+ (rand()&500) )
 #else
-	#define RX_INTERVAL ( 2*1000ul )
-	#define TX_INTERVAL ( rand()&1000 )
-	#define RETRY_INTERVAL ( 10*1000ul+ (rand()&500) )
+#define RX_INTERVAL ( 2*1000ul )
+#define TX_INTERVAL ( rand()&1000 )
+#define RETRY_INTERVAL ( 10*1000ul+ (rand()&500) )
 #endif
 #define ACTIVATE_RETRY_INTERVAL ( 1800*1000ul )
 #define MIN_BACKOFF_INTERVAL ( 1000ul ) // actual max interval is 2^8*1000=256 s
