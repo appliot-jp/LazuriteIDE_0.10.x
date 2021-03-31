@@ -1,6 +1,6 @@
-#include "ALSensor2_5_ide.h"		// Additional Header
+#include "ALSensor2_6_ide.h"		// Additional Header
 
-/* FILE NAME: ALSensor2_5.c
+/* FILE NAME: ALSensor2_6.c
  * The MIT License (MIT)
  *
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
