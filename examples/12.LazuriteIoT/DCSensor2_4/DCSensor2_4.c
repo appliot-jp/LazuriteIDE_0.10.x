@@ -1,6 +1,6 @@
 #include "DCSensor2_4_ide.h"		// Additional Header
 
-/* FILE NAME: DCSensor2_3.c
+/* FILE NAME: DCSensor2_4.c
  * The MIT License (MIT)
  * 
  * Copyright (c) 2020  Lapis Semiconductor Co.,Ltd.
