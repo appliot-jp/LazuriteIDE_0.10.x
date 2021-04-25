@@ -1,5 +1,6 @@
 #include "PLCSIGINT_1_ide.h"		// Additional Header
 #include "driver_extirq.h"
+
 /* FILE NAME: HallDoor_2.c
  * The MIT License (MIT)
  * 
@@ -89,7 +90,8 @@ void sensor_deactivate(void) {
 void sensor_meas(SensorState s[]) {
 	SENSOR_VAL *val = &(s[0].sensor_val);
 
-	val->data.float_val=!digitalRead(SIG_INT);  val->type = FLOAT_VAL;
+	val->data.float_val=!digitalRead(SIG_INT);
+	val->type = FLOAT_VAL;
 	
 	return;
 }
