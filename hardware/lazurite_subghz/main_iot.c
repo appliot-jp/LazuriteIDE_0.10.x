@@ -84,7 +84,9 @@ typedef enum {
 	STATE_DUMMY
 } MAIN_IOT_STATE;
 #ifdef SCAN
-static const uint8_t subghz_ch_list[]={24,30,36,42,48,54,60};
+static const uint8_t subghz_ch_list[]={
+	24,30,36,42,48,54,60,
+	24+64,30+64,36+64,42+64,48+64,54+64,60+64};
 #endif
 
 typedef struct {
@@ -960,10 +962,12 @@ static void SensorState_onUnstable(SensorState* p_this) {
  * -------------------------------------------------------------------------------- */
 #ifdef SCAN
 #define RX_INTERVAL ( 2*1000ul )				// 
+#define WAIT_ACTIVATE ( 200 )
 #define TX_INTERVAL ( rand()&1000 )
 #define RETRY_INTERVAL ( 10*1000ul+ (rand()&500) )
 #else
 #define RX_INTERVAL ( 2*1000ul )
+#define WAIT_ACTIVATE ( 200 )
 #define TX_INTERVAL ( rand()&1000 )
 #define RETRY_INTERVAL ( 10*1000ul+ (rand()&500) )
 #endif
@@ -985,7 +989,14 @@ const uint16_t pow_arr[MAX_BACKOFF_COUNT+1] = {1,2,4,8,16,32,64,128,256};
 
 static SUBGHZ_MSG subghzSend(TX_PARAM *ptx) {
 	SUBGHZ_MSG msg;
-	SubGHz.begin(mip.subghz_ch,ptx->host.pan_id,SUBGHZ_100KBPS,SUBGHZ_PWR_20MW);
+#ifdef DEBUG
+	Serial.print("antsw: ");
+	Serial.print_long((long)mip.subghz_ch&0x40?1:0,DEC);
+	Serial.print(",ch: ");
+	Serial.println_long((long)mip.subghz_ch&0x3F,DEC);
+#endif
+	SubGHz.antSwitch(mip.subghz_ch&0x40?1:0);
+	SubGHz.begin(mip.subghz_ch&0x3F,ptx->host.pan_id,SUBGHZ_100KBPS,SUBGHZ_PWR_20MW);
 	SubGHz.setAckReq(ptx->ack_req);
 	if (ptx->rx_on == true) {
 		SubGHz.rxEnable(NULL);
@@ -1077,7 +1088,7 @@ static MAIN_IOT_STATE func_waitActivate(void) {
 			sensor_state_init();
 			tx_param.retry = 0; // clear
 		}
-	} else if (millis() - tx_param.tx_time > RX_INTERVAL) { // timeout
+	} else if (millis() - tx_param.tx_time > WAIT_ACTIVATE) { // timeout
 		SubGHz.close();
 		tx_param.retry++;
 		BREAKL("tx_param.retry: ",(long)tx_param.retry,DEC);
@@ -1093,6 +1104,10 @@ static MAIN_IOT_STATE func_waitActivate(void) {
 #else // SCAN
 	if (rx_len > 0) { // receive
 		SubGHz.getStatus(NULL,&rx);
+#ifdef DEBUG
+		Serial.print("rssi: ");
+		Serial.println_long(rx.rssi,DEC);
+#endif
 		if(rx.rssi > mip.rssi) {
 			rx_buf[rx_len] = 0;
 			digitalWrite(ORANGE_LED,LOW);
@@ -1109,7 +1124,7 @@ static MAIN_IOT_STATE func_waitActivate(void) {
 		//mip.subghz_ch_scan++;
 		BREAKL("mip.subghz_ch_scan: ",(long)mip.subghz_ch_scan,DEC);
 		//mode = STATE_TRIG_ACTIVATE;
-	} else if (millis() - tx_param.tx_time > RX_INTERVAL) { // timeout
+		} else if (millis() - tx_param.tx_time > WAIT_ACTIVATE) { // timeout
 		SubGHz.close();
 		mip.subghz_ch_scan++;
 		BREAKL("mip.subghz_ch_scan: ",(long)mip.subghz_ch_scan,DEC);
@@ -1483,7 +1498,8 @@ static MAIN_IOT_STATE func_trigFwUpd(void) {
 	SubGHz.close();
 	if (msg == SUBGHZ_OK) {
 		if (OTA.checkAesKey()) SubGHz.setKey(ota_aes_key);
-		SubGHz.begin(mip.subghz_ch,mip.gateway_panid,SUBGHZ_100KBPS,SUBGHZ_PWR_20MW);
+		SubGHz.antSwitch(mip.subghz_ch&0x40?1:0);
+		SubGHz.begin(mip.subghz_ch&0x7F,mip.gateway_panid,SUBGHZ_100KBPS,SUBGHZ_PWR_20MW);
 		SubGHz.rxEnable(NULL);
 		mode = STATE_WAIT_FW_UPD;
 		BREAK("waiting...");
