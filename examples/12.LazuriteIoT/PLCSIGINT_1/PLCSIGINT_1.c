@@ -92,6 +92,7 @@ void sensor_meas(SensorState s[]) {
 
 	val->data.float_val=!digitalRead(SIG_INT);
 	val->type = FLOAT_VAL;
+	val->digit = 2;
 	
 	return;
 }

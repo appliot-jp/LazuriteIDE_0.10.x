@@ -382,6 +382,7 @@ static void sensor_construct(void) {
 
 	for (i=0; i<MAX_SENSOR_NUM; i++,ssp++) {
 		ssp->sensor_val.reason = INVALID_REASON;
+		ssp->sensor_val.digit = 2;
 		ssp->id = INVALID_ID;
 		ssp->thrs_on_val = 0.1;
 		ssp->thrs_off_val = 0.1;
