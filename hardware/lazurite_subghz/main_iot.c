@@ -42,7 +42,7 @@
 #error Missing DEBUG macro.
 #endif
 
-
+bool always_on = false;
 
 /* --------------------------------------------------------------------------------
  * Please note that this program needs OTA library and the below AES key
@@ -694,7 +694,7 @@ static uint32_t sensor_checkEack(MAIN_IOT_STATE *mode) {
 		tx_param.str = tx_buf;
 		tx_param.rx_on = false;
 		subghzSend(&tx_param);
-		SubGHz.close();
+		if(always_on == false) SubGHz.close();
 		mip.subghz_ch_scan = 0;
 		mip.rssi = 0;
 		*mode = STATE_TRIG_ACTIVATE;
@@ -1046,7 +1046,7 @@ static MAIN_IOT_STATE func_trigActivate(void) {
 		tx_param.fail = 0;
 		mip.sleep_time = NO_SLEEP;
 	} else {
-		SubGHz.close();
+		if(always_on == false) SubGHz.close();
 		BREAKL("tx fail: ",(long)tx_param.fail,DEC);
 		if (tx_param.fail >= MAX_TRIG_TX_FAIL_COUNT) {
 			tx_param.fail = 0;
@@ -1078,7 +1078,7 @@ static MAIN_IOT_STATE func_waitActivate(void) {
 #else
 			mode = STATE_SEND_REALTIME;
 #endif
-			SubGHz.close();
+		if(always_on == false) SubGHz.close();
 			if (mip.my_short_addr != 0xffff) SubGHz.setMyAddress(mip.my_short_addr);
 			if (sensor_activate(&mip.sense_interval) == true) {
 				mip.sleep_time = mip.sense_interval;
@@ -1090,7 +1090,7 @@ static MAIN_IOT_STATE func_waitActivate(void) {
 			tx_param.retry = 0; // clear
 		}
 	} else if (millis() - tx_param.tx_time > WAIT_ACTIVATE) { // timeout
-		SubGHz.close();
+		if(always_on == false) SubGHz.close();
 		tx_param.retry++;
 		BREAKL("tx_param.retry: ",(long)tx_param.retry,DEC);
 		if (tx_param.retry <= MAX_ACTIVATE_RETRY) {
@@ -1126,7 +1126,7 @@ static MAIN_IOT_STATE func_waitActivate(void) {
 		BREAKL("mip.subghz_ch_scan: ",(long)mip.subghz_ch_scan,DEC);
 		//mode = STATE_TRIG_ACTIVATE;
 		} else if (millis() - tx_param.tx_time > WAIT_ACTIVATE) { // timeout
-		SubGHz.close();
+		if(always_on == false) SubGHz.close();
 		mip.subghz_ch_scan++;
 		BREAKL("mip.subghz_ch_scan: ",(long)mip.subghz_ch_scan,DEC);
 		mode = STATE_TRIG_ACTIVATE;
@@ -1194,7 +1194,7 @@ static MAIN_IOT_STATE func_sendRealtime(void) {
 			}
 			BREAKS("tx_buf: ",tx_buf);
 			msg = subghzSend(&tx_param);
-			SubGHz.close();
+			if(always_on == false) SubGHz.close();
 			if (msg == SUBGHZ_OK) {
 				mip.send_request = false;
 				// update last send time
@@ -1243,7 +1243,7 @@ static MAIN_IOT_STATE func_sendQueueData(void) {
 		tx_param.str = tx_buf;
 		tx_param.rx_on = false;
 		msg = subghzSend(&tx_param);
-		SubGHz.close();
+		if(always_on == false) SubGHz.close();
 		if (msg == SUBGHZ_OK) {
 			mip.sense_interval = sensor_checkEack(&mode);
 			if (mode != STATE_SEND_QUEUE_DATA) {
@@ -1351,7 +1351,7 @@ static MAIN_IOT_STATE func_waitReconnect(void) {
 		} else {
 			if (ret == PARSE_PARAM_CHANGE) sensor_state_init();
 			mode = STATE_SEND_QUEUE_DATA;
-			SubGHz.close();
+			if(always_on == false) SubGHz.close();
 			if (mip.my_short_addr != 0xffff) SubGHz.setMyAddress(mip.my_short_addr);
 			tx_param.retry = 0; // clear
 			tx_param.backoff_time = 0; // clear
@@ -1359,7 +1359,7 @@ static MAIN_IOT_STATE func_waitReconnect(void) {
 	} else if (millis() - tx_param.tx_time > RX_INTERVAL) { // timeout
 		BREAK("timeout");
 		mode = STATE_TRIG_RECONNECT;
-		SubGHz.close();
+		if(always_on == false) SubGHz.close();
 		tx_param.set_backoff_time = true;
 		if (tx_param.retry < MAX_BACKOFF_COUNT) {
 			tx_param.retry++;
@@ -1392,7 +1392,7 @@ static MAIN_IOT_STATE func_trigUpdParam(void) {
 		tx_param.fail = 0;
 		mip.sleep_time = NO_SLEEP;
 	} else {
-		SubGHz.close();
+		if(always_on == false) SubGHz.close();
 		BREAKL("tx fail: ",(long)tx_param.fail,DEC);
 		if (tx_param.fail >= MAX_TRIG_TX_FAIL_COUNT) {
 			tx_param.fail = 0;
@@ -1421,7 +1421,7 @@ static MAIN_IOT_STATE func_waitUpdParam(void) {
 #else
 			mode = STATE_SEND_REALTIME;
 #endif
-			SubGHz.close();
+			if(always_on == false) SubGHz.close();
 			if (mip.my_short_addr != 0xffff) SubGHz.setMyAddress(mip.my_short_addr);
 			if (sensor_activate(&mip.sense_interval) == true) {
 				mip.sleep_time = mip.sense_interval;
@@ -1433,7 +1433,7 @@ static MAIN_IOT_STATE func_waitUpdParam(void) {
 			tx_param.retry = 0; // clear
 		}
 	} else if (millis() - tx_param.tx_time > RX_INTERVAL) { // timeout
-		SubGHz.close();
+		if(always_on == false) SubGHz.close();
 		tx_param.retry++;
 		BREAKL("tx_param.retry: ",(long)tx_param.retry,DEC);
 		if (tx_param.retry <= MAX_UPD_PARAM_RETRY) {
@@ -1496,7 +1496,7 @@ static MAIN_IOT_STATE func_trigFwUpd(void) {
 	tx_param.str = ota_str;
 	tx_param.rx_on = false;
 	msg = subghzSend(&tx_param);
-	SubGHz.close();
+	if(always_on == false) SubGHz.close();
 	if (msg == SUBGHZ_OK) {
 		if (OTA.checkAesKey()) SubGHz.setKey(ota_aes_key);
 		SubGHz.antSwitch(mip.subghz_ch&0x40?1:0);
@@ -1543,7 +1543,7 @@ static MAIN_IOT_STATE func_waitFwUpd(void) {
 			mip.sleep_time = DEFAULT_SLEEP_INTERVAL;
 		}
 	} else if (millis() - tx_param.tx_time > RX_INTERVAL) { // timeout
-		SubGHz.close();
+		if(always_on == false) SubGHz.close();
 		tx_param.retry++;
 		BREAKL("tx_param.retry: ",(long)tx_param.retry,DEC);
 		if (tx_param.retry <= MAX_FW_UPD_RETRY) {

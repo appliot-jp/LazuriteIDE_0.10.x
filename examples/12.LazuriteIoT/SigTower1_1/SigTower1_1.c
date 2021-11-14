@@ -1,6 +1,6 @@
-#include "ProxSensor_2_ide.h"		// Additional Header
+#include "SigTower1_1_ide.h"		// Additional Header
 
-/* FILE NAME: ProxSensor_2.c
+/* FILE NAME: ALSensor_6.c
  * The MIT License (MIT)
  *
  * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
@@ -30,10 +30,23 @@
  * this function is called in initalizing process
  * return filename
  */
+#define ORANGE_LED				( 25 )
+#define BLUE_LED				( 26 )
+
+static int data_buf_index = 0;
+#define DATA_BUF_LENGTH  8
+static float data_buf[DATA_BUF_LENGTH];
+static bool timer2_flag = false;
+
+static void mstimer2_isr(void) {
+	timer2_flag = true;
+	return;
+}
+
 char* sensor_init() {
 	static char filename[] = __FILE__;
-	Wire.begin();
-	rpr0521rs.init();
+	analogReadResolution(12);
+
 	return filename;
 }
 
@@ -43,26 +56,24 @@ char* sensor_init() {
  * return  true : sensor_meas is called after interval
  *         false: sensor_meas is called immidialtely
  */
-bool sensor_activate(uint32_t *interval) {
-	*interval = 5000ul;
-	return false;
+bool sensor_activate(uint32_t *interval) {	
+	*interval = 5000ul; // dummy
+	Serial.begin(115200);
+	return true;
 }
 /*
  * callback function of deactivation
  */
 void sensor_deactivate(void) {
-	return;
+	timer2.stop();
 }
 
 /*
  * function of sensor measurement
- *
- * s[]: Array of SensorState is passed. If single sensor type, array size is always '1'.
- *
  * val->data is settled depends on data type
  * data type is set into val->type
  * val->digit shows digit of floating number.
- * 
+ *
  * val->data.uint8_val=xxx;   val->type = UINT8_VAL;
  * val->data.int8_val=xxx;    val->type = INT8_VAL;
  * val->data.uint16_val=xxx;  val->type = UINT16_VAL;
@@ -74,11 +85,32 @@ void sensor_deactivate(void) {
  */
 void sensor_meas(SensorState s[]) {
 	SENSOR_VAL *val = &(s[0].sensor_val);
-	uint16_t ps_val;
-	float als_val;
+	double sum_als = 0;
+	double als_val = 0;
+	int i;
 
-	rpr0521rs.get_oneShot(&ps_val, &als_val);
-	val->data.uint16_val=ps_val;  val->type = UINT16_VAL;
-	
+	uint32_t remain_time;
+
+	timer2.set(100L,mstimer2_isr);
+	timer2.start();
+
+	for(i = 0; i < 20; i++) {
+		remain_time = wait_event_timeout(&timer2_flag,1000);
+		if(remain_time == 0) {
+			break;
+		}
+		sum_als  += analogRead(14);
+	}
+	if(i>0) {
+		als_val = sum_als/i;
+	} else {
+		als_val = 0;
+	}
+	val->data.double_val=als_val;  val->type = DOUBLE_VAL; val->digit = 2;
+
+	Serial.print("STX,");
+	Serial.print_double((double)als_val,2);
+	Serial.println(",ETX");
+
 	return;
 }

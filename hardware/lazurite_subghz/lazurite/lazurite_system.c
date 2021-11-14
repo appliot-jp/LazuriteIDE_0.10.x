@@ -40,6 +40,7 @@
 
 //#define MIE_TEST
 //#define _DEBUG
+#define ML7396_RESET_WAIT (uint16_t)6	//(default 3)
 
 //********************************************************************************
 //   global parameters
@@ -146,7 +147,7 @@ void lazurite_gpio_init(void)
 
 	wdt_clear();
 	delay_flag = false;
-	timer_16bit_set(6,0xE8,(uint16_t)3,_ldo_stable_isr);
+	timer_16bit_set(6,0xE8,ML7396_RESET_WAIT,_ldo_stable_isr);
 	timer_16bit_start(6);
 	while(delay_flag == false) {
 		lp_setHaltMode();

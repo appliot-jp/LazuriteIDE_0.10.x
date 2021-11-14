@@ -1,21 +1,21 @@
-#include "DCSensor2_5_ide.h"		// Additional Header
+#include "Proximity_1_ide.h"		// Additional Header
 
-/* FILE NAME: DCSensor2_5.c
+/* FILE NAME: ALSensor2_6.c
  * The MIT License (MIT)
- * 
- * Copyright (c) 2020  Lapis Semiconductor Co.,Ltd.
+ *
+ * Copyright (c) 2018  Lapis Semiconductor Co.,Ltd.
  * All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,39 +24,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
 */
-//#define DEBUG
-
-#define PLC_IN_NUM			( 6 )
-#define PLC_IN0				( 8 )
-#define DC_SENSOR_NUM		( 2 )
-#define DC_SENSOR_AIN0		( 14 )
-
-#if DC_SENSOR_NUM+PLC_IN_NUM > MAX_SENSOR_NUM
-	#error The number of sensor exceeds MAX_SENSOR_NUM.
-#endif
-
-void callback(void)
-{
-	waitEventFlag = true;
-}
 
 /*
  * initializaing function
  * this function is called in initalizing process
  * return filename
  */
+#define ORANGE_LED				( 25 )
+#define BLUE_LED				( 26 )
+
+static int data_buf_index = 0;
+#define DATA_BUF_LENGTH  8
+static float data_buf[DATA_BUF_LENGTH];
+static bool timer2_flag = false;
+
+static void mstimer2_isr(void) {
+	timer2_flag = true;
+	return;
+}
+
 char* sensor_init() {
 	static char filename[] = __FILE__;
-	int i;
-
-	SubGHz.antSwitch(1);
-	analogReadResolution(12);
 	useInterruptFlag = true;
-	for (i=0; i<PLC_IN_NUM; i++) {
-		pinMode((uint8_t)(PLC_IN0+i), INPUT);
-	}
-	always_on = true;
-
+	Wire.begin();
+	
 	return filename;
 }
 
@@ -67,12 +58,11 @@ char* sensor_init() {
  *         false: sensor_meas is called immidialtely
  */
 bool sensor_activate(uint32_t *interval) {
+	uint8_t reg = 0x76;
 	*interval = 5000ul; // dummy
-	timer2.set(100L,callback);
-	timer2.start();
+	rpr0521rs.write(RPR0521RS_MODE_CONTROL, &reg, sizeof(reg));
 	Serial.begin(115200);
-
-	return false;
+	return true;
 }
 /*
  * callback function of deactivation
@@ -96,33 +86,20 @@ void sensor_deactivate(void) {
  * val->data.float_val=xxx;   val->type = FLOAT_VAL;  val->digit = d;
  * val->data.double_val=xxx;  val->type = DOUBLE_VAL; val->digit = d;
  */
- 
 void sensor_meas(SensorState s[]) {
-	SENSOR_VAL *val;
-	uint16_t data[DC_SENSOR_NUM+PLC_IN_NUM];
-	int i;
+	SENSOR_VAL *val = &(s[0].sensor_val);
+	uint8_t rawval[2];
+	uint16_t ps;
 
-	for (i=0; i<DC_SENSOR_NUM; i++) {
-		val = &(s[i].sensor_val);
-		data[i] = analogRead((uint8_t)(DC_SENSOR_AIN0+i));
-		val->data.uint16_val = data[i];
-		val->type = UINT16_VAL;
-	}
+	rpr0521rs.read(RPR0521RS_PS_DATA_LSB, rawval, 2);
 
-	for (i=0; i<PLC_IN_NUM; i++) {
-		val = &(s[DC_SENSOR_NUM+i].sensor_val);
-		data[DC_SENSOR_NUM+i] = digitalRead((uint8_t)(PLC_IN0+i)) == 0 ? 1 : 0; // invert, active low
-		val->data.uint16_val = data[DC_SENSOR_NUM+i];
-		val->type = UINT16_VAL;
-	}
-#ifndef DEBUG
-	Serial.print("STX");
-	for (i=0; i<DC_SENSOR_NUM+PLC_IN_NUM; i++) {
-		Serial.print(",");
-		Serial.print_long((long)data[i],DEC);
-	}
+	ps = ((unsigned short)rawval[1] << 8) | rawval[0];
+	
+	val->data.uint16_val=ps;  val->type = UINT16_VAL;
+
+	Serial.print("STX,");
+	Serial.print_long(ps,DEC);
 	Serial.println(",ETX");
-#endif
+
 	return;
 }
-

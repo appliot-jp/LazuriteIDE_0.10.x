@@ -95,5 +95,6 @@ extern bool sensor_activate(uint32_t *interval);
 extern void sensor_deactivate(void);
 extern bool waitEventFlag;
 extern bool useInterruptFlag;
+extern bool always_on;
 
 #endif // _IOT_H_
