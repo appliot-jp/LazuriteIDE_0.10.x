@@ -128,7 +128,7 @@ void timer_16bit_set(unsigned char ch, unsigned char TMnCON, unsigned short TMnn
 	IRQ5 &= ~(num_to_bit[ch] | num_to_bit[ch+1]);			// clear irq of timer0, timer1
 	IE5  &= ~(num_to_bit[ch] | num_to_bit[ch+1]);			// clear ie of timer0, timer1
 	
-	*pTMnnD = TMnnD;
+	*pTMnnD = ((TMnnD&0x00FF) == 0x00FE) ? TMnnD | 0x00FF: TMnnD;
 	*pTMnnC = 0;
 	*pTMnCON = TMnCON;
 	

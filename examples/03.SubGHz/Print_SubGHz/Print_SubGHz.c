@@ -25,15 +25,14 @@
  * THE SOFTWARE.
 */
 
-#define SUBGHZ_CH	24
+#define SUBGHZ_CH	36
 #define SUBGHZ_PANID	0xABCD
 uint8_t rx_data[256];
 uint32_t last_recv_time = 0;
 SUBGHZ_STATUS rx;							// structure for getting rx status
 #define BLUE_LED	26
 
-static const unsigned char key[] = {0x07,0xa4,0x5e,0x45,0x43,0x18,0xb6,0xd4,0xa9,0xd5,0x44,0x9f,0x3b,0x34,0x2b,0xda};
-//static const unsigned char key[] = NULL
+static const unsigned char *key = NULL;
 
 uint8_t baud = 100;
 uint8_t ch = 36;
