@@ -66,9 +66,11 @@ typedef struct {
 
 typedef enum {
 	SENSOR_STATE_OFF_STABLE = 0,
-	SENSOR_STATE_OFF_UNSTABLE,
-	SENSOR_STATE_ON_STABLE,
-	SENSOR_STATE_ON_UNSTABLE
+	SENSOR_STATE_OFF_UNSTABLE,		//1
+	SENSOR_STATE_ON_STABLE,			//2
+	SENSOR_STATE_ON_UNSTABLE,		//3
+	SENSOR_STATE_OFF_REASON_CHANGING,//4
+	SENSOR_STATE_OFF_REASON_CHANGED
 } SENSOR_STATE;
 
 typedef struct {
@@ -82,6 +84,7 @@ typedef struct {
 	uint32_t thrs_on_start;
 	uint32_t thrs_off_start;
 	int reason;
+	int tmp_reason;
 	SENSOR_STATE next_state;
 	uint8_t vls_level;
 	uint32_t last_save_time; // last timestamp of sending sensor data including keep alive

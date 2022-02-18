@@ -582,7 +582,11 @@ static bool sensor_operJudge(SensorState *p_this) {
 	switch (p_this->next_state) {
 		case SENSOR_STATE_OFF_STABLE:
 			SensorState_offStable(p_this);
-			if (p_this->next_state == SENSOR_STATE_ON_STABLE) ret = true;
+			if (p_this->next_state == SENSOR_STATE_ON_STABLE)  ret = true;
+			if (p_this->next_state == SENSOR_STATE_OFF_REASON_CHANGED) {
+				p_this->next_state = SENSOR_STATE_OFF_STABLE;
+				ret = true;
+			}
 			break;
 		case SENSOR_STATE_OFF_UNSTABLE:
 			init_state = p_this->init_state;
@@ -609,6 +613,18 @@ static bool sensor_operJudge(SensorState *p_this) {
 					ret = true;
 				}
 			} else if (p_this->next_state == SENSOR_STATE_OFF_STABLE) {
+				ret = true;
+			}
+			break;
+		case SENSOR_STATE_OFF_REASON_CHANGING:
+			init_state = p_this->init_state;
+			SensorState_offChanging(p_this);
+			if (p_this->next_state == SENSOR_STATE_OFF_REASON_CHANGED) {
+				p_this->next_state = SENSOR_STATE_OFF_STABLE;
+				ret = true;
+			}
+			if (init_state == SENSOR_INIT_STARTING) {
+				p_this->init_state = SENSOR_INIT_DONE;
 				ret = true;
 			}
 			break;
@@ -892,13 +908,27 @@ static void SensorState_offStable(SensorState* p_this) {
 		} else {
 			p_this->next_state = SENSOR_STATE_ON_STABLE;
 		}
+	} else if(p_this->reason != p_this->sensor_val.reason) {
+		if (p_this->thrs_off_interval != 0) {
+			p_this->thrs_off_start = mip.last_sense_time;
+			p_this->next_state = SENSOR_STATE_OFF_REASON_CHANGING;
+			p_this->tmp_reason = p_this->sensor_val.reason;
+		} else {
+			p_this->next_state = SENSOR_STATE_OFF_REASON_CHANGED;
+			p_this->reason = p_this->sensor_val.reason;
+		}
 	}
 }
 
 static void SensorState_offUnstable(SensorState* p_this) {
 	p_this->next_state = SENSOR_STATE_OFF_UNSTABLE;
-
 	if (p_this->sensor_comp_val <= p_this->thrs_on_val) {
+		if (p_this->init_state == SENSOR_INIT_DONE) {
+			p_this->next_state = SENSOR_STATE_OFF_STABLE;
+		} else if (mip.last_sense_time-p_this->thrs_off_start >= p_this->thrs_off_interval) {
+			p_this->next_state = SENSOR_STATE_OFF_STABLE;
+		}
+	} else if(p_this->reason != p_this->sensor_val.reason) {
 		if (p_this->init_state == SENSOR_INIT_DONE) {
 			p_this->next_state = SENSOR_STATE_OFF_STABLE;
 		} else if (mip.last_sense_time-p_this->thrs_off_start >= p_this->thrs_off_interval) {
@@ -954,6 +984,34 @@ static void SensorState_onUnstable(SensorState* p_this) {
 			} else {
 				p_this->next_state = SENSOR_STATE_OFF_STABLE;
 			}
+		}
+	}
+}
+static void SensorState_offChanging(SensorState* p_this) {
+	if (p_this->sensor_comp_val <= p_this->thrs_on_val) {
+		if(p_this->tmp_reason == p_this->sensor_val.reason) {
+			if (mip.last_sense_time-p_this->thrs_off_start >= p_this->thrs_off_interval) {
+				p_this->next_state = SENSOR_STATE_OFF_REASON_CHANGED;
+				p_this->reason = p_this->sensor_val.reason;
+			}
+		} else if(p_this->reason == p_this->sensor_val.reason) {
+				p_this->next_state = SENSOR_STATE_OFF_STABLE;
+		} else {
+			if (p_this->thrs_off_interval != 0) {
+				p_this->thrs_off_start = mip.last_sense_time;
+				p_this->next_state = SENSOR_STATE_OFF_REASON_CHANGING;
+				p_this->tmp_reason = p_this->sensor_val.reason;
+			} else {
+				p_this->next_state = SENSOR_STATE_OFF_REASON_CHANGED;
+				p_this->reason = p_this->sensor_val.reason;
+			}
+		}
+	} else {
+		if (p_this->thrs_on_interval != 0) {
+			p_this->thrs_on_start = mip.last_sense_time;
+			p_this->next_state = SENSOR_STATE_OFF_UNSTABLE;
+		} else {
+			p_this->next_state = SENSOR_STATE_ON_STABLE;
 		}
 	}
 }
