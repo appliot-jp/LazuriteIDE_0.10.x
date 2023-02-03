@@ -24,6 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
 */
+#include "mcu.h"
 
 #define LED		25
 
@@ -49,6 +50,8 @@ void setup(void)
 // Arduino loop sequence
 void loop(void)
 {
+	uint16_t reg = WDTMOD;
 	Serial.println("hello world");
+	Serial.println_long(reg,HEX);
 	delay(1000);
 }

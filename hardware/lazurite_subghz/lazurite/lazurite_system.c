@@ -107,8 +107,8 @@ void init(void)
 	
 	// Watch dog timer
 	irq_sethandler(IRQ_NO_WDTINT,watch_dog_isr);
-	wdt_init( WDTMOD_WDT1 | WDTMOD_WDT0);
-	wdt_disHaltCount();	
+	wdt_init( WDTMOD_HLTEN | WDTMOD_WDT1 | WDTMOD_WDT0);
+	//wdt_disHaltCount();	
 	
 	// Initializing timer
 	init_timer();
@@ -429,6 +429,7 @@ static void clk_block_ctrl_init(void)
 	write_reg16(BLKCON45,0x0603);
 }
 
+int wdt_count = 0;
 void watch_dog_isr(void)
 {
 #ifndef	_WDT
