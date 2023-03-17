@@ -32,10 +32,10 @@
  * MACRO switch
  * -------------------------------------------------------------------------------- */
 #define SCAN
-//#define DEBUG // uncomment, if debuggging
+#define DEBUG // uncomment, if debuggging
 //#define LIB_DEBUG // uncomment, if use libdebug
 //#define BREAK_MODE // uncomment, if use BREAK_MODE of libdebug
-#define USE_DEBUG_LED // uncomment, if use blue led for debugging
+//#define USE_DEBUG_LED // uncomment, if use blue led for debugging
 
 #include "..\..\libraries\libdebug\libdebug.h"
 #if defined(LIB_DEBUG) && !defined(DEBUG)
@@ -1098,12 +1098,14 @@ static MAIN_IOT_STATE func_trigActivate(void) {
 	tx_param.rx_on = true;
 	msg = subghzSend(&tx_param);
 	if (msg == SUBGHZ_OK) {
+		// Broadcastなので通常はこちらに進む
 		mode = STATE_WAIT_ACTIVATE;
 		BREAK("waiting...");
 		tx_param.tx_time = millis();
 		tx_param.fail = 0;
 		mip.sleep_time = NO_SLEEP;
 	} else {
+		// キャリアセンスなどのエラー時はこちらに進む
 		if(always_on == false) SubGHz.close();
 		BREAKL("tx fail: ",(long)tx_param.fail,DEC);
 		if (tx_param.fail >= MAX_TRIG_TX_FAIL_COUNT) {
@@ -1311,6 +1313,11 @@ static MAIN_IOT_STATE func_sendQueueData(void) {
 			queue_dequeue(num);
 		} else { // fail
 			mode = STATE_TRIG_RECONNECT;
+#ifdef SCAN
+			mip.subghz_ch_scan = 0;
+			mip.rssi = 0;
+			mip.subghz_ch = subghz_ch_list[mip.subghz_ch_scan];
+#endif
 			tx_param.set_backoff_time = true;
 		}
 		mip.sleep_time = NO_SLEEP;
@@ -1377,6 +1384,13 @@ static MAIN_IOT_STATE func_trigReconnect(void) {
 		tx_param.host.short_addr = 0xffff;
 		tx_param.str = activate_str;
 		tx_param.rx_on = true;
+#ifdef SCAN
+		if(mip.subghz_ch_scan >= sizeof(subghz_ch_list)) {
+			mip.subghz_ch_scan = 0;
+			mip.rssi = 0;
+		}
+		mip.subghz_ch = subghz_ch_list[mip.subghz_ch_scan];
+#endif
 		msg = subghzSend(&tx_param);
 		if (msg == SUBGHZ_OK) {
 			mode = STATE_WAIT_RECONNECT;
@@ -1396,10 +1410,12 @@ static MAIN_IOT_STATE func_waitReconnect(void) {
 	MAIN_IOT_STATE mode = STATE_WAIT_RECONNECT;
 #ifdef IOT_QUEUE
 	SUBGHZ_MAC_PARAM mac;
+	SUBGHZ_STATUS rx;
 	int rx_len,ret;
 
 	//Serial.println("func_waitReconnect");
 	rx_len = SubGHz.readData(rx_buf,MAX_BUF_SIZE);
+#ifndef SCAN		// SCANではない場合
 	if (rx_len > 0) { // receive
 		rx_buf[rx_len] = 0;
 		SubGHz.decMac(&mac,rx_buf,rx_len);
@@ -1425,6 +1441,70 @@ static MAIN_IOT_STATE func_waitReconnect(void) {
 			tx_param.retry = MAX_BACKOFF_COUNT;
 		}
 	}
+#else		// SCANの場合
+	if (rx_len > 0) { // receive
+		SubGHz.getStatus(NULL,&rx);
+#ifdef DEBUG
+		Serial.print("rssi: ");
+		Serial.println_long(rx.rssi,DEC);
+#endif
+		if(rx.rssi > mip.rssi) {
+			rx_buf[rx_len] = 0;
+			digitalWrite(ORANGE_LED,LOW);
+			digitalWrite(BLUE_LED,LOW);
+			SubGHz.decMac(&mac,rx_buf,rx_len);
+			ret = sensor_parsePayload(mac.payload);
+			if (ret < 0) {
+				BREAKL("parse error: ",(long)ret,DEC);
+			} else {
+				if (ret == PARSE_PARAM_CHANGE) sensor_state_init();
+				//mode = STATE_SEND_QUEUE_DATA;
+				if(always_on == false) SubGHz.close();
+				if (mip.my_short_addr != 0xffff) SubGHz.setMyAddress(mip.my_short_addr);
+				tx_param.retry = 0; // clear
+				tx_param.backoff_time = 0; // clear
+				mip.rssi = rx.rssi;
+				mip.subghz_ch_num = mip.subghz_ch_scan;
+				digitalWrite(ORANGE_LED,HIGH);
+				digitalWrite(BLUE_LED,HIGH);
+			}
+		}
+		//mip.subghz_ch_scan++;
+		BREAKL("mip.subghz_ch_scan: ",(long)mip.subghz_ch_scan,DEC);
+		//mode = STATE_TRIG_ACTIVATE;
+	} else if (millis() - tx_param.tx_time > WAIT_ACTIVATE) { // timeout
+		if(always_on == false) SubGHz.close();
+		mip.subghz_ch_scan++;
+		BREAKL("mip.subghz_ch_scan: ",(long)mip.subghz_ch_scan,DEC);
+		mode = STATE_TRIG_RECONNECT;
+	}
+	if(mip.subghz_ch_scan >= sizeof(subghz_ch_list)){
+		if(mip.rssi > 0) {		// find gateway
+			mode = STATE_SEND_QUEUE_DATA;
+			mip.subghz_ch = subghz_ch_list[mip.subghz_ch_num];
+			if (mip.my_short_addr != 0xffff) SubGHz.setMyAddress(mip.my_short_addr);
+			if (sensor_activate(&mip.sense_interval) == true) {
+				mip.sleep_time = mip.sense_interval;
+			} else {
+				mip.sleep_time = NO_SLEEP;
+			}
+			mip.enable_sense = true;
+			sensor_state_init();
+			tx_param.retry = 0; // clear
+		} else {
+			BREAK("timeout");
+			mode = STATE_SEND_QUEUE_DATA;
+			if(always_on == false) SubGHz.close();
+			tx_param.set_backoff_time = true;
+			if (tx_param.retry < MAX_BACKOFF_COUNT) {
+				tx_param.retry++;
+			} else {
+				tx_param.retry = MAX_BACKOFF_COUNT;
+			}
+		}
+
+	}
+#endif
 #endif
 	return mode;
 }
